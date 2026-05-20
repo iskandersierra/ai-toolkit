@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ai-toolkit://schemas/ai-toolkit.annotations.schema.json",
+  "title": "AI Toolkit Annotation Store",
+  "description": "Schema for the workspace-local AI Toolkit annotation store.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "activeSessionId",
+    "sessions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "activeSessionId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sessions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/session"
+      }
+    }
+  },
+  "$defs": {
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "line",
+        "character"
+      ],
+      "properties": {
+        "line": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "character": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/position"
+        },
+        "end": {
+          "$ref": "#/$defs/position"
+        }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "range",
+        "selectedText",
+        "contextBeforeLines",
+        "contextAfterLines"
+      ],
+      "properties": {
+        "range": {
+          "$ref": "#/$defs/range"
+        },
+        "selectedText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "contextBeforeLines": {
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "contextAfterLines": {
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    "annotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "annotationId",
+        "status",
+        "anchorState",
+        "body",
+        "filePath",
+        "createdAt",
+        "updatedAt",
+        "anchor"
+      ],
+      "properties": {
+        "annotationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "resolved",
+            "dismissed"
+          ]
+        },
+        "anchorState": {
+          "type": "string",
+          "enum": [
+            "anchored",
+            "orphaned"
+          ]
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1
+        },
+        "filePath": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*\\\\).+"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "anchor": {
+          "$ref": "#/$defs/anchor"
+        }
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionId",
+        "name",
+        "sessionSlug",
+        "createdAt",
+        "updatedAt",
+        "annotations"
+      ],
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sessionSlug": {
+          "type": "string",
+          "minLength": 1
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "annotations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/annotation"
+          }
+        }
+      }
+    }
+  }
+}

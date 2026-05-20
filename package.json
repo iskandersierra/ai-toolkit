@@ -9,13 +9,132 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished",
+    "workspaceContains:**/.vscode/ai-toolkit.annotations.json",
+    "onCommand:ai-toolkit.addOrEditAnnotation",
+    "onCommand:ai-toolkit.selectReviewSession",
+    "onCommand:ai-toolkit.generateDraftOutput",
+    "onCommand:ai-toolkit.purgeDismissedAnnotations",
+    "onCommand:ai-toolkit.reanchorAnnotation",
+    "onCommand:ai-toolkit.dismissAnnotation"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "ai-toolkit.helloWorld",
-        "title": "Hello World"
+        "command": "ai-toolkit.addOrEditAnnotation",
+        "title": "AI Toolkit: Add or Edit Annotation",
+        "category": "AI Toolkit"
+      },
+      {
+        "command": "ai-toolkit.selectReviewSession",
+        "title": "AI Toolkit: Select Review Session",
+        "category": "AI Toolkit"
+      },
+      {
+        "command": "ai-toolkit.generateDraftOutput",
+        "title": "AI Toolkit: Generate Draft Output",
+        "category": "AI Toolkit"
+      },
+      {
+        "command": "ai-toolkit.purgeDismissedAnnotations",
+        "title": "AI Toolkit: Purge Dismissed Annotations",
+        "category": "AI Toolkit"
+      },
+      {
+        "command": "ai-toolkit.reanchorAnnotation",
+        "title": "AI Toolkit: Reanchor Annotation",
+        "category": "AI Toolkit"
+      },
+      {
+        "command": "ai-toolkit.dismissAnnotation",
+        "title": "AI Toolkit: Dismiss Annotation",
+        "category": "AI Toolkit"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "ai-toolkit.addOrEditAnnotation"
+        },
+        {
+          "command": "ai-toolkit.selectReviewSession"
+        },
+        {
+          "command": "ai-toolkit.generateDraftOutput"
+        },
+        {
+          "command": "ai-toolkit.purgeDismissedAnnotations"
+        },
+        {
+          "command": "ai-toolkit.reanchorAnnotation",
+          "when": "aiToolkit.annotation.canManage"
+        },
+        {
+          "command": "ai-toolkit.dismissAnnotation",
+          "when": "aiToolkit.annotation.canManage"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "ai-toolkit.addOrEditAnnotation",
+          "group": "navigation@10",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "ai-toolkit.reanchorAnnotation",
+          "group": "navigation@11",
+          "when": "editorTextFocus && aiToolkit.annotation.canManage"
+        },
+        {
+          "command": "ai-toolkit.dismissAnnotation",
+          "group": "navigation@12",
+          "when": "editorTextFocus && aiToolkit.annotation.canManage"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "ai-toolkit.addOrEditAnnotation",
+        "key": "ctrl+alt+a a",
+        "when": "editorTextFocus && (editorHasSelection || aiToolkit.annotation.canManage)"
+      },
+      {
+        "command": "ai-toolkit.selectReviewSession",
+        "key": "ctrl+alt+a s",
+        "when": "workspaceFolderCount > 0"
+      },
+      {
+        "command": "ai-toolkit.generateDraftOutput",
+        "key": "ctrl+alt+a d",
+        "when": "workspaceFolderCount > 0"
+      }
+    ],
+    "configuration": {
+      "title": "AI Toolkit",
+      "properties": {
+        "aiToolkit.draftOutputFormat": {
+          "type": "string",
+          "enum": [
+            "markdown",
+            "json",
+            "yaml"
+          ],
+          "default": "markdown",
+          "markdownDescription": "Controls the output format used by `AI Toolkit: Generate Draft Output`."
+        },
+        "aiToolkit.comments.showOnlyActiveSession": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Shows comment projections only for the active review session."
+        }
+      }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": ".vscode/ai-toolkit.annotations.json",
+        "url": "./schemas/ai-toolkit.annotations.schema.json"
       }
     ]
   },
