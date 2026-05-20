@@ -211,6 +211,11 @@ function validateRelativeFilePath(value: string, path: string): string {
 		throw createAnnotationValidationError(path, 'filePath must be a workspace-relative path using / separators.');
 	}
 
+	const segments = value.split('/');
+	if (segments.some((segment) => segment === '..' || segment === '.')) {
+		throw createAnnotationValidationError(path, 'filePath must not contain parent-directory traversal segments.');
+	}
+
 	return value;
 	}
 

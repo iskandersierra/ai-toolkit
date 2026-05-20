@@ -11,24 +11,34 @@ import { createVscodeAnnotationInputService } from '../presentation/annotationIn
 import { createVscodeSessionQuickPickPresenter } from '../presentation/sessionQuickPick';
 import { AnnotationStorageController } from '../infrastructure/annotationStorageController';
 import { AnnotationStoreWatcher } from '../infrastructure/annotationStoreWatcher';
+import { AnnotationCommentProjectionService } from '../presentation/annotationCommentProjectionService';
+import { AnnotationCodeLensProvider } from '../presentation/annotationCodeLensProvider';
 
 export { annotationCommandIds, type AnnotationCommandResult };
 
 export function registerAnnotationFeature(context: vscode.ExtensionContext): void {
 	const serviceRegistry = new AnnotationWorkspaceServiceRegistry();
+	const commentProjection = new AnnotationCommentProjectionService();
+	const codeLensProvider = new AnnotationCodeLensProvider();
 	const contextKeys = registerAnnotationContextKeys(context, {
-		getWorkspaceService: async (workspaceFolder) => serviceRegistry.getWorkspaceService(workspaceFolder, contextKeys),
+		getWorkspaceService: async (workspaceFolder) => serviceRegistry.getWorkspaceService(workspaceFolder, contextKeys, commentProjection, codeLensProvider),
 	});
 	const sessionSelectionService = new SessionSelectionService(createVscodeSessionQuickPickPresenter());
 
 	registerAnnotationCommands(context, {
-		getWorkspaceService: async (workspaceFolder) => serviceRegistry.getWorkspaceService(workspaceFolder, contextKeys),
+		getWorkspaceService: async (workspaceFolder) => serviceRegistry.getWorkspaceService(workspaceFolder, contextKeys, commentProjection, codeLensProvider),
 		sessionSelectionService,
 		inputService: createVscodeAnnotationInputService(),
 		contextKeys,
 	});
 
-	context.subscriptions.push(contextKeys, serviceRegistry);
+	context.subscriptions.push(
+		contextKeys,
+		serviceRegistry,
+		commentProjection,
+		codeLensProvider,
+		vscode.languages.registerCodeLensProvider({ scheme: 'file' }, codeLensProvider),
+	);
 }
 
 class AnnotationWorkspaceServiceRegistry implements vscode.Disposable {
@@ -38,6 +48,8 @@ class AnnotationWorkspaceServiceRegistry implements vscode.Disposable {
 	public async getWorkspaceService(
 		workspaceFolder: vscode.WorkspaceFolder,
 		contextKeys?: { refresh(): Promise<void> },
+		commentProjection?: AnnotationCommentProjectionService,
+		codeLensProvider?: AnnotationCodeLensProvider,
 	): Promise<AnnotationWorkspaceService> {
 		const key = workspaceFolder.uri.toString();
 		const existing = this.services.get(key);
@@ -55,6 +67,19 @@ class AnnotationWorkspaceServiceRegistry implements vscode.Disposable {
 			this.subscriptions.push(
 				service.onDidChangeState(() => {
 					void contextKeys.refresh();
+				}),
+			);
+		}
+
+		if (commentProjection || codeLensProvider) {
+			this.subscriptions.push(
+				service.onDidChangeState(() => {
+					const state = service.getState();
+
+					if (state?.status === 'ready') {
+						commentProjection?.refresh(state.projection);
+						codeLensProvider?.refresh(state.projection);
+					}
 				}),
 			);
 		}

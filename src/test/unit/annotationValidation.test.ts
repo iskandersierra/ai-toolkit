@@ -68,6 +68,36 @@ suite('Annotation Validation', () => {
 
 		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
 	});
+
+	// Scenario: runtime validation rejects filePaths that use parent-directory traversal to escape the workspace boundary.
+	test('rejects filePaths with parent-directory traversal', () => {
+		const store = createStore({
+			sessions: [
+				createSession({
+					annotations: [
+						createAnnotation({ filePath: '../outside.ts' }),
+					],
+				}),
+			],
+		});
+
+		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
+	});
+
+	// Scenario: runtime validation rejects filePaths that contain relative-directory segments.
+	test('rejects filePaths with current-directory segments', () => {
+		const store = createStore({
+			sessions: [
+				createSession({
+					annotations: [
+						createAnnotation({ filePath: './src/file.ts' }),
+					],
+				}),
+			],
+		});
+
+		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
+	});
 });
 
 function createStore(overrides: Partial<AnnotationStore> = {}): AnnotationStore {

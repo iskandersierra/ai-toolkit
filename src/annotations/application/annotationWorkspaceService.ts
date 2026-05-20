@@ -88,7 +88,6 @@ export interface AnnotationWorkspaceMutationSuccess {
 	sessionId?: string;
 	reanchored?: AnnotationReanchorMatch;
 	purgedCount?: number;
-	stub?: 'draftOutput';
 }
 
 export type AnnotationWorkspaceMutationResult =
@@ -378,7 +377,6 @@ export class AnnotationWorkspaceService implements AnnotationWorkspaceServiceLik
 			status: 'ready',
 			projection: readyState.projection,
 			storePath: readyState.storePath,
-			stub: 'draftOutput',
 		};
 	}
 

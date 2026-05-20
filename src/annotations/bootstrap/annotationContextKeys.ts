@@ -5,6 +5,7 @@ import { findWorkspaceFolderForEditor } from '../util/workspaceFolders';
 
 export const annotationContextKeyIds = {
 	canManage: 'aiToolkit.annotation.canManage',
+	hasActiveSession: 'aiToolkit.annotation.hasActiveSession',
 } as const;
 
 export interface AnnotationContextKeyDependencies {
@@ -32,6 +33,7 @@ export function registerAnnotationContextKeys(
 
 		if (!editor || !workspaceFolder) {
 			await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, false);
+			await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, false);
 			return;
 		}
 
@@ -39,6 +41,7 @@ export function registerAnnotationContextKeys(
 
 		if (!filePath) {
 			await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, false);
+			await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, false);
 			return;
 		}
 
@@ -47,11 +50,13 @@ export function registerAnnotationContextKeys(
 
 		if (state.status !== 'ready') {
 			await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, false);
+			await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, false);
 			return;
 		}
 
 		const target = findAnnotationForEditorSelection(state.projection.annotations, filePath, editor.selection);
 		await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, Boolean(target));
+		await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, Boolean(state.projection.activeSessionId));
 	};
 
 	disposables.push(windowApi.onDidChangeActiveTextEditor(() => void refresh()));

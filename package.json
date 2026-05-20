@@ -11,13 +11,7 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "workspaceContains:**/.vscode/ai-toolkit.annotations.json",
-    "onCommand:ai-toolkit.addOrEditAnnotation",
-    "onCommand:ai-toolkit.selectReviewSession",
-    "onCommand:ai-toolkit.generateDraftOutput",
-    "onCommand:ai-toolkit.purgeDismissedAnnotations",
-    "onCommand:ai-toolkit.reanchorAnnotation",
-    "onCommand:ai-toolkit.dismissAnnotation"
+    "workspaceContains:**/.vscode/ai-toolkit.annotations.json"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -108,7 +102,7 @@
       {
         "command": "ai-toolkit.generateDraftOutput",
         "key": "ctrl+alt+a d",
-        "when": "workspaceFolderCount > 0"
+        "when": "workspaceFolderCount > 0 && aiToolkit.annotation.hasActiveSession"
       }
     ],
     "configuration": {

@@ -158,6 +158,7 @@ function createWindowApi(editor: vscode.TextEditor) {
 		showErrorMessage: async () => undefined,
 		showInformationMessage: async () => undefined,
 		showWarningMessage: async () => undefined,
+		showTextDocument: vscode.window.showTextDocument.bind(vscode.window),
 	};
 }
 
@@ -306,7 +307,6 @@ class FakeAnnotationWorkspaceService implements Pick<AnnotationWorkspaceService,
 			status: 'ready',
 			projection: deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, this.store),
 			storePath,
-			stub: 'draftOutput',
 		};
 	}
 

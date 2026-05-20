@@ -22,6 +22,8 @@ import {
 	findWorkspaceFolderForEditor,
 	findWorkspaceFolderForPaletteCommand,
 } from '../util/workspaceFolders';
+import { generateDraftContent } from '../application/draftOutputService';
+import type { DraftOutputFormat } from '../domain/draftShapes';
 
 export const annotationCommandIds = {
 	addOrEditAnnotation: 'ai-toolkit.addOrEditAnnotation',
@@ -53,7 +55,7 @@ export type AnnotationCommandResult =
 			| 'annotationReanchored'
 			| 'reviewSessionSelected'
 			| 'dismissedAnnotationsPurged'
-			| 'draftOutputStubbed';
+			| 'draftOutputGenerated';
 		annotationId?: string;
 		sessionId?: string;
 		purgedCount?: number;
@@ -78,7 +80,7 @@ export interface AnnotationContextKeyController {
 export interface AnnotationCommandDependencies {
 	window?: Pick<
 		typeof vscode.window,
-		'activeTextEditor' | 'showErrorMessage' | 'showInformationMessage' | 'showWarningMessage'
+		'activeTextEditor' | 'showErrorMessage' | 'showInformationMessage' | 'showWarningMessage' | 'showTextDocument'
 	>;
 	commands?: Pick<typeof vscode.commands, 'registerCommand'>;
 	inputService?: AnnotationInputService;
@@ -404,15 +406,35 @@ export async function executeGenerateDraftOutputCommand(
 
 	const service = await dependencies.getWorkspaceService(workspaceFolder);
 	const result = await service.generateDraftOutput();
-	return toMutationCommandResult(
-		annotationCommandIds.generateDraftOutput,
-		result,
-		windowApi,
-		workspaceFolder.uri.fsPath,
-		'Draft output remains a Phase 5 stub in this build.',
-		'draftOutputStubbed',
-		dependencies.contextKeys,
-	);
+
+	if (result.status === 'blocked') {
+		return reportWorkspaceBlocked(annotationCommandIds.generateDraftOutput, result, windowApi, workspaceFolder.uri.fsPath);
+	}
+
+	if (!result.projection.activeSessionId) {
+		return reportBlocked(
+			annotationCommandIds.generateDraftOutput,
+			workspaceFolder.uri.fsPath,
+			'noActiveSession',
+			'Select a review session before generating draft output.',
+			windowApi,
+		);
+	}
+
+	const format = vscode.workspace
+		.getConfiguration('aiToolkit')
+		.get<DraftOutputFormat>('draftOutputFormat', 'markdown');
+	const { content, languageId } = generateDraftContent(result.projection, format);
+
+	const doc = await vscode.workspace.openTextDocument({ content, language: languageId });
+	await windowApi.showTextDocument(doc);
+
+	return {
+		status: 'ready',
+		commandId: annotationCommandIds.generateDraftOutput,
+		workspaceFolder: workspaceFolder.uri.fsPath,
+		operation: 'draftOutputGenerated',
+	};
 }
 
 async function executeExistingAnnotationAction(
@@ -662,11 +684,22 @@ function blockWithoutWorkspace(
 
 function reportWorkspaceBlocked(
 	commandId: AnnotationCommandId,
-	blocked: { reason: AnnotationWorkspaceBlockedReason; message: string },
+	blocked: { reason: AnnotationWorkspaceBlockedReason; message: string; storePath?: string },
 	windowApi: Pick<typeof vscode.window, 'showErrorMessage'>,
 	workspaceFolder: string,
 ): AnnotationCommandResult {
-	void windowApi.showErrorMessage(blocked.message);
+	if (blocked.reason === 'invalidStore' && blocked.storePath) {
+		const storePath = blocked.storePath;
+		void windowApi.showErrorMessage(blocked.message, 'Open Store').then(async (action) => {
+			if (action === 'Open Store') {
+				const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(storePath));
+				await vscode.window.showTextDocument(doc);
+			}
+		});
+	} else {
+		void windowApi.showErrorMessage(blocked.message);
+	}
+
 	return {
 		status: 'blocked',
 		commandId,
