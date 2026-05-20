@@ -2,7 +2,7 @@
 title: AI Toolkit Context
 description: Canonical glossary for the AI Toolkit Visual Studio Code extension domain.
 author: GitHub Copilot
-ms.date: 2026-05-19
+ms.date: 2026-05-20
 ms.topic: reference
 keywords:
   - ai-toolkit
@@ -30,11 +30,11 @@ The user-local persistence area where AI Toolkit keeps workspace-specific annota
 _Avoid_: Committed team file, ad hoc root artifact
 
 **Workspace Local File**:
-A user-local annotation file stored under the workspace at `.vscode/ai-toolkit.annotations.json`, and expected to stay out of shared version control.
+A user-local annotation file stored under each workspace folder at `.vscode/ai-toolkit.annotations.json`, and expected to stay out of shared version control.
 _Avoid_: Extension-only hidden storage, committed repository artifact
 
 **Session Registry File**:
-The single workspace-local file stored at `.vscode/ai-toolkit.annotations.json` that stores all review sessions, their annotations, and the active session marker.
+The single workspace-folder-local file stored at `.vscode/ai-toolkit.annotations.json` that stores all review sessions, their annotations, and the active session marker.
 _Avoid_: Per-session sprawl, scattered local files
 
 **Annotation Scope**:
@@ -42,7 +42,7 @@ The visibility boundary that determines whether annotations are personal or shar
 _Avoid_: Unstated default, mixed audience
 
 **Annotation Schema**:
-The versioned JSON structure that defines how annotations are stored and exchanged.
+The versioned JSON structure, backed by a JSON Schema, that defines how annotations are stored and exchanged.
 _Avoid_: Ad hoc payload, implicit format
 
 **Comment Projection**:
@@ -58,8 +58,12 @@ An editor-local command, exposed in v1 as `AI Toolkit: Add or Edit Annotation`, 
 _Avoid_: Global settings flow, manual file editing
 
 **Annotation Status**:
-The lifecycle marker that indicates whether an annotation still requires attention.
+The lifecycle marker that indicates whether an annotation is active, resolved, or dismissed.
 _Avoid_: Hidden flag, implicit workflow state
+
+**Annotation Anchor State**:
+The anchor-reliability marker that indicates whether an annotation is still anchored or has become orphaned.
+_Avoid_: Lifecycle status, hidden relocation failure
 
 **Review Session**:
 A user-defined set of annotations created for one pass, objective, or line of analysis.
@@ -82,7 +86,7 @@ The one-thread representation of an annotation inside the VS Code comments panel
 _Avoid_: Multi-card panel item, full metadata dump
 
 **Annotation Summary Metadata**:
-The minimal metadata shown with an annotation in the comments UI for quick interpretation.
+The minimal metadata shown with an annotation in the comments UI for quick interpretation, specifically session, status, and anchor state.
 _Avoid_: Full record dump, hidden status context
 
 **Annotation Body**:
@@ -94,7 +98,7 @@ Any additional labeling or type system beyond session and status.
 _Avoid_: Premature taxonomy, free-form tags in v1
 
 **Orphaned Annotation**:
-An annotation whose anchor can no longer be relocated with sufficient confidence after code changes, while remaining preserved in the store with `orphaned` status and still visible through comment projection until the user explicitly reanchors or dismisses it.
+An annotation whose anchor can no longer be relocated with sufficient confidence after code changes, while remaining preserved in the store with `anchorState = orphaned` and still visible through comment projection until the user explicitly reanchors or dismisses it.
 _Avoid_: Silent deletion, guessed relocation
 
 **Draft Output Command**:
@@ -132,6 +136,7 @@ _Avoid_: Full diff, semantic model
 * The **Annotation Store** has one **Annotation Scope**
 * Each **Annotation** has exactly one **Annotation Anchor**
 * Each **Annotation** has exactly one **Annotation Status**
+* Each **Annotation** has exactly one **Annotation Anchor State**
 * Each **Annotation** has exactly one **Annotation Body** in the first version
 * The first version has no **Annotation Classification** beyond session and status
 * An **Orphaned Annotation** stays in the **Annotation Store** until the user reanchors or dismisses it
@@ -174,6 +179,9 @@ _Avoid_: Full diff, semantic model
 > **Dev:** "How do I tell whether an annotation still matters?"
 > **Domain expert:** "Each **Annotation** carries an **Annotation Status** so agents and users can distinguish active notes from resolved or dismissed ones."
 >
+> **Dev:** "Is orphaned another status value?"
+> **Domain expert:** "No. **Orphaned Annotation** describes the **Annotation Anchor State**, not the **Annotation Status**, so an annotation can be resolved and still be orphaned until someone explicitly reanchors or dismisses it."
+>
 > **Dev:** "Where does the annotation file go?"
 > **Domain expert:** "In the first version it belongs to a user-local **Local Annotation Store**, implemented as the **Workspace Local File** `.vscode/ai-toolkit.annotations.json` instead of extension-only storage."
 >
@@ -187,7 +195,7 @@ _Avoid_: Full diff, semantic model
 > **Domain expert:** "Not in the first version; **Annotation Classification** stops at session and status so capture stays fast and the taxonomy stays consistent."
 >
 > **Dev:** "What if the code changes so much that the annotation cannot be found again?"
-> **Domain expert:** "It becomes an **Orphaned Annotation**, stays preserved with `orphaned` status in the **Session Registry File**, remains visible in the comments experience, and waits for an explicit reanchor or dismissal instead of being moved silently."
+> **Domain expert:** "It becomes an **Orphaned Annotation**, stays preserved with `anchorState = orphaned` in the **Session Registry File**, remains visible in the comments experience, and waits for an explicit reanchor or dismissal instead of being moved silently."
 >
 > **Dev:** "How do I turn my notes into something I can use elsewhere?"
 > **Domain expert:** "Use the **Draft Output Command** `AI Toolkit: Generate Draft Output` on the **Active Review Session**, which creates an **Untitled Output Document** that stays unsaved until you decide otherwise."
@@ -211,7 +219,7 @@ _Avoid_: Full diff, semantic model
 > **Domain expert:** "Use one **Comment Thread Projection** per annotation, keeping the main note visible and the UI lightweight."
 >
 > **Dev:** "What metadata should I see in that thread?"
-> **Domain expert:** "Show only the minimal **Annotation Summary Metadata** needed to interpret the note quickly, specifically session and status."
+> **Domain expert:** "Show only the minimal **Annotation Summary Metadata** needed to interpret the note quickly, specifically session, status, and anchor state."
 
 ## Flagged ambiguities
 
@@ -220,7 +228,7 @@ _Avoid_: Full diff, semantic model
 * "format" was left open between JSON, YAML, and Markdown; resolved: the canonical **Annotation Store** format is versioned JSON
 * "edit from the panel" was left undecided; resolved: the first version keeps the comments panel read-only and routes edits through a separate **Annotation Edit Surface**
 * "editing UI" was fuzzy; resolved: existing annotations are edited from a range-local editor action rather than by opening the raw store
-* "comment lifecycle" was implicit; resolved: annotations have an explicit **Annotation Status** with a minimal state set instead of plain free text only
+* "comment lifecycle" was implicit; resolved: annotations have an explicit **Annotation Status** with the minimal lifecycle set `active`, `resolved`, and `dismissed` instead of plain free text only
 * "where to persist" changed after the collaboration decision; resolved: the first version keeps annotations in a user-local **Local Annotation Store** instead of a repository-scoped artifact
 * "local persistence medium" was unresolved; resolved: the first version uses the readable **Workspace Local File** `.vscode/ai-toolkit.annotations.json` under the workspace rather than extension-only storage
 * "one file or many" was unresolved; resolved: the first version uses a single **Session Registry File** that contains all review sessions
@@ -229,7 +237,7 @@ _Avoid_: Full diff, semantic model
 * "multiple local sets" was unresolved; resolved: users can maintain multiple **Review Sessions** with one **Active Review Session** at a time
 * "title versus body" was unresolved; resolved: the first version stores a single **Annotation Body** with no separate title field
 * "tags or types" was unresolved; resolved: the first version has no extra **Annotation Classification** beyond session and status
-* "failed reanchoring" was unresolved; resolved: the first version preserves the note as an **Orphaned Annotation** until the user reanchors or dismisses it
+* "failed reanchoring" was unresolved; resolved: the first version preserves the note as an **Orphaned Annotation** through a separate **Annotation Anchor State** until the user reanchors or dismisses it
 * "how orphaned annotations surface in v1" was unresolved; resolved: orphaned annotations stay visible both in the local store and in the comments experience, and users resolve them only through explicit reanchor or dismiss actions
 * "agent-specific output" was reconsidered; resolved: users invoke a **Draft Output Command** on the **Active Review Session**, and the result opens as an **Untitled Output Document** rather than an agent-specific artifact
 * "how output format is chosen" was unresolved; resolved: the first version uses a configured **Draft Output Format** in extension settings instead of forcing a choice on each command execution
@@ -240,5 +248,5 @@ _Avoid_: Full diff, semantic model
 * "v1 command set" was unresolved; resolved: the first version exposes exactly three user-facing commands, `AI Toolkit: Add or Edit Annotation`, `AI Toolkit: Select Review Session`, and `AI Toolkit: Generate Draft Output`
 * "capture UI" was unresolved; resolved: new annotations use a lightweight **Quick Capture Flow** instead of a full creation form
 * "panel representation" was unresolved; resolved: each annotation appears as a lightweight single **Comment Thread Projection** rather than a richer card structure
-* "visible panel metadata" was unresolved; resolved: the **Annotation Summary Metadata** shown in the panel is limited to session and status
+* "visible panel metadata" was unresolved; resolved: the **Annotation Summary Metadata** shown in the panel is limited to session, status, and anchor state
 * "minimal editor edit surface" was unresolved; resolved: the first version uses both a contextual command and CodeLens, but CodeLens appears only for existing annotations while creation always works through the contextual range action
