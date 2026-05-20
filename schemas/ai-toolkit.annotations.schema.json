@@ -139,7 +139,7 @@
         "filePath": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^(?!/)(?!.*\\\\).+"
+          "pattern": "^(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.\\.?(?:/|$)).+"
         },
         "createdAt": {
           "type": "string",

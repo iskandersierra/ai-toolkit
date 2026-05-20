@@ -206,7 +206,7 @@ function validateAnnotationPosition(candidate: unknown, path: string): Annotatio
 	return { line, character };
 	}
 
-function validateRelativeFilePath(value: string, path: string): string {
+export function validateRelativeFilePath(value: string, path: string): string {
 	if (value.length === 0 || value.startsWith('/') || value.includes('\\')) {
 		throw createAnnotationValidationError(path, 'filePath must be a workspace-relative path using / separators.');
 	}

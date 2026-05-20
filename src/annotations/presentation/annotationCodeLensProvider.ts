@@ -9,25 +9,17 @@ export class AnnotationCodeLensProvider implements vscode.CodeLensProvider, vsco
 	private readonly onDidChangeCodeLensesEmitter = new vscode.EventEmitter<void>();
 	public readonly onDidChangeCodeLenses = this.onDidChangeCodeLensesEmitter.event;
 
-	private entries: AnnotationProjectionEntry[] = [];
-	private workspaceFolderPath = '';
+	private readonly entriesByWorkspace = new Map<string, AnnotationProjectionEntry[]>();
 
 	public refresh(projection: AnnotationWorkspaceProjection): void {
-		this.workspaceFolderPath = projection.workspaceFolderPath;
-		this.entries = projection.activeAnnotations.filter(
+		this.entriesByWorkspace.set(projection.workspaceFolderPath, projection.activeAnnotations.filter(
 			(entry) => entry.status !== 'dismissed',
-		);
+		));
 		this.onDidChangeCodeLensesEmitter.fire();
 	}
 
 	public provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
-		const documentRelativePath = path
-			.relative(this.workspaceFolderPath, document.uri.fsPath)
-			.replace(/\\/g, '/');
-
-		const matching = this.entries.filter(
-			(entry) => entry.filePath === documentRelativePath,
-		);
+		const matching = this.getMatchingEntries(document.uri.fsPath);
 
 		const lenses: vscode.CodeLens[] = [];
 
@@ -61,6 +53,23 @@ export class AnnotationCodeLensProvider implements vscode.CodeLensProvider, vsco
 	}
 
 	public dispose(): void {
+		this.entriesByWorkspace.clear();
 		this.onDidChangeCodeLensesEmitter.dispose();
+	}
+
+	private getMatchingEntries(documentPath: string): AnnotationProjectionEntry[] {
+		for (const [workspaceFolderPath, entries] of this.entriesByWorkspace) {
+			const documentRelativePath = path
+				.relative(workspaceFolderPath, documentPath)
+				.replace(/\\/g, '/');
+
+			if (documentRelativePath.startsWith('../') || path.isAbsolute(documentRelativePath)) {
+				continue;
+			}
+
+			return entries.filter((entry) => entry.filePath === documentRelativePath);
+		}
+
+		return [];
 	}
 }

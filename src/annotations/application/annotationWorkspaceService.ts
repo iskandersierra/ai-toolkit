@@ -5,6 +5,7 @@ import {
 	type AnnotationReanchorMatch,
 } from '../domain/anchorMatching';
 import type { AnnotationAnchor, AnnotationEntry, AnnotationSession, AnnotationStore } from '../domain/annotationModels';
+import { validateRelativeFilePath } from '../domain/annotationValidation';
 import type {
 	AnnotationLoadResult,
 	AnnotationLoadReadyResult,
@@ -331,7 +332,19 @@ export class AnnotationWorkspaceService implements AnnotationWorkspaceServiceLik
 			return this.blocked('annotationNotFound', 'The selected annotation could not be found.');
 		}
 
-		const absolutePath = path.join(this.workspaceFolder.uri.fsPath, normalizeRelativeFilePath(input.filePath));
+		let normalizedPath: string;
+
+		try {
+			normalizedPath = normalizeAndValidateRelativeFilePath(input.filePath);
+		} catch (error) {
+			return this.blocked(
+				'fileMissing',
+				'The target file path is not a safe workspace-relative path.',
+				error instanceof Error ? error : undefined,
+			);
+		}
+
+		const absolutePath = path.join(this.workspaceFolder.uri.fsPath, normalizedPath);
 
 		try {
 			const documentText = await this.fileReader.readFile(absolutePath);
@@ -345,7 +358,7 @@ export class AnnotationWorkspaceService implements AnnotationWorkspaceServiceLik
 				}
 
 				const now = this.timestamp();
-				nextLocated.annotation.filePath = normalizeRelativeFilePath(input.filePath);
+				nextLocated.annotation.filePath = normalizedPath;
 				nextLocated.annotation.anchor = input.anchor;
 				nextLocated.annotation.anchorState = reanchored ? 'anchored' : 'orphaned';
 				nextLocated.annotation.updatedAt = now;
@@ -603,6 +616,10 @@ function getActiveSession(store: AnnotationStore): AnnotationSession | undefined
 
 function normalizeRelativeFilePath(filePath: string): string {
 	return filePath.replace(/\\/g, '/');
+}
+
+function normalizeAndValidateRelativeFilePath(filePath: string): string {
+	return validateRelativeFilePath(normalizeRelativeFilePath(filePath), '$.filePath');
 }
 
 function createSessionSlug(name: string): string {

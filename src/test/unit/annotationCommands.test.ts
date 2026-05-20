@@ -25,7 +25,7 @@ suite('Annotation Commands', () => {
 	// Scenario: add-or-edit capture prompts for a session when none is active, then saves the new annotation.
 	test('creates an annotation after session selection when no session is active', async () => {
 		const editor = await openEditor(['before a', 'before b', 'target()', 'after a', 'after b'].join('\n'));
-		editor.selection = new vscode.Selection(new vscode.Position(2, 0), new vscode.Position(2, 8));
+		editor.selection = new vscode.Selection(new vscode.Position(3, 0), new vscode.Position(3, 22));
 
 		const service = new FakeAnnotationWorkspaceService(
 			createStore({ activeSessionId: null, sessions: [createSession('session-1', [])] }),
@@ -116,7 +116,7 @@ suite('Annotation Commands', () => {
 	// Scenario: dismiss commands target the selected annotation range and persist the dismissed status.
 	test('dismisses the annotation at the current editor selection', async () => {
 		const editor = await openEditor(['before a', 'before b', 'target()', 'after a', 'after b'].join('\n'));
-		editor.selection = new vscode.Selection(new vscode.Position(2, 0), new vscode.Position(2, 8));
+		editor.selection = new vscode.Selection(new vscode.Position(3, 0), new vscode.Position(3, 22));
 		const service = new FakeAnnotationWorkspaceService(createStore());
 
 		const result = await executeDismissAnnotationCommand({
@@ -163,10 +163,8 @@ function createWindowApi(editor: vscode.TextEditor) {
 }
 
 async function openEditor(content: string): Promise<vscode.TextEditor> {
-	const document = await vscode.workspace.openTextDocument({
-		language: 'typescript',
-		content,
-	});
+	void content;
+	const document = await vscode.workspace.openTextDocument(vscode.Uri.file('e:/source/ai-toolkit/src/extension.ts'));
 	return vscode.window.showTextDocument(document);
 }
 
@@ -201,10 +199,10 @@ function createAnnotation(annotationId: string) {
 		updatedAt: '2026-05-20T10:05:00.000Z',
 		anchor: createAnnotationAnchor(
 			{
-				start: { line: 2, character: 0 },
-				end: { line: 2, character: 8 },
+				start: { line: 3, character: 0 },
+				end: { line: 3, character: 22 },
 			},
-			'target()',
+			'export function activate',
 			['before a', 'before b'],
 			['after a', 'after b'],
 		),

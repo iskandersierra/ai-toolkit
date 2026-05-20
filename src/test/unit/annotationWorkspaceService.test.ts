@@ -103,6 +103,32 @@ suite('Annotation Workspace Service', () => {
 			[['annotation-1'], ['annotation-3']],
 		);
 	});
+
+	// Scenario: reanchor rejects traversal input before any filesystem read can escape the workspace.
+	test('blocks reanchor traversal before reading the target file', async () => {
+		const storage = new InMemoryStorageController(createStore());
+		let readCount = 0;
+		const service = createService(storage, {
+			readFile: async () => {
+				readCount += 1;
+				return 'target()';
+			},
+		});
+
+		const result = await service.reanchorAnnotation({
+			annotationId: 'annotation-1',
+			filePath: '../outside.ts',
+			anchor: createAnchor(),
+		});
+
+		assert.strictEqual(result.status, 'blocked');
+		if (result.status !== 'blocked') {
+			return;
+		}
+
+		assert.strictEqual(result.reason, 'fileMissing');
+		assert.strictEqual(readCount, 0);
+	});
 });
 
 function createService(

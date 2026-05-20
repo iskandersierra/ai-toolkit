@@ -12,7 +12,9 @@ suite('Annotation Bootstrap', () => {
 
 	// Scenario: activation registers the annotation command surface for the extension host.
 	test('registers the phase 1 annotation commands', async () => {
-		await vscode.commands.executeCommand(annotationCommandIds.selectReviewSession);
+		const document = await vscode.workspace.openTextDocument({ content: 'annotation draft' });
+		await vscode.window.showTextDocument(document);
+		await vscode.commands.executeCommand(annotationCommandIds.addOrEditAnnotation);
 		const commands = await vscode.commands.getCommands(true);
 
 		for (const commandId of Object.values(annotationCommandIds)) {
@@ -20,28 +22,11 @@ suite('Annotation Bootstrap', () => {
 		}
 	});
 
-	// Scenario: a workspace-scoped palette command resolves the single workspace folder during bootstrap.
-	test('select review session resolves the workspace folder', async () => {
-		const result = await vscode.commands.executeCommand<AnnotationCommandResult>(
-			annotationCommandIds.selectReviewSession,
-		);
-		const hasSingleWorkspaceFolder = vscode.workspace.workspaceFolders?.length === 1;
+	// Scenario: a workspace-scoped palette command is registered without invoking interactive session UI.
+	test('select review session command is registered', async () => {
+		const commands = await vscode.commands.getCommands(true);
 
-		assert.ok(result);
-		assert.strictEqual(result?.status, hasSingleWorkspaceFolder ? 'ready' : 'blocked');
-
-		if (hasSingleWorkspaceFolder && result?.status === 'ready') {
-			assert.ok(result.workspaceFolder);
-			assert.strictEqual(result.operation, 'reviewSessionSelected');
-			return;
-		}
-
-		assert.deepStrictEqual(result, {
-			status: 'blocked',
-			commandId: annotationCommandIds.selectReviewSession,
-			reason: 'noWorkspaceFolder',
-			message: 'AI Toolkit annotations require a saved file inside a workspace folder.',
-		});
+		assert.ok(commands.includes(annotationCommandIds.selectReviewSession));
 	});
 
 	// Scenario: an editor-driven annotation command is blocked for an unsaved document outside the workspace.

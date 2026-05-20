@@ -7,17 +7,17 @@ import type {
 
 export class AnnotationCommentProjectionService implements vscode.Disposable {
 	private readonly controller: vscode.CommentController;
-	private readonly threads: vscode.CommentThread[] = [];
+	private readonly threadsByWorkspace = new Map<string, vscode.CommentThread[]>();
 
-	constructor() {
-		this.controller = vscode.comments.createCommentController(
+	constructor(controller?: vscode.CommentController) {
+		this.controller = controller ?? vscode.comments.createCommentController(
 			'ai-toolkit-annotations',
 			'AI Toolkit',
 		);
 	}
 
 	public refresh(projection: AnnotationWorkspaceProjection): void {
-		this.disposeThreads();
+		this.disposeWorkspaceThreads(projection.workspaceFolderPath);
 
 		const showOnlyActive = vscode.workspace
 			.getConfiguration('aiToolkit.comments')
@@ -35,7 +35,10 @@ export class AnnotationCommentProjectionService implements vscode.Disposable {
 	}
 
 	public dispose(): void {
-		this.disposeThreads();
+		for (const workspaceFolderPath of this.threadsByWorkspace.keys()) {
+			this.disposeWorkspaceThreads(workspaceFolderPath);
+		}
+
 		this.controller.dispose();
 	}
 
@@ -64,14 +67,18 @@ export class AnnotationCommentProjectionService implements vscode.Disposable {
 		};
 
 		thread.comments = [comment];
-		this.threads.push(thread);
+		const workspaceThreads = this.threadsByWorkspace.get(workspaceFolderPath) ?? [];
+		workspaceThreads.push(thread);
+		this.threadsByWorkspace.set(workspaceFolderPath, workspaceThreads);
 	}
 
-	private disposeThreads(): void {
-		for (const thread of this.threads) {
+	private disposeWorkspaceThreads(workspaceFolderPath: string): void {
+		const threads = this.threadsByWorkspace.get(workspaceFolderPath) ?? [];
+
+		for (const thread of threads) {
 			thread.dispose();
 		}
 
-		this.threads.length = 0;
+		this.threadsByWorkspace.delete(workspaceFolderPath);
 	}
 }
