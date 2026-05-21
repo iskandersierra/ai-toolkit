@@ -26,25 +26,45 @@ export function registerAnnotationContextKeys(
 	const windowApi = dependencies.window ?? vscode.window;
 	const commandsApi = dependencies.commands ?? vscode.commands;
 	const disposables: vscode.Disposable[] = [];
+	let latestRefreshToken = 0;
 
-	const setSafeDefaults = async () => {
+	const applyContextState = async (refreshToken: number, canManage: boolean, hasActiveSession: boolean) => {
+		if (refreshToken !== latestRefreshToken) {
+			return;
+		}
+
+		await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, canManage);
+
+		if (refreshToken !== latestRefreshToken) {
+			return;
+		}
+
+		await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, hasActiveSession);
+	};
+
+	const setSafeDefaults = async (refreshToken: number) => {
 		await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, false);
+
+		if (refreshToken !== latestRefreshToken) {
+			return;
+		}
+
 		await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, false);
 	};
 
-	const refresh = async () => {
+	const refresh = async (refreshToken: number) => {
 		const editor = windowApi.activeTextEditor;
 		const workspaceFolder = findWorkspaceFolderForEditor(editor);
 
 		if (!editor || !workspaceFolder) {
-			await setSafeDefaults();
+			await setSafeDefaults(refreshToken);
 			return;
 		}
 
 		const filePath = toWorkspaceRelativeFilePath(workspaceFolder, editor.document.uri);
 
 		if (!filePath) {
-			await setSafeDefaults();
+			await setSafeDefaults(refreshToken);
 			return;
 		}
 
@@ -52,20 +72,21 @@ export function registerAnnotationContextKeys(
 		const state = service.getState() ?? (await service.initialize());
 
 		if (state.status !== 'ready') {
-			await setSafeDefaults();
+			await setSafeDefaults(refreshToken);
 			return;
 		}
 
 		const target = findAnnotationForEditorSelection(state.projection.annotations, filePath, editor.selection);
-		await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, Boolean(target));
-		await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, Boolean(state.projection.activeSessionId));
+		await applyContextState(refreshToken, Boolean(target), Boolean(state.projection.activeSessionId));
 	};
 
 	const safeRefresh = async () => {
+		const refreshToken = ++latestRefreshToken;
+
 		try {
-			await refresh();
+			await refresh(refreshToken);
 		} catch {
-			await setSafeDefaults();
+			await setSafeDefaults(refreshToken);
 		}
 	};
 

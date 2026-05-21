@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { createAnnotationAnchor } from '../../annotations/domain/anchorMatching';
 import {
 	annotationContextKeyIds,
+	type AnnotationContextKeyDependencies,
 	registerAnnotationContextKeys,
 } from '../../annotations/bootstrap/annotationContextKeys';
 import { deriveAnnotationWorkspaceProjection } from '../../annotations/application/projectionModel';
@@ -58,6 +59,57 @@ suite('Annotation Context Keys', () => {
 		]);
 	});
 
+	// Scenario: overlapping refreshes publish only the newest editor state.
+	test('ignores stale refresh completions when a newer refresh finishes first', async () => {
+		const commandCalls: Array<{ key: string; value: boolean }> = [];
+		const context = createExtensionContext();
+		const firstRefresh = createDeferred<void>();
+		const newerState = createReadyState({ activeSessionId: null, annotations: [] });
+		const olderState = createReadyState();
+		const editorOne = createEditor('e:/source/ai-toolkit/src/extension.ts');
+		const editorTwo = createEditor('e:/source/ai-toolkit/src/other.ts');
+		const windowApi: AnnotationContextKeyDependencies['window'] = {
+			activeTextEditor: undefined,
+			onDidChangeActiveTextEditor: () => ({ dispose() {} }),
+			onDidChangeTextEditorSelection: () => ({ dispose() {} }),
+		};
+
+		const controller = registerAnnotationContextKeys(context, {
+			window: windowApi,
+			commands: {
+				executeCommand: (async <T = unknown>(_command: string, key: string, value: boolean) => {
+					commandCalls.push({ key, value });
+					return undefined as T;
+				}) as typeof vscode.commands.executeCommand,
+			},
+			getWorkspaceService: async (workspaceFolder) => {
+				if (windowApi.activeTextEditor === editorOne) {
+					await firstRefresh.promise;
+					return createWorkspaceService(olderState, workspaceFolder.uri.fsPath);
+				}
+
+				return createWorkspaceService(newerState, workspaceFolder.uri.fsPath);
+			},
+		});
+
+		await flushAsyncWork();
+		commandCalls.length = 0;
+
+		windowApi.activeTextEditor = editorOne;
+		const staleRefreshPromise = controller.refresh();
+
+		windowApi.activeTextEditor = editorTwo;
+		await controller.refresh();
+
+		firstRefresh.resolve();
+		await staleRefreshPromise;
+
+		assert.deepStrictEqual(commandCalls, [
+			{ key: annotationContextKeyIds.canManage, value: false },
+			{ key: annotationContextKeyIds.hasActiveSession, value: false },
+		]);
+	});
+
 	// Scenario: controller disposal owns editor listener cleanup without relying on duplicated context subscriptions.
 	test('disposes editor listeners exactly once through the controller', () => {
 		const activeEditorDisposable = createDisposableSpy();
@@ -101,16 +153,19 @@ function createWindowApi(activeTextEditor: vscode.TextEditor | undefined) {
 	};
 }
 
-function createEditor(): vscode.TextEditor {
+function createEditor(filePath = 'e:/source/ai-toolkit/src/extension.ts'): vscode.TextEditor {
 	return {
 		document: {
-			uri: vscode.Uri.file('e:/source/ai-toolkit/src/extension.ts'),
+			uri: vscode.Uri.file(filePath),
 		},
 		selection: new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8)),
 	} as vscode.TextEditor;
 }
 
-function createWorkspaceService(state: ReturnType<typeof createReadyState>): AnnotationWorkspaceServiceLike {
+function createWorkspaceService(
+	state: ReturnType<typeof createReadyState>,
+	workspacePath = 'e:/source/ai-toolkit',
+): AnnotationWorkspaceServiceLike {
 	return {
 		getState: () => state,
 		initialize: async () => state,
@@ -141,15 +196,47 @@ function createWorkspaceService(state: ReturnType<typeof createReadyState>): Ann
 	};
 }
 
-function createReadyState() {
+
+function createReadyState(
+	overrides: Partial<Pick<AnnotationStore, 'activeSessionId' | 'sessions'>> & {
+		annotations?: AnnotationStore['sessions'][number]['annotations'];
+	} = {},
+) {
+	const store = createStore(overrides);
+
 	return {
 		status: 'ready' as const,
 		storePath: 'e:/source/ai-toolkit/.vscode/ai-toolkit.annotations.json',
-		projection: deriveAnnotationWorkspaceProjection('e:/source/ai-toolkit', createStore()),
+		projection: deriveAnnotationWorkspaceProjection('e:/source/ai-toolkit', store),
 	};
 }
 
-function createStore(): AnnotationStore {
+function createStore(
+	overrides: Partial<Pick<AnnotationStore, 'activeSessionId' | 'sessions'>> & {
+		annotations?: AnnotationStore['sessions'][number]['annotations'];
+	} = {},
+): AnnotationStore {
+	const annotations = overrides.annotations ?? [
+		{
+			annotationId: 'annotation-1',
+			status: 'active',
+			anchorState: 'anchored',
+			body: 'Body',
+			filePath: 'src/extension.ts',
+			createdAt: '2026-05-20T10:05:00.000Z',
+			updatedAt: '2026-05-20T10:05:00.000Z',
+			anchor: createAnnotationAnchor(
+				{
+					start: { line: 0, character: 0 },
+					end: { line: 0, character: 8 },
+				},
+				'target()',
+				[],
+				[],
+			),
+		},
+	];
+
 	return {
 		schemaVersion: annotationSchemaVersion,
 		activeSessionId: 'session-1',
@@ -160,29 +247,22 @@ function createStore(): AnnotationStore {
 				sessionSlug: 'security-review',
 				createdAt: '2026-05-20T10:00:00.000Z',
 				updatedAt: '2026-05-20T10:00:00.000Z',
-				annotations: [
-					{
-						annotationId: 'annotation-1',
-						status: 'active',
-						anchorState: 'anchored',
-						body: 'Body',
-						filePath: 'src/extension.ts',
-						createdAt: '2026-05-20T10:05:00.000Z',
-						updatedAt: '2026-05-20T10:05:00.000Z',
-						anchor: createAnnotationAnchor(
-							{
-								start: { line: 0, character: 0 },
-								end: { line: 0, character: 8 },
-							},
-							'target()',
-							[],
-							[],
-						),
-					},
-				],
+				annotations,
 			},
 		],
+		...overrides,
 	};
+}
+
+function createDeferred<T>() {
+	let resolve!: (value: T | PromiseLike<T>) => void;
+	let reject!: (reason?: unknown) => void;
+	const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+		resolve = resolvePromise;
+		reject = rejectPromise;
+	});
+
+	return { promise, resolve, reject };
 }
 
 function createDisposableSpy(): vscode.Disposable & { disposeCount: number } {

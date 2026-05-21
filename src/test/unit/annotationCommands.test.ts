@@ -367,6 +367,34 @@ suite('Annotation Commands', () => {
 		]);
 	});
 
+		// Scenario: session selection stays successful when post-success context refresh fails.
+		test('returns a ready session-selection result when context-key refresh rejects', async () => {
+			const editor = await openEditor('target()');
+
+			const result = await executeSelectReviewSessionCommand({
+				window: createWindowApi(editor),
+				getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+				sessionSelectionService: new SessionSelectionService({
+					pickSession: async (items) => items[0],
+					promptForNewSessionName: async () => undefined,
+				}),
+				contextKeys: {
+					refresh: async () => {
+						throw new Error('refresh failed');
+					},
+					dispose: () => undefined,
+				},
+			});
+
+			assert.deepStrictEqual(result, {
+				status: 'ready',
+				commandId: annotationCommandIds.selectReviewSession,
+				workspaceFolder: workspaceFolder().uri.fsPath,
+				operation: 'reviewSessionSelected',
+				sessionId: 'session-1',
+			});
+		});
+
 	// Scenario: dismiss commands target the selected annotation range and persist the dismissed status.
 	test('dismisses the annotation at the current editor selection', async () => {
 		const editor = await openEditor('target()');
@@ -386,6 +414,41 @@ suite('Annotation Commands', () => {
 				promptForNewSessionName: async () => undefined,
 			}),
 			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.dismissAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationDismissed',
+			annotationId: 'annotation-1',
+			sessionId: undefined,
+			purgedCount: undefined,
+		});
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'dismissed');
+	});
+
+	// Scenario: successful mutations stay successful when post-success context refresh fails.
+	test('returns a ready dismiss result when context-key refresh rejects', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+			}),
+		);
+
+		const result = await executeDismissAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			contextKeys: {
+				refresh: async () => {
+					throw new Error('refresh failed');
+				},
+				dispose: () => undefined,
+			},
 		});
 
 		assert.deepStrictEqual(result, {

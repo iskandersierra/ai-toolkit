@@ -25,6 +25,9 @@ import {
 } from '../util/workspaceFolders';
 import { generateDraftContent } from '../application/draftOutputService';
 import type { DraftOutputFormat } from '../domain/draftShapes';
+import { createAnnotationLogger } from '../util/log';
+
+const logger = createAnnotationLogger();
 
 export const annotationCommandIds = {
 	addOrEditAnnotation: 'ai-toolkit.addOrEditAnnotation',
@@ -258,7 +261,11 @@ export async function executeSelectReviewSessionCommand(
 			? 'Created and activated the review session.'
 			: 'Activated the selected review session.',
 	);
-	await dependencies.contextKeys?.refresh();
+	await refreshContextKeysBestEffort(
+		dependencies.contextKeys,
+		annotationCommandIds.selectReviewSession,
+		workspaceFolder.uri.fsPath,
+	);
 	return {
 		status: 'ready',
 		commandId: annotationCommandIds.selectReviewSession,
@@ -821,7 +828,7 @@ async function toMutationCommandResult(
 	}
 
 	void windowApi.showInformationMessage(successMessage);
-	await contextKeys?.refresh();
+	await refreshContextKeysBestEffort(contextKeys, commandId, workspaceFolder);
 	return {
 		status: 'ready',
 		commandId,
@@ -831,4 +838,24 @@ async function toMutationCommandResult(
 		sessionId: result.sessionId,
 		purgedCount: result.purgedCount,
 	};
+}
+
+async function refreshContextKeysBestEffort(
+	contextKeys: AnnotationContextKeyController | undefined,
+	commandId: AnnotationCommandId,
+	workspaceFolder: string,
+): Promise<void> {
+	if (!contextKeys) {
+		return;
+	}
+
+	try {
+		await contextKeys.refresh();
+	} catch (error) {
+		logger.warn('Context-key refresh failed after a successful annotation command.', {
+			commandId,
+			workspaceFolder,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
 }
