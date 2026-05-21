@@ -124,7 +124,19 @@ export class AnnotationStorageController {
 	}
 
 	private async loadInternal(): Promise<AnnotationLoadResult> {
-		const snapshot = await this.readSnapshot();
+		let snapshot: Awaited<ReturnType<AnnotationStorageController['readSnapshot']>>;
+
+		try {
+			snapshot = await this.readSnapshot();
+		} catch (error) {
+			const validationError = toAnnotationValidationError(error);
+			logInvalidAnnotationStore(this.logger, this.storePath, validationError);
+			return {
+				status: 'invalid',
+				error: validationError,
+				storePath: this.storePath,
+			};
+		}
 
 		if (!snapshot) {
 			return {
@@ -234,7 +246,15 @@ export class AnnotationStorageController {
 		let backupPath: string | undefined;
 
 		if (options?.backupReason && currentState.status === 'ready') {
-			backupPath = (await this.backupService.createBackup(this.storePath, options.createdAt)).backupPath;
+			try {
+				backupPath = (await this.backupService.createBackup(this.storePath, options.createdAt)).backupPath;
+			} catch (error) {
+				this.logger.warn('Optional annotation store backup failed before save.', {
+					storePath: this.storePath,
+					reason: options.backupReason,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
 		}
 
 		await this.fileSystem.mkdir(this.storeDirectoryPath);

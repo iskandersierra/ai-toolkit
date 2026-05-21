@@ -19,6 +19,58 @@ import {
 import type { AnnotationSaveResult } from '../../annotations/infrastructure/annotationStorageController';
 
 suite('Annotation Workspace Service', () => {
+	// Scenario: watcher-triggered refresh failures are logged instead of escaping as unhandled rejections.
+	test('logs watcher-triggered refresh failures without dropping the previous state', async () => {
+		const refreshError = new Error('refresh failed');
+		const logger = createLoggerSpy();
+		let triggerWatcher: (() => void) | undefined;
+		const storage = new InMemoryStorageController(createStore());
+		let loadCount = 0;
+		storage.load = async () => {
+			loadCount += 1;
+			if (loadCount > 1) {
+				throw refreshError;
+			}
+
+			return {
+				status: 'ready' as const,
+				store: structuredClone(storage.store),
+				version: createVersion('watcher-seed'),
+				storePath: storage.getStorePath(),
+			};
+		};
+
+		const service = new AnnotationWorkspaceService(createWorkspaceFolder(), {
+			storage,
+			fileReader: {
+				readFile: async () => ['before a', 'before b', 'target()', 'after a', 'after b'].join('\n'),
+			},
+			watcherFactory: (_workspaceFolder, onChange) => {
+				triggerWatcher = onChange;
+				return { dispose() {} };
+			},
+			clock: () => new Date('2026-05-20T12:00:00.000Z'),
+			idFactory: () => 'generated-id',
+			logger,
+		});
+
+		const initialState = await service.initialize();
+		assert.strictEqual(initialState.status, 'ready');
+		assert.ok(triggerWatcher);
+
+		triggerWatcher?.();
+		await flushAsyncWork();
+
+		assert.deepStrictEqual(logger.errors, [{
+			message: 'Annotation workspace refresh failed after a store watcher update.',
+			details: {
+				storePath: storage.getStorePath(),
+				error: refreshError.message,
+			},
+		}]);
+		assert.deepStrictEqual(service.getState(), initialState);
+	});
+
 	// Scenario: creating a first review session persists it as the folder-scoped active session.
 	test('creates and activates a review session', async () => {
 		const storage = new InMemoryStorageController(createStore({ activeSessionId: null, sessions: [] }));
@@ -200,6 +252,22 @@ function createAnchor() {
 		['before a', 'before b'],
 		['after a', 'after b'],
 	);
+}
+
+function createLoggerSpy() {
+	return {
+		errors: [] as Array<{ message: string; details?: Record<string, unknown> }>,
+		info() {},
+		warn() {},
+		error(message: string, details?: Record<string, unknown>) {
+			this.errors.push({ message, details });
+		},
+	};
+}
+
+async function flushAsyncWork(): Promise<void> {
+	await Promise.resolve();
+	await Promise.resolve();
 }
 
 class InMemoryStorageController {

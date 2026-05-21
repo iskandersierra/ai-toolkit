@@ -1,8 +1,11 @@
 import * as assert from 'assert';
+import * as path from 'node:path';
 import * as vscode from 'vscode';
 import {
 	executeAddOrEditAnnotationCommand,
 	executeDismissAnnotationCommand,
+	executeGenerateDraftOutputCommand,
+	executeReanchorAnnotationCommand,
 	executeSelectReviewSessionCommand,
 	annotationCommandIds,
 } from '../../annotations/presentation/annotationCommands';
@@ -17,11 +20,27 @@ import type {
 import { deriveAnnotationWorkspaceProjection } from '../../annotations/application/projectionModel';
 import { createAnnotationAnchor } from '../../annotations/domain/anchorMatching';
 import {
+	annotationSelectedTextMaxLength,
 	annotationSchemaVersion,
 	type AnnotationStore,
 } from '../../annotations/domain/annotationModels';
 
+const createdFixtureUris: vscode.Uri[] = [];
+let fixtureCounter = 0;
+
 suite('Annotation Commands', () => {
+	suiteTeardown(async () => {
+		await Promise.all(
+			createdFixtureUris.map(async (uri) => {
+				try {
+					await vscode.workspace.fs.delete(uri);
+				} catch {
+					// Ignore best-effort fixture cleanup failures.
+				}
+			}),
+		);
+	});
+
 	// Scenario: add-or-edit capture prompts for a session when none is active, then saves the new annotation.
 	test('creates an annotation after session selection when no session is active', async () => {
 		const editor = await openEditor(['before a', 'before b', 'target()', 'after a', 'after b'].join('\n'));
@@ -46,7 +65,7 @@ suite('Annotation Commands', () => {
 			getWorkspaceService: async () => service,
 			sessionSelectionService: selectionService,
 			inputService,
-			contextKeys: { refresh: async () => undefined },
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
 		});
 
 		assert.deepStrictEqual(result, {
@@ -113,11 +132,251 @@ suite('Annotation Commands', () => {
 		});
 	});
 
+	// Scenario: draft generation returns a blocked result when the generated document cannot be opened.
+	test('blocks draft output when opening the generated document fails', async () => {
+		const editor = await openEditor('target()');
+		const errorMessages: string[] = [];
+
+		const result = await executeGenerateDraftOutputCommand({
+			window: createWindowApi(editor, {
+				showErrorMessage: async (message: string) => {
+					errorMessages.push(message);
+					return undefined;
+				},
+			}),
+			workspace: createWorkspaceApi({
+				openTextDocument: async () => {
+					throw new Error('open failed');
+				},
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.generateDraftOutput,
+			reason: 'documentOpenFailed',
+			message: 'Unable to open the generated draft output document.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(errorMessages, ['Unable to open the generated draft output document.']);
+	});
+
+	// Scenario: draft generation returns a blocked result when showing the generated document fails.
+	test('blocks draft output when showing the generated document fails', async () => {
+		const editor = await openEditor('target()');
+		const draftDocument = await vscode.workspace.openTextDocument({ content: 'draft', language: 'markdown' });
+		const errorMessages: string[] = [];
+
+		const result = await executeGenerateDraftOutputCommand({
+			window: createWindowApi(editor, {
+				showErrorMessage: async (message: string) => {
+					errorMessages.push(message);
+					return undefined;
+				},
+				showTextDocument: async () => {
+					throw new Error('show failed');
+				},
+			}),
+			workspace: createWorkspaceApi({
+				openTextDocument: async () => draftDocument,
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.generateDraftOutput,
+			reason: 'documentOpenFailed',
+			message: 'Unable to open the generated draft output document.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(errorMessages, ['Unable to open the generated draft output document.']);
+	});
+
+	// Scenario: add-or-edit reports invalid selections distinctly instead of treating them as store failures.
+	test('blocks add-or-edit with an invalid selection reason when the selected text exceeds the limit', async () => {
+		const oversizedSelectionText = 'a'.repeat(annotationSelectedTextMaxLength + 1);
+		const editor = await openEditor(oversizedSelectionText);
+		editor.selection = new vscode.Selection(
+			new vscode.Position(0, 0),
+			new vscode.Position(0, oversizedSelectionText.length),
+		);
+		const errorMessages: string[] = [];
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor, {
+				showErrorMessage: async (message: string) => {
+					errorMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'Validate this call path.',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			reason: 'invalidSelection',
+			message: `Selected text must be at most ${annotationSelectedTextMaxLength} characters.`,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(errorMessages, [`Selected text must be at most ${annotationSelectedTextMaxLength} characters.`]);
+	});
+
+	// Scenario: existing-annotation reanchor validates the replacement selection before mutating workspace state.
+	test('blocks add-or-edit existing-annotation reanchor when the new selection is invalid', async () => {
+		const oversizedSelectionText = 'a'.repeat(annotationSelectedTextMaxLength + 1);
+		const editor = await openEditor(oversizedSelectionText);
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(
+			new vscode.Position(0, 0),
+			new vscode.Position(0, oversizedSelectionText.length),
+		);
+		const errorMessages: string[] = [];
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', oversizedSelectionText, 0, oversizedSelectionText.length, filePath)]),
+				],
+			}),
+		);
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor, {
+				showErrorMessage: async (message: string) => {
+					errorMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'Validate this call path.',
+				pickExistingAnnotationAction: async () => 'reanchor',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			reason: 'invalidSelection',
+			message: `Selected text must be at most ${annotationSelectedTextMaxLength} characters.`,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(errorMessages, [`Selected text must be at most ${annotationSelectedTextMaxLength} characters.`]);
+		assert.strictEqual(service.reanchorCalls.length, 0);
+	});
+
+	// Scenario: direct reanchor commands report invalid replacement selections without reusing store-failure semantics.
+	test('blocks direct reanchor with an invalid selection reason when the selected text exceeds the limit', async () => {
+		const oversizedSelectionText = 'a'.repeat(annotationSelectedTextMaxLength + 1);
+		const editor = await openEditor(oversizedSelectionText);
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(
+			new vscode.Position(0, 0),
+			new vscode.Position(0, oversizedSelectionText.length),
+		);
+		const errorMessages: string[] = [];
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', oversizedSelectionText, 0, oversizedSelectionText.length, filePath)]),
+				],
+			}),
+		);
+
+		const result = await executeReanchorAnnotationCommand({
+			window: createWindowApi(editor, {
+				showErrorMessage: async (message: string) => {
+					errorMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'Validate this call path.',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.reanchorAnnotation,
+			reason: 'invalidSelection',
+			message: `Selected text must be at most ${annotationSelectedTextMaxLength} characters.`,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(errorMessages, [`Selected text must be at most ${annotationSelectedTextMaxLength} characters.`]);
+	});
+
+	// Scenario: invalid-store recovery handles Open Store document failures without creating an unhandled rejection.
+	test('handles open store recovery failures without rejecting the command', async () => {
+		const editor = await openEditor('target()');
+		const errorMessages: string[] = [];
+
+		const result = await executeSelectReviewSessionCommand({
+			window: createWindowApi(editor, {
+				showErrorMessage: (async (message: string, ...items: Array<string | vscode.MessageOptions>) => {
+					errorMessages.push(message);
+					const actionItems = items.filter((item): item is string => typeof item === 'string');
+					return actionItems.includes('Open Store') && errorMessages.length === 1 ? 'Open Store' : undefined;
+				}) as typeof vscode.window.showErrorMessage,
+			}),
+			workspace: createWorkspaceApi({
+				openTextDocument: async () => {
+					throw new Error('store open failed');
+				},
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore(), {
+				state: {
+					status: 'invalid',
+					storePath,
+					error: new Error('Invalid annotation store.'),
+				},
+			}),
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		await flushAsyncWork();
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.selectReviewSession,
+			reason: 'invalidStore',
+			message: 'The annotation store is invalid. Fix the store file before running annotation commands.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(errorMessages, [
+			'The annotation store is invalid. Fix the store file before running annotation commands.',
+			'Unable to open the annotation store document.',
+		]);
+	});
+
 	// Scenario: dismiss commands target the selected annotation range and persist the dismissed status.
 	test('dismisses the annotation at the current editor selection', async () => {
-		const editor = await openEditor(['before a', 'before b', 'target()', 'after a', 'after b'].join('\n'));
-		editor.selection = new vscode.Selection(new vscode.Position(3, 0), new vscode.Position(3, 22));
-		const service = new FakeAnnotationWorkspaceService(createStore());
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+			}),
+		);
 
 		const result = await executeDismissAnnotationCommand({
 			window: createWindowApi(editor),
@@ -126,7 +385,7 @@ suite('Annotation Commands', () => {
 				pickSession: async () => undefined,
 				promptForNewSessionName: async () => undefined,
 			}),
-			contextKeys: { refresh: async () => undefined },
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
 		});
 
 		assert.deepStrictEqual(result, {
@@ -152,20 +411,57 @@ function workspaceFolder(): vscode.WorkspaceFolder {
 	};
 }
 
-function createWindowApi(editor: vscode.TextEditor) {
+function createWindowApi(
+	editor: vscode.TextEditor,
+	overrides: Partial<{
+		showErrorMessage: typeof vscode.window.showErrorMessage;
+		showInformationMessage: typeof vscode.window.showInformationMessage;
+		showWarningMessage: typeof vscode.window.showWarningMessage;
+		showTextDocument: typeof vscode.window.showTextDocument;
+	}> = {},
+) {
 	return {
 		activeTextEditor: editor,
 		showErrorMessage: async () => undefined,
 		showInformationMessage: async () => undefined,
 		showWarningMessage: async () => undefined,
 		showTextDocument: vscode.window.showTextDocument.bind(vscode.window),
+		...overrides,
 	};
 }
 
+function createWorkspaceApi(overrides: Partial<Pick<typeof vscode.workspace, 'getConfiguration' | 'openTextDocument'>> = {}) {
+	return {
+		getConfiguration: vscode.workspace.getConfiguration.bind(vscode.workspace),
+		openTextDocument: vscode.workspace.openTextDocument.bind(vscode.workspace),
+		...overrides,
+	};
+	}
+
+function createSessionSelectionService(): SessionSelectionService {
+	return new SessionSelectionService({
+		pickSession: async () => undefined,
+		promptForNewSessionName: async () => undefined,
+	});
+	}
+
+async function flushAsyncWork(): Promise<void> {
+	await new Promise<void>((resolve) => setImmediate(resolve));
+	await Promise.resolve();
+	}
+
 async function openEditor(content: string): Promise<vscode.TextEditor> {
-	void content;
-	const document = await vscode.workspace.openTextDocument(vscode.Uri.file('e:/source/ai-toolkit/src/extension.ts'));
+	const fixtureUri = vscode.Uri.file(
+		path.join(workspaceFolder().uri.fsPath, `.annotation-commands-fixture-${fixtureCounter += 1}.ts`),
+	);
+	createdFixtureUris.push(fixtureUri);
+	await vscode.workspace.fs.writeFile(fixtureUri, new TextEncoder().encode(content));
+	const document = await vscode.workspace.openTextDocument(fixtureUri);
 	return vscode.window.showTextDocument(document);
+}
+
+function toRelativeEditorPath(editor: vscode.TextEditor): string {
+	return path.relative(workspaceFolder().uri.fsPath, editor.document.uri.fsPath).replace(/\\/g, '/');
 }
 
 function createStore(overrides: Partial<AnnotationStore> = {}): AnnotationStore {
@@ -188,21 +484,27 @@ function createSession(sessionId: string, annotations = [createAnnotation('annot
 	};
 }
 
-function createAnnotation(annotationId: string) {
+function createAnnotation(
+	annotationId: string,
+	selectedText = 'export function activate',
+	startCharacter = 0,
+	endCharacter = 22,
+	filePath = 'src/extension.ts',
+) {
 	return {
 		annotationId,
 		status: 'active' as const,
 		anchorState: 'anchored' as const,
 		body: 'Validate this call path.',
-		filePath: 'src/extension.ts',
+		filePath,
 		createdAt: '2026-05-20T10:05:00.000Z',
 		updatedAt: '2026-05-20T10:05:00.000Z',
 		anchor: createAnnotationAnchor(
 			{
-				start: { line: 3, character: 0 },
-				end: { line: 3, character: 22 },
+				start: { line: 0, character: startCharacter },
+				end: { line: 0, character: endCharacter },
 			},
-			'export function activate',
+			selectedText,
 			['before a', 'before b'],
 			['after a', 'after b'],
 		),
@@ -211,6 +513,7 @@ function createAnnotation(annotationId: string) {
 
 class FakeAnnotationWorkspaceService implements Pick<AnnotationWorkspaceService, 'getState' | 'initialize' | 'createAnnotation' | 'updateAnnotation' | 'dismissAnnotation' | 'reanchorAnnotation' | 'purgeDismissedAnnotations' | 'generateDraftOutput' | 'setActiveSession'> {
 	public readonly projection;
+	public readonly reanchorCalls: unknown[] = [];
 
 	public constructor(
 		public store: AnnotationStore,
@@ -282,7 +585,8 @@ class FakeAnnotationWorkspaceService implements Pick<AnnotationWorkspaceService,
 		};
 	}
 
-	public async reanchorAnnotation(): Promise<AnnotationWorkspaceMutationResult> {
+	public async reanchorAnnotation(input: unknown): Promise<AnnotationWorkspaceMutationResult> {
+		this.reanchorCalls.push(input);
 		return {
 			status: 'ready',
 			projection: deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, this.store),

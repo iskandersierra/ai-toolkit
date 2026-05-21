@@ -27,21 +27,24 @@ export function registerAnnotationContextKeys(
 	const commandsApi = dependencies.commands ?? vscode.commands;
 	const disposables: vscode.Disposable[] = [];
 
+	const setSafeDefaults = async () => {
+		await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, false);
+		await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, false);
+	};
+
 	const refresh = async () => {
 		const editor = windowApi.activeTextEditor;
 		const workspaceFolder = findWorkspaceFolderForEditor(editor);
 
 		if (!editor || !workspaceFolder) {
-			await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, false);
-			await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, false);
+			await setSafeDefaults();
 			return;
 		}
 
 		const filePath = toWorkspaceRelativeFilePath(workspaceFolder, editor.document.uri);
 
 		if (!filePath) {
-			await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, false);
-			await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, false);
+			await setSafeDefaults();
 			return;
 		}
 
@@ -49,8 +52,7 @@ export function registerAnnotationContextKeys(
 		const state = service.getState() ?? (await service.initialize());
 
 		if (state.status !== 'ready') {
-			await commandsApi.executeCommand('setContext', annotationContextKeyIds.canManage, false);
-			await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, false);
+			await setSafeDefaults();
 			return;
 		}
 
@@ -59,13 +61,20 @@ export function registerAnnotationContextKeys(
 		await commandsApi.executeCommand('setContext', annotationContextKeyIds.hasActiveSession, Boolean(state.projection.activeSessionId));
 	};
 
-	disposables.push(windowApi.onDidChangeActiveTextEditor(() => void refresh()));
-	disposables.push(windowApi.onDidChangeTextEditorSelection(() => void refresh()));
-	context.subscriptions.push(...disposables);
-	void refresh();
+	const safeRefresh = async () => {
+		try {
+			await refresh();
+		} catch {
+			await setSafeDefaults();
+		}
+	};
+
+	disposables.push(windowApi.onDidChangeActiveTextEditor(() => void safeRefresh()));
+	disposables.push(windowApi.onDidChangeTextEditorSelection(() => void safeRefresh()));
+	void safeRefresh();
 
 	return {
-		refresh,
+		refresh: safeRefresh,
 		dispose: () => {
 			for (const disposable of disposables) {
 				disposable.dispose();

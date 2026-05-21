@@ -9,6 +9,8 @@ import {
 } from '../../annotations/domain/annotationModels';
 import { annotationStoreRelativePath } from '../../annotations/domain/annotationSchema';
 import { AnnotationStorageController } from '../../annotations/infrastructure/annotationStorageController';
+import { AnnotationBackupService } from '../../annotations/infrastructure/annotationBackupService';
+import type { AnnotationLogger } from '../../annotations/util/log';
 
 suite('Annotation Storage Controller', () => {
 	let workspaceFolderPath: string;
@@ -78,6 +80,66 @@ suite('Annotation Storage Controller', () => {
 			assert.strictEqual(loaded.migratedFromVersion, 0);
 		}
 		assert.strictEqual(backupFiles.length, 1);
+	});
+
+	// Scenario: unreadable store files are surfaced as an invalid result instead of rejecting the load contract.
+	test('returns invalid when reading the store fails with a non-ENOENT error', async () => {
+		const fileSystem = createStorageFileSystem({
+			readFile: async () => {
+				throw createFileSystemError('EACCES', 'Permission denied');
+			},
+		});
+		const controller = new AnnotationStorageController(
+			workspaceFolderPath,
+			fileSystem,
+			new AnnotationBackupService(fileSystem, 3),
+			createSilentLogger(),
+		);
+
+		const result = await controller.load();
+
+		assert.strictEqual(result.status, 'invalid');
+		if (result.status === 'invalid') {
+			assert.match(result.error.message, /Permission denied/);
+		}
+	});
+
+	// Scenario: optional backup failures do not prevent saving a validated store.
+	test('saves successfully when optional backup creation fails', async () => {
+		const existingStore = createStore('annotation-1', 'Initial note');
+		const serializedStore = `${JSON.stringify(existingStore, null, 2)}\n`;
+		let writeCount = 0;
+		const fileSystem = createStorageFileSystem({
+			copyFile: async () => {
+				throw createFileSystemError('EACCES', 'Backup copy denied');
+			},
+			readFile: async () => Buffer.from(serializedStore, 'utf8'),
+			stat: async () => ({
+				mtimeMs: 1,
+				size: Buffer.byteLength(serializedStore, 'utf8'),
+				ctimeMs: 1,
+			}),
+			writeFile: async () => {
+				writeCount += 1;
+			},
+		});
+		const controller = new AnnotationStorageController(
+			workspaceFolderPath,
+			fileSystem,
+			new AnnotationBackupService(fileSystem, 3),
+			createSilentLogger(),
+		);
+
+		const result = await controller.save(createStore('annotation-2', 'Saved note'), undefined, {
+			backupReason: 'purge',
+			createdAt: new Date('2026-05-21T09:00:00.000Z'),
+		});
+
+		assert.strictEqual(result.status, 'saved');
+		if (result.status === 'saved') {
+			assert.strictEqual(result.backupPath, undefined);
+		}
+		assert.strictEqual(writeCount, 1);
 	});
 
 	// Scenario: destructive writes keep only the three most recent backups.
@@ -153,4 +215,31 @@ async function listBackupFiles(workspaceFolderPath: string): Promise<string[]> {
 	const entries = await fs.readdir(storeDirectoryPath);
 
 	return entries.filter((entry) => entry.startsWith('ai-toolkit.annotations.backup-'));
+	}
+
+function createStorageFileSystem(overrides: Record<string, unknown> = {}) {
+	return {
+		copyFile: async () => undefined,
+		mkdir: async () => undefined,
+		readdir: async () => [],
+		readFile: async () => Buffer.from('', 'utf8'),
+		stat: async () => ({ mtimeMs: 0, size: 0, ctimeMs: 0 }),
+		unlink: async () => undefined,
+		writeFile: async () => undefined,
+		...overrides,
+	};
+	}
+
+function createFileSystemError(code: string, message: string): NodeJS.ErrnoException {
+	const error = new Error(message) as NodeJS.ErrnoException;
+	error.code = code;
+	return error;
+	}
+
+function createSilentLogger(): AnnotationLogger {
+	return {
+		info: () => undefined,
+		warn: () => undefined,
+		error: () => undefined,
+	};
 	}

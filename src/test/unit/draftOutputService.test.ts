@@ -45,6 +45,17 @@ suite('Draft Output Service', () => {
 		assert.ok(content.includes('annotations:'));
 	});
 
+	// Scenario: a YAML draft escapes carriage returns inside quoted scalar values.
+	test('escapes carriage returns in YAML scalar values', () => {
+		const store = createStoreWithAnnotations();
+		store.sessions[0].annotations[0].body = 'Line one\rLine two';
+
+		const projection = createProjection(store);
+		const { content } = generateDraftContent(projection, 'yaml');
+
+		assert.ok(content.includes('body: "Line one\\rLine two"'));
+	});
+
 	// Scenario: dismissed annotations are excluded from the draft output.
 	test('excludes dismissed annotations from draft output', () => {
 		const store = createStoreWithAnnotations();

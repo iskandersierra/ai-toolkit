@@ -1,4 +1,4 @@
-import type { AnnotationWorkspaceProjection } from './projectionModel';
+import type { AnnotationProjectionEntry, AnnotationWorkspaceProjection } from './projectionModel';
 import type { DraftAnnotationEntry, DraftFileGroup, DraftOutput, DraftOutputFormat } from '../domain/draftShapes';
 
 export interface DraftOutputContent {
@@ -41,15 +41,7 @@ export function deriveDraftOutput(
 }
 
 function groupByFile(
-	annotations: ReadonlyArray<{
-		annotationId: string;
-		body: string;
-		status: string;
-		anchorState: string;
-		filePath: string;
-		range: { start: { line: number; character: number }; end: { line: number; character: number } };
-		updatedAt: string;
-	}>,
+	annotations: ReadonlyArray<AnnotationProjectionEntry>,
 ): DraftFileGroup[] {
 	const map = new Map<string, DraftAnnotationEntry[]>();
 
@@ -59,8 +51,8 @@ function groupByFile(
 		entries.push({
 			annotationId: annotation.annotationId,
 			body: annotation.body,
-			status: annotation.status as DraftAnnotationEntry['status'],
-			anchorState: annotation.anchorState as DraftAnnotationEntry['anchorState'],
+			status: annotation.status,
+			anchorState: annotation.anchorState,
 			range: annotation.range,
 			updatedAt: annotation.updatedAt,
 		});
@@ -168,12 +160,13 @@ function yamlScalar(value: string): string {
 		value === '' ||
 		value.includes(':') ||
 		value.includes('#') ||
+		value.includes('\r') ||
 		value.includes('\n') ||
 		value.includes('"') ||
 		value.includes("'") ||
 		/^\s|^\{|^\[|^true$|^false$|^null$|^[\d.]+$/.test(value)
 	) {
-		return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
+		return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n')}"`;
 	}
 
 	return value;

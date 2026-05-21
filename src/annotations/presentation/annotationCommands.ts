@@ -12,6 +12,7 @@ import type {
 } from '../application/annotationWorkspaceService';
 import { SessionSelectionService } from '../application/sessionSelectionService';
 import type { AnnotationProjectionEntry } from '../application/projectionModel';
+import type { AnnotationContextKeyController } from '../bootstrap/annotationContextKeys';
 import { createVscodeAnnotationInputService, type AnnotationInputService } from './annotationInput';
 import {
 	createAnchorFromEditorSelection,
@@ -39,7 +40,9 @@ export type AnnotationCommandId = typeof annotationCommandIds[keyof typeof annot
 export type AnnotationCommandBlockedReason =
 	| 'noWorkspaceFolder'
 	| 'noEditorSelection'
+	| 'invalidSelection'
 	| 'annotationNotFound'
+	| 'documentOpenFailed'
 	| 'cancelled'
 	| AnnotationWorkspaceBlockedReason;
 
@@ -73,15 +76,12 @@ export type AnnotationCommandResult =
 		workspaceFolder?: string;
 	};
 
-export interface AnnotationContextKeyController {
-	refresh(): Promise<void>;
-}
-
 export interface AnnotationCommandDependencies {
 	window?: Pick<
 		typeof vscode.window,
 		'activeTextEditor' | 'showErrorMessage' | 'showInformationMessage' | 'showWarningMessage' | 'showTextDocument'
 	>;
+	workspace?: Pick<typeof vscode.workspace, 'getConfiguration' | 'openTextDocument'>;
 	commands?: Pick<typeof vscode.commands, 'registerCommand'>;
 	inputService?: AnnotationInputService;
 	sessionSelectionService: SessionSelectionService;
@@ -126,6 +126,7 @@ export async function executeAddOrEditAnnotationCommand(
 	args?: AnnotationCommandArguments,
 ): Promise<AnnotationCommandResult> {
 	const windowApi = dependencies.window ?? vscode.window;
+	const workspaceApi = dependencies.workspace ?? vscode.workspace;
 	const editor = windowApi.activeTextEditor;
 	const workspaceFolder = resolveEditorWorkspaceFolder(editor);
 
@@ -143,7 +144,13 @@ export async function executeAddOrEditAnnotationCommand(
 	const readyState = await ensureReadyState(service);
 
 	if (isWorkspaceBlocked(readyState)) {
-		return reportWorkspaceBlocked(annotationCommandIds.addOrEditAnnotation, readyState, windowApi, workspaceFolder.uri.fsPath);
+		return reportWorkspaceBlocked(
+			annotationCommandIds.addOrEditAnnotation,
+			readyState,
+			windowApi,
+			workspaceFolder.uri.fsPath,
+			workspaceApi,
+		);
 	}
 
 	const target = args?.annotationId
@@ -172,7 +179,13 @@ export async function executeAddOrEditAnnotationCommand(
 	}
 
 	if (ensuredSession.status === 'blocked') {
-		return reportWorkspaceBlocked(annotationCommandIds.addOrEditAnnotation, ensuredSession, windowApi, workspaceFolder.uri.fsPath);
+		return reportWorkspaceBlocked(
+			annotationCommandIds.addOrEditAnnotation,
+			ensuredSession,
+			windowApi,
+			workspaceFolder.uri.fsPath,
+			workspaceApi,
+		);
 	}
 
 	const inputService = dependencies.inputService ?? createVscodeAnnotationInputService();
@@ -190,7 +203,7 @@ export async function executeAddOrEditAnnotationCommand(
 		return {
 			status: 'blocked',
 			commandId: annotationCommandIds.addOrEditAnnotation,
-			reason: 'invalidStore',
+			reason: 'invalidSelection',
 			message: validation,
 			workspaceFolder: workspaceFolder.uri.fsPath,
 		};
@@ -212,6 +225,7 @@ export async function executeSelectReviewSessionCommand(
 	dependencies: AnnotationCommandDependencies,
 ): Promise<AnnotationCommandResult> {
 	const windowApi = dependencies.window ?? vscode.window;
+	const workspaceApi = dependencies.workspace ?? vscode.workspace;
 	const workspaceFolder = resolvePaletteWorkspaceFolder(windowApi.activeTextEditor);
 
 	if (!workspaceFolder) {
@@ -230,7 +244,13 @@ export async function executeSelectReviewSessionCommand(
 	}
 
 	if (result.status === 'blocked') {
-		return reportWorkspaceBlocked(annotationCommandIds.selectReviewSession, result, windowApi, workspaceFolder.uri.fsPath);
+		return reportWorkspaceBlocked(
+			annotationCommandIds.selectReviewSession,
+			result,
+			windowApi,
+			workspaceFolder.uri.fsPath,
+			workspaceApi,
+		);
 	}
 
 	void windowApi.showInformationMessage(
@@ -252,6 +272,7 @@ export async function executePurgeDismissedAnnotationsCommand(
 	dependencies: AnnotationCommandDependencies,
 ): Promise<AnnotationCommandResult> {
 	const windowApi = dependencies.window ?? vscode.window;
+	const workspaceApi = dependencies.workspace ?? vscode.workspace;
 	const workspaceFolder = resolvePaletteWorkspaceFolder(windowApi.activeTextEditor);
 
 	if (!workspaceFolder) {
@@ -262,7 +283,13 @@ export async function executePurgeDismissedAnnotationsCommand(
 	const readyState = await ensureReadyState(service);
 
 	if (isWorkspaceBlocked(readyState)) {
-		return reportWorkspaceBlocked(annotationCommandIds.purgeDismissedAnnotations, readyState, windowApi, workspaceFolder.uri.fsPath);
+		return reportWorkspaceBlocked(
+			annotationCommandIds.purgeDismissedAnnotations,
+			readyState,
+			windowApi,
+			workspaceFolder.uri.fsPath,
+			workspaceApi,
+		);
 	}
 
 	if (!readyState.projection.activeSessionId) {
@@ -372,7 +399,7 @@ export async function executeReanchorAnnotationCommand(
 		return {
 			status: 'blocked',
 			commandId: annotationCommandIds.reanchorAnnotation,
-			reason: 'invalidStore',
+			reason: 'invalidSelection',
 			message: validation,
 			workspaceFolder: resolved.workspaceFolder.uri.fsPath,
 		};
@@ -398,6 +425,7 @@ export async function executeGenerateDraftOutputCommand(
 	dependencies: AnnotationCommandDependencies,
 ): Promise<AnnotationCommandResult> {
 	const windowApi = dependencies.window ?? vscode.window;
+	const workspaceApi = dependencies.workspace ?? vscode.workspace;
 	const workspaceFolder = resolvePaletteWorkspaceFolder(windowApi.activeTextEditor);
 
 	if (!workspaceFolder) {
@@ -408,7 +436,13 @@ export async function executeGenerateDraftOutputCommand(
 	const result = await service.generateDraftOutput();
 
 	if (result.status === 'blocked') {
-		return reportWorkspaceBlocked(annotationCommandIds.generateDraftOutput, result, windowApi, workspaceFolder.uri.fsPath);
+		return reportWorkspaceBlocked(
+			annotationCommandIds.generateDraftOutput,
+			result,
+			windowApi,
+			workspaceFolder.uri.fsPath,
+			workspaceApi,
+		);
 	}
 
 	if (!result.projection.activeSessionId) {
@@ -421,13 +455,25 @@ export async function executeGenerateDraftOutputCommand(
 		);
 	}
 
-	const format = vscode.workspace
+	const format = workspaceApi
 		.getConfiguration('aiToolkit')
 		.get<DraftOutputFormat>('draftOutputFormat', 'markdown');
 	const { content, languageId } = generateDraftContent(result.projection, format);
 
-	const doc = await vscode.workspace.openTextDocument({ content, language: languageId });
-	await windowApi.showTextDocument(doc);
+	try {
+		const doc = await workspaceApi.openTextDocument({ content, language: languageId });
+		await windowApi.showTextDocument(doc);
+	} catch {
+		const message = 'Unable to open the generated draft output document.';
+		void windowApi.showErrorMessage(message);
+		return {
+			status: 'blocked',
+			commandId: annotationCommandIds.generateDraftOutput,
+			reason: 'documentOpenFailed',
+			message,
+			workspaceFolder: workspaceFolder.uri.fsPath,
+		};
+	}
 
 	return {
 		status: 'ready',
@@ -496,10 +542,24 @@ async function executeExistingAnnotationAction(
 			return blockWithoutWorkspace(windowApi, annotationCommandIds.addOrEditAnnotation);
 		}
 
+		const anchor = createAnchorFromEditorSelection(editor);
+		const validation = validateSelection(anchor);
+
+		if (validation) {
+			void windowApi.showErrorMessage(validation);
+			return {
+				status: 'blocked',
+				commandId: annotationCommandIds.addOrEditAnnotation,
+				reason: 'invalidSelection',
+				message: validation,
+				workspaceFolder: workspaceFolder.uri.fsPath,
+			};
+		}
+
 		const result = await service.reanchorAnnotation({
 			annotationId: annotation.annotationId,
 			filePath,
-			anchor: createAnchorFromEditorSelection(editor),
+			anchor,
 		});
 		return toMutationCommandResult(
 			annotationCommandIds.addOrEditAnnotation,
@@ -550,6 +610,7 @@ async function resolveAnnotationCommandTarget(
 	| AnnotationCommandResult
 > {
 	const windowApi = dependencies.window ?? vscode.window;
+	const workspaceApi = dependencies.workspace ?? vscode.workspace;
 	const editor = windowApi.activeTextEditor;
 	const workspaceFolder = resolveEditorWorkspaceFolder(editor);
 
@@ -567,7 +628,7 @@ async function resolveAnnotationCommandTarget(
 	const readyState = await ensureReadyState(service);
 
 	if (isWorkspaceBlocked(readyState)) {
-		return reportWorkspaceBlocked(commandId, readyState, windowApi, workspaceFolder.uri.fsPath);
+		return reportWorkspaceBlocked(commandId, readyState, windowApi, workspaceFolder.uri.fsPath, workspaceApi);
 	}
 
 	const annotation = args?.annotationId
@@ -661,10 +722,8 @@ function validateSelection(anchor: AnnotationAnchor): string | undefined {
 	try {
 		validateNewAnnotationSelectedText(anchor.selectedText);
 		return undefined;
-	} catch (error) {
-		return error instanceof Error
-			? error.message
-			: `Selected text must be at most ${annotationSelectedTextMaxLength} characters.`;
+	} catch {
+		return `Selected text must be at most ${annotationSelectedTextMaxLength} characters.`;
 	}
 }
 
@@ -685,17 +744,12 @@ function blockWithoutWorkspace(
 function reportWorkspaceBlocked(
 	commandId: AnnotationCommandId,
 	blocked: { reason: AnnotationWorkspaceBlockedReason; message: string; storePath?: string },
-	windowApi: Pick<typeof vscode.window, 'showErrorMessage'>,
+	windowApi: Pick<typeof vscode.window, 'showErrorMessage' | 'showTextDocument'>,
 	workspaceFolder: string,
+	workspaceApi: Pick<typeof vscode.workspace, 'openTextDocument'> = vscode.workspace,
 ): AnnotationCommandResult {
 	if (blocked.reason === 'invalidStore' && blocked.storePath) {
-		const storePath = blocked.storePath;
-		void windowApi.showErrorMessage(blocked.message, 'Open Store').then(async (action) => {
-			if (action === 'Open Store') {
-				const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(storePath));
-				await vscode.window.showTextDocument(doc);
-			}
-		});
+		void openBlockedStore(blocked.message, blocked.storePath, windowApi, workspaceApi);
 	} else {
 		void windowApi.showErrorMessage(blocked.message);
 	}
@@ -707,6 +761,26 @@ function reportWorkspaceBlocked(
 		message: blocked.message,
 		workspaceFolder,
 	};
+}
+
+async function openBlockedStore(
+	message: string,
+	storePath: string,
+	windowApi: Pick<typeof vscode.window, 'showErrorMessage' | 'showTextDocument'>,
+	workspaceApi: Pick<typeof vscode.workspace, 'openTextDocument'>,
+): Promise<void> {
+	const action = await windowApi.showErrorMessage(message, 'Open Store');
+
+	if (action !== 'Open Store') {
+		return;
+	}
+
+	try {
+		const doc = await workspaceApi.openTextDocument(vscode.Uri.file(storePath));
+		await windowApi.showTextDocument(doc);
+	} catch {
+		void windowApi.showErrorMessage('Unable to open the annotation store document.');
+	}
 }
 
 function reportBlocked(

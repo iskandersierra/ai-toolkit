@@ -170,9 +170,19 @@ function createLineIndex(documentText: string): { lines: string[]; lineStarts: n
 	const lineStarts: number[] = [];
 	let offset = 0;
 
-	for (const line of lines) {
+	for (let index = 0; index < lines.length; index += 1) {
+		const line = lines[index];
 		lineStarts.push(offset);
-		offset += line.length + 1;
+
+		if (index === lines.length - 1) {
+			offset += line.length;
+			continue;
+		}
+
+		const separatorOffset = offset + line.length;
+		const separatorLength =
+			documentText[separatorOffset] === '\r' && documentText[separatorOffset + 1] === '\n' ? 2 : 1;
+		offset += line.length + separatorLength;
 	}
 
 	return { lines, lineStarts };

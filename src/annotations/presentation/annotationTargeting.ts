@@ -13,11 +13,15 @@ export function toWorkspaceRelativeFilePath(
 
 	const relativePath = path.relative(workspaceFolder.uri.fsPath, documentUri.fsPath);
 
-	if (relativePath.startsWith('..')) {
+	if (relativePath.startsWith('..') || isAbsolutePathResult(relativePath)) {
 		return undefined;
 	}
 
 	return relativePath.replace(/\\/g, '/');
+}
+
+function isAbsolutePathResult(filePath: string): boolean {
+	return path.isAbsolute(filePath) || /^[A-Za-z]:[\\/]/.test(filePath) || /^\\\\/.test(filePath);
 }
 
 export function createAnchorFromEditorSelection(editor: vscode.TextEditor) {

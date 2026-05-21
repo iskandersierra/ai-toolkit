@@ -172,7 +172,12 @@ export class AnnotationWorkspaceService implements AnnotationWorkspaceServiceLik
 		this.idFactory = dependencies.idFactory ?? createOpaqueId;
 		this.logger = dependencies.logger ?? createAnnotationLogger();
 		this.watcher = this.watcherFactory(this.workspaceFolder, () => {
-			void this.refresh();
+			void this.refresh().catch((error: unknown) => {
+				this.logger.error('Annotation workspace refresh failed after a store watcher update.', {
+					storePath: this.storage.getStorePath(),
+					error: error instanceof Error ? error.message : String(error),
+				});
+			});
 		}, this.logger);
 	}
 
