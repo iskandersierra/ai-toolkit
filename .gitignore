@@ -5,6 +5,9 @@ node_modules
 .copilot-tracking/
 *.vsix
 
+# Ignore log files
+*.log
+
 # Ignore Understand Anything intermediate files and diff overlay
 .understand-anything/intermediate/
 .understand-anything/diff-overlay.json
