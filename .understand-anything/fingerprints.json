@@ -1,0 +1,3083 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "c740bd217a5b6eda8d19ceceff07381a98305692",
+  "generatedAt": "2026-05-21T09:02:36.609Z",
+  "files": {
+    ".npmrc": {
+      "filePath": ".npmrc",
+      "contentHash": "32ddcc7a2d3fa1e0f710e853963231dbcfe5ddaad167a7f46e07c18bb51558c9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": false
+    },
+    ".vscode-test.mjs": {
+      "filePath": ".vscode-test.mjs",
+      "contentHash": "7a0ac0f300396a346f68d19319db2f4075b69d82b497ecec41d8406321108e94",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@vscode/test-cli",
+          "specifiers": [
+            "defineConfig"
+          ]
+        },
+        {
+          "source": "node:process",
+          "specifiers": [
+            "process"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": true
+    },
+    ".vscodeignore": {
+      "filePath": ".vscodeignore",
+      "contentHash": "0c0665eb81f26908c0806b53344552fd5e0d38e9a30682faf51d5f74d93cd0ce",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 12,
+      "hasStructuralAnalysis": false
+    },
+    "CHANGELOG.md": {
+      "filePath": "CHANGELOG.md",
+      "contentHash": "a6c473acc85374c0889d910d9f96fbc32bb2d381a5a654f7fc7323734fbbb350",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 9,
+      "hasStructuralAnalysis": true
+    },
+    "CONTEXT.md": {
+      "filePath": "CONTEXT.md",
+      "contentHash": "99c845faca9a1f266e986de944fe2fac179d38ff4921233ba27167fcd8a2a484",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 253,
+      "hasStructuralAnalysis": true
+    },
+    "docs/annotation-v1-implementation-plan.md": {
+      "filePath": "docs/annotation-v1-implementation-plan.md",
+      "contentHash": "041e28bae908e5c00aebe626668b85336bd9942e36bb825734d6bbae194ed844",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 300,
+      "hasStructuralAnalysis": true
+    },
+    "eslint.config.mjs": {
+      "filePath": "eslint.config.mjs",
+      "contentHash": "646a4eccdbbf95e95ce631fc4faff8e66593195c81d7e7f9db20298082d6670c",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "typescript-eslint",
+          "specifiers": [
+            "typescriptEslint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 27,
+      "hasStructuralAnalysis": true
+    },
+    "package.json": {
+      "filePath": "package.json",
+      "contentHash": "f71e28fa162a7f2afd6b3398d841c28a198680ad5a4964d792dff279778b8963",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 154,
+      "hasStructuralAnalysis": true
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "37acff7257c37a574c952ac0a4e11c4552394d33a42bacf1f2e9f9b2d637def7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 72,
+      "hasStructuralAnalysis": true
+    },
+    "schemas/ai-toolkit.annotations.schema.json": {
+      "filePath": "schemas/ai-toolkit.annotations.schema.json",
+      "contentHash": "01011a75b418857d27b911756d0b8e707792e697606ded12d6ae7f677f4cd256",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 198,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/run-vscode-test.mjs": {
+      "filePath": "scripts/run-vscode-test.mjs",
+      "contentHash": "c8d3a38aa99f89597889dea8571405622a36a346969e38d95a9b52d450b66f84",
+      "functions": [
+        {
+          "name": "parsePositiveInteger",
+          "params": [
+            "value",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "getVscodeTestCommand",
+          "params": [],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "ensureCommandExists",
+          "params": [
+            "commandPath"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "runAttempt",
+          "params": [
+            "commandPath",
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 33
+        },
+        {
+          "name": "sleep",
+          "params": [
+            "delayMs"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 27
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "access"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "node:process",
+          "specifiers": [
+            "process"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 100,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/application/annotationWorkspaceService.ts": {
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "contentHash": "5027be402ff6bcc5580e0d93d8e6a02383bda5efea893dccbcc0089bae2b7fb1",
+      "functions": [
+        {
+          "name": "createNodeAnnotationWorkspaceFileReader",
+          "params": [],
+          "returnType": "AnnotationWorkspaceFileReader",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "createNoopAnnotationWatcher",
+          "params": [],
+          "returnType": "AnnotationDisposable",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "isBlockedResult",
+          "params": [
+            "result"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "findAnnotation",
+          "params": [
+            "store",
+            "annotationId"
+          ],
+          "returnType": "{ session: AnnotationSession; annotation: AnnotationEntry } | undefined",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "getActiveSession",
+          "params": [
+            "store"
+          ],
+          "returnType": "AnnotationSession | undefined",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizeRelativeFilePath",
+          "params": [
+            "filePath"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizeAndValidateRelativeFilePath",
+          "params": [
+            "filePath"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "createSessionSlug",
+          "params": [
+            "name"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "createOpaqueId",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "areRangesEqual",
+          "params": [
+            "left",
+            "right"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 8
+        }
+      ],
+      "classes": [
+        {
+          "name": "AnnotationWorkspaceService",
+          "methods": [
+            "constructor",
+            "dispose",
+            "onDidChangeState",
+            "initialize",
+            "refresh",
+            "getState",
+            "createSession",
+            "setActiveSession",
+            "createAnnotation",
+            "updateAnnotation",
+            "dismissAnnotation",
+            "purgeDismissedAnnotations",
+            "reanchorAnnotation",
+            "generateDraftOutput",
+            "findAnnotationAtRange",
+            "ensureReadyState",
+            "commit",
+            "handleSaveResult",
+            "toStoreState",
+            "toSnapshot",
+            "blocked",
+            "timestamp",
+            "fireStateChanged"
+          ],
+          "properties": [
+            "stateListeners",
+            "storage",
+            "fileReader",
+            "watcherFactory",
+            "clock",
+            "idFactory",
+            "logger",
+            "watcher",
+            "state"
+          ],
+          "exported": true,
+          "lineCount": 424
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:path",
+          "specifiers": [
+            "* as path"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "* as fs"
+          ]
+        },
+        {
+          "source": "../domain/anchorMatching",
+          "specifiers": [
+            "findAnnotationReanchorMatch",
+            "AnnotationReanchorMatch"
+          ]
+        },
+        {
+          "source": "../domain/annotationModels",
+          "specifiers": [
+            "AnnotationAnchor",
+            "AnnotationEntry",
+            "AnnotationSession",
+            "AnnotationStore"
+          ]
+        },
+        {
+          "source": "../domain/annotationValidation",
+          "specifiers": [
+            "validateRelativeFilePath"
+          ]
+        },
+        {
+          "source": "../infrastructure/annotationStorageController",
+          "specifiers": [
+            "AnnotationLoadResult",
+            "AnnotationLoadReadyResult",
+            "AnnotationSaveResult",
+            "AnnotationStorageController"
+          ]
+        },
+        {
+          "source": "../util/log",
+          "specifiers": [
+            "createAnnotationLogger",
+            "AnnotationLogger"
+          ]
+        },
+        {
+          "source": "./projectionModel",
+          "specifiers": [
+            "deriveAnnotationWorkspaceProjection",
+            "AnnotationProjectionEntry",
+            "AnnotationWorkspaceProjection"
+          ]
+        }
+      ],
+      "exports": [
+        "AnnotationWorkspaceService"
+      ],
+      "totalLines": 646,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/application/draftOutputService.ts": {
+      "filePath": "src/annotations/application/draftOutputService.ts",
+      "contentHash": "75b4467b015236165bd2258a3ad32db4129db390b1360262c57842202adaa3e2",
+      "functions": [
+        {
+          "name": "generateDraftContent",
+          "params": [
+            "projection",
+            "format"
+          ],
+          "returnType": "DraftOutputContent",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "deriveDraftOutput",
+          "params": [
+            "projection",
+            "format"
+          ],
+          "returnType": "DraftOutput",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "groupByFile",
+          "params": [
+            "annotations"
+          ],
+          "returnType": "DraftFileGroup[]",
+          "exported": false,
+          "lineCount": 33
+        },
+        {
+          "name": "serializeMarkdown",
+          "params": [
+            "draft"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 51
+        },
+        {
+          "name": "serializeJson",
+          "params": [
+            "draft"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "serializeYaml",
+          "params": [
+            "draft"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "yamlScalar",
+          "params": [
+            "value"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 15
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./projectionModel",
+          "specifiers": [
+            "AnnotationWorkspaceProjection"
+          ]
+        },
+        {
+          "source": "../domain/draftShapes",
+          "specifiers": [
+            "DraftAnnotationEntry",
+            "DraftFileGroup",
+            "DraftOutput",
+            "DraftOutputFormat"
+          ]
+        }
+      ],
+      "exports": [
+        "generateDraftContent",
+        "deriveDraftOutput"
+      ],
+      "totalLines": 181,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/application/projectionModel.ts": {
+      "filePath": "src/annotations/application/projectionModel.ts",
+      "contentHash": "607f64d57c7db4be3b64873f7082b8ec7ca85b0b9c0a8d9fa9ca50c472a176d6",
+      "functions": [
+        {
+          "name": "deriveAnnotationWorkspaceProjection",
+          "params": [
+            "workspaceFolderPath",
+            "store"
+          ],
+          "returnType": "AnnotationWorkspaceProjection",
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "projectSession",
+          "params": [
+            "session",
+            "activeSessionId"
+          ],
+          "returnType": "AnnotationSessionProjection",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "projectAnnotation",
+          "params": [
+            "annotation",
+            "session",
+            "activeSessionId"
+          ],
+          "returnType": "AnnotationProjectionEntry",
+          "exported": false,
+          "lineCount": 18
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../domain/annotationModels",
+          "specifiers": [
+            "AnnotationEntry",
+            "AnnotationSession",
+            "AnnotationStore"
+          ]
+        }
+      ],
+      "exports": [
+        "deriveAnnotationWorkspaceProjection"
+      ],
+      "totalLines": 92,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/application/sessionSelectionService.ts": {
+      "filePath": "src/annotations/application/sessionSelectionService.ts",
+      "contentHash": "96360ba78d9b17ab6b5fd7bd510e8007ca90cbda95f8683d00bbc293dc6c1cca",
+      "functions": [
+        {
+          "name": "getReadyState",
+          "params": [
+            "service"
+          ],
+          "returnType": "Promise<AnnotationWorkspaceReadyState | AnnotationWorkspaceBlockedResult>",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "toSessionSelectionResult",
+          "params": [
+            "result",
+            "created"
+          ],
+          "returnType": "SessionSelectionResult",
+          "exported": false,
+          "lineCount": 24
+        }
+      ],
+      "classes": [
+        {
+          "name": "SessionSelectionService",
+          "methods": [
+            "constructor",
+            "ensureActiveSession",
+            "selectSession"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 50
+        }
+      ],
+      "imports": [
+        {
+          "source": "./annotationWorkspaceService",
+          "specifiers": [
+            "AnnotationWorkspaceBlockedResult",
+            "AnnotationWorkspaceMutationResult",
+            "AnnotationWorkspaceReadyState",
+            "AnnotationWorkspaceServiceLike"
+          ]
+        },
+        {
+          "source": "./projectionModel",
+          "specifiers": [
+            "AnnotationWorkspaceProjection"
+          ]
+        },
+        {
+          "source": "../presentation/sessionQuickPick",
+          "specifiers": [
+            "createSessionQuickPickItems",
+            "SessionQuickPickPresenter"
+          ]
+        }
+      ],
+      "exports": [
+        "SessionSelectionService"
+      ],
+      "totalLines": 118,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/bootstrap/annotationContextKeys.ts": {
+      "filePath": "src/annotations/bootstrap/annotationContextKeys.ts",
+      "contentHash": "87fc21bc2e5ab19f862dcca6f82f4414b6a3188ec2d3b86134d27db39fdfe947",
+      "functions": [
+        {
+          "name": "registerAnnotationContextKeys",
+          "params": [
+            "context",
+            "dependencies"
+          ],
+          "returnType": "AnnotationContextKeyController",
+          "exported": true,
+          "lineCount": 54
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../application/annotationWorkspaceService",
+          "specifiers": [
+            "AnnotationWorkspaceServiceLike"
+          ]
+        },
+        {
+          "source": "../presentation/annotationTargeting",
+          "specifiers": [
+            "findAnnotationForEditorSelection",
+            "toWorkspaceRelativeFilePath"
+          ]
+        },
+        {
+          "source": "../util/workspaceFolders",
+          "specifiers": [
+            "findWorkspaceFolderForEditor"
+          ]
+        }
+      ],
+      "exports": [
+        "annotationContextKeyIds",
+        "registerAnnotationContextKeys"
+      ],
+      "totalLines": 75,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/bootstrap/registerAnnotationFeature.ts": {
+      "filePath": "src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "contentHash": "9591c17f046fb86cbb34cca52fc4bd9f5d449cc9a0783aca84f5d7cae909ade0",
+      "functions": [
+        {
+          "name": "registerAnnotationFeature",
+          "params": [
+            "context"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "createWorkspaceWatcher",
+          "params": [
+            "workspaceFolder",
+            "onChange"
+          ],
+          "exported": false,
+          "lineCount": 2
+        }
+      ],
+      "classes": [
+        {
+          "name": "AnnotationWorkspaceServiceRegistry",
+          "methods": [
+            "getWorkspaceService",
+            "dispose"
+          ],
+          "properties": [
+            "services",
+            "subscriptions"
+          ],
+          "exported": false,
+          "lineCount": 61
+        }
+      ],
+      "imports": [
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../application/annotationWorkspaceService",
+          "specifiers": [
+            "AnnotationWorkspaceService",
+            "AnnotationWorkspaceFolder",
+            "AnnotationWorkspaceWatcherFactory"
+          ]
+        },
+        {
+          "source": "../application/sessionSelectionService",
+          "specifiers": [
+            "SessionSelectionService"
+          ]
+        },
+        {
+          "source": "./annotationContextKeys",
+          "specifiers": [
+            "registerAnnotationContextKeys"
+          ]
+        },
+        {
+          "source": "../presentation/annotationCommands",
+          "specifiers": [
+            "annotationCommandIds",
+            "registerAnnotationCommands",
+            "AnnotationCommandResult"
+          ]
+        },
+        {
+          "source": "../presentation/annotationInput",
+          "specifiers": [
+            "createVscodeAnnotationInputService"
+          ]
+        },
+        {
+          "source": "../presentation/sessionQuickPick",
+          "specifiers": [
+            "createVscodeSessionQuickPickPresenter"
+          ]
+        },
+        {
+          "source": "../infrastructure/annotationStorageController",
+          "specifiers": [
+            "AnnotationStorageController"
+          ]
+        },
+        {
+          "source": "../infrastructure/annotationStoreWatcher",
+          "specifiers": [
+            "AnnotationStoreWatcher"
+          ]
+        },
+        {
+          "source": "../presentation/annotationCommentProjectionService",
+          "specifiers": [
+            "AnnotationCommentProjectionService"
+          ]
+        },
+        {
+          "source": "../presentation/annotationCodeLensProvider",
+          "specifiers": [
+            "AnnotationCodeLensProvider"
+          ]
+        }
+      ],
+      "exports": [
+        "annotationCommandIds",
+        "AnnotationCommandResult",
+        "registerAnnotationFeature"
+      ],
+      "totalLines": 107,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/domain/anchorMatching.ts": {
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "contentHash": "1914f25e470c75017875406ba1ddcd1b503b6de1c9398be10366781eac970154",
+      "functions": [
+        {
+          "name": "createAnnotationAnchor",
+          "params": [
+            "range",
+            "selectedText",
+            "contextBeforeLines",
+            "contextAfterLines"
+          ],
+          "returnType": "AnnotationAnchor",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "findAnnotationReanchorMatch",
+          "params": [
+            "documentText",
+            "anchor"
+          ],
+          "returnType": "AnnotationReanchorMatch | undefined",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "tryExactRangeMatch",
+          "params": [
+            "documentText",
+            "anchor"
+          ],
+          "returnType": "AnnotationReanchorMatch | undefined",
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "tryFingerprintRangeMatch",
+          "params": [
+            "documentText",
+            "anchor"
+          ],
+          "returnType": "AnnotationReanchorMatch | undefined",
+          "exported": false,
+          "lineCount": 33
+        },
+        {
+          "name": "scoreContextMatch",
+          "params": [
+            "anchor",
+            "range",
+            "lines"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "findSelectedTextCandidates",
+          "params": [
+            "documentText",
+            "selectedText",
+            "lineIndex"
+          ],
+          "returnType": "OffsetRange[]",
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "rangeToOffsets",
+          "params": [
+            "documentText",
+            "range"
+          ],
+          "returnType": "OffsetRange | undefined",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "createLineIndex",
+          "params": [
+            "documentText"
+          ],
+          "returnType": "{ lines: string[]; lineStarts: number[] }",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "positionToOffset",
+          "params": [
+            "position",
+            "lineStarts",
+            "documentLength"
+          ],
+          "returnType": "number | undefined",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "offsetsToRange",
+          "params": [
+            "startOffset",
+            "endOffset",
+            "lineStarts"
+          ],
+          "returnType": "AnnotationRange",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "offsetToPosition",
+          "params": [
+            "offset",
+            "lineStarts"
+          ],
+          "returnType": "AnnotationPosition",
+          "exported": false,
+          "lineCount": 18
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./annotationModels",
+          "specifiers": [
+            "normalizeAnnotationContextLines",
+            "AnnotationAnchor",
+            "AnnotationPosition",
+            "AnnotationRange"
+          ]
+        }
+      ],
+      "exports": [
+        "createAnnotationAnchor",
+        "findAnnotationReanchorMatch"
+      ],
+      "totalLines": 229,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/domain/annotationModels.ts": {
+      "filePath": "src/annotations/domain/annotationModels.ts",
+      "contentHash": "99cb2607bef0cd6043f40b07f4170767c32d2bbf3b2d466cce4e9a24a1aa8c04",
+      "functions": [
+        {
+          "name": "createEmptyAnnotationStore",
+          "params": [],
+          "returnType": "AnnotationStore",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "truncateAnnotationContextLine",
+          "params": [
+            "line"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizeAnnotationContextLines",
+          "params": [
+            "lines"
+          ],
+          "returnType": "string[]",
+          "exported": true,
+          "lineCount": 5
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "annotationSchemaVersion",
+        "annotationSelectedTextMaxLength",
+        "annotationContextLineMaxLength",
+        "annotationFingerprintContextLineCount",
+        "createEmptyAnnotationStore",
+        "truncateAnnotationContextLine",
+        "normalizeAnnotationContextLines"
+      ],
+      "totalLines": 80,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/domain/annotationSchema.ts": {
+      "filePath": "src/annotations/domain/annotationSchema.ts",
+      "contentHash": "57a45f9afaf72f3e252f16cbc286929eb71c03fb73635e2e8dc0a16ec5f9bae2",
+      "functions": [
+        {
+          "name": "getAnnotationStorePath",
+          "params": [
+            "workspaceFolderPath"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getAnnotationStoreDirectoryPath",
+          "params": [
+            "workspaceFolderPath"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getAnnotationSchemaAssetPath",
+          "params": [
+            "extensionPath"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "createAnnotationBackupFileName",
+          "params": [
+            "timestamp"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "isAnnotationBackupFileName",
+          "params": [
+            "fileName"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:path",
+          "specifiers": [
+            "* as path"
+          ]
+        },
+        {
+          "source": "./annotationModels",
+          "specifiers": [
+            "annotationContextLineMaxLength",
+            "annotationFingerprintContextLineCount",
+            "annotationSchemaVersion",
+            "annotationSelectedTextMaxLength"
+          ]
+        }
+      ],
+      "exports": [
+        "annotationStoreRelativePath",
+        "annotationSchemaRelativePath",
+        "annotationBackupFilePrefix",
+        "annotationBackupFileSuffix",
+        "annotationBackupRetentionLimit",
+        "annotationSchemaMetadata",
+        "getAnnotationStorePath",
+        "getAnnotationStoreDirectoryPath",
+        "getAnnotationSchemaAssetPath",
+        "createAnnotationBackupFileName",
+        "isAnnotationBackupFileName"
+      ],
+      "totalLines": 40,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/domain/annotationValidation.ts": {
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "contentHash": "731bebd95314e705b692562c4e1cf79d5d3db8c0d5a84400a9a3c3372fa05f7c",
+      "functions": [
+        {
+          "name": "createAnnotationValidationError",
+          "params": [
+            "path",
+            "message"
+          ],
+          "returnType": "AnnotationStoreValidationError",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "parseAnnotationStoreJson",
+          "params": [
+            "content"
+          ],
+          "returnType": "unknown",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "parseAndValidateAnnotationStore",
+          "params": [
+            "content"
+          ],
+          "returnType": "AnnotationStore",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "validateAnnotationStore",
+          "params": [
+            "candidate"
+          ],
+          "returnType": "AnnotationStore",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "validateNewAnnotationSelectedText",
+          "params": [
+            "selectedText"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "validateContextFingerprintLines",
+          "params": [
+            "lines",
+            "path"
+          ],
+          "returnType": "string[]",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "validateAnnotationAnchor",
+          "params": [
+            "anchor",
+            "path"
+          ],
+          "returnType": "AnnotationAnchor",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "validateSchemaVersion",
+          "params": [
+            "version",
+            "path"
+          ],
+          "returnType": "typeof annotationSchemaVersion",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "validateMaybeEmptyAnnotationStore",
+          "params": [
+            "candidate"
+          ],
+          "returnType": "AnnotationStore",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "validateStore",
+          "params": [
+            "candidate",
+            "path"
+          ],
+          "returnType": "AnnotationStore",
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "validateAnnotationSession",
+          "params": [
+            "candidate",
+            "path"
+          ],
+          "returnType": "AnnotationSession",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "validateAnnotationEntry",
+          "params": [
+            "candidate",
+            "path"
+          ],
+          "returnType": "AnnotationEntry",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "validateAnnotationRange",
+          "params": [
+            "candidate",
+            "path"
+          ],
+          "returnType": "AnnotationRange",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "validateAnnotationPosition",
+          "params": [
+            "candidate",
+            "path"
+          ],
+          "returnType": "AnnotationPosition",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "validateRelativeFilePath",
+          "params": [
+            "value",
+            "path"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "validateOpaqueId",
+          "params": [
+            "value",
+            "path"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "validateIsoDateString",
+          "params": [
+            "value",
+            "path"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "validateNonEmptyString",
+          "params": [
+            "value",
+            "path"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "validateEnum",
+          "params": [
+            "value",
+            "path",
+            "allowedValues"
+          ],
+          "returnType": "TValue",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "asRecord",
+          "params": [
+            "candidate",
+            "path"
+          ],
+          "returnType": "Record<string, unknown>",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "asArray",
+          "params": [
+            "candidate",
+            "path"
+          ],
+          "returnType": "unknown[]",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "asString",
+          "params": [
+            "candidate",
+            "path"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "asStringArray",
+          "params": [
+            "candidate",
+            "path"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "asNonNegativeInteger",
+          "params": [
+            "candidate",
+            "path"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "comparePositions",
+          "params": [
+            "left",
+            "right"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [
+        {
+          "name": "AnnotationStoreValidationError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [
+            "issues"
+          ],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "imports": [
+        {
+          "source": "./annotationModels",
+          "specifiers": [
+            "annotationContextLineMaxLength",
+            "annotationFingerprintContextLineCount",
+            "annotationSchemaVersion",
+            "annotationSelectedTextMaxLength",
+            "createEmptyAnnotationStore",
+            "AnnotationAnchor",
+            "AnnotationAnchorState",
+            "AnnotationEntry",
+            "AnnotationPosition",
+            "AnnotationRange",
+            "AnnotationSession",
+            "AnnotationStatus",
+            "AnnotationStore"
+          ]
+        }
+      ],
+      "exports": [
+        "AnnotationStoreValidationError",
+        "createAnnotationValidationError",
+        "parseAnnotationStoreJson",
+        "parseAndValidateAnnotationStore",
+        "validateAnnotationStore",
+        "validateNewAnnotationSelectedText",
+        "validateContextFingerprintLines",
+        "validateAnnotationAnchor",
+        "validateSchemaVersion",
+        "validateMaybeEmptyAnnotationStore",
+        "validateRelativeFilePath"
+      ],
+      "totalLines": 296,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/domain/draftShapes.ts": {
+      "filePath": "src/annotations/domain/draftShapes.ts",
+      "contentHash": "c597ae3f439c88078d78bf4cd3382d0ae73635dd8a71f8c8d3f248fea8857ce0",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./annotationModels",
+          "specifiers": [
+            "AnnotationAnchorState",
+            "AnnotationRange",
+            "AnnotationStatus"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 27,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/infrastructure/annotationBackupService.ts": {
+      "filePath": "src/annotations/infrastructure/annotationBackupService.ts",
+      "contentHash": "820e51305003f0e411cab17da3443d5ea29035072d74955e57b467dcfbffb513",
+      "functions": [
+        {
+          "name": "toBackupTimestamp",
+          "params": [
+            "createdAt"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "AnnotationBackupService",
+          "methods": [
+            "constructor",
+            "createBackup",
+            "pruneBackups"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 34
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:path",
+          "specifiers": [
+            "* as path"
+          ]
+        },
+        {
+          "source": "../domain/annotationSchema",
+          "specifiers": [
+            "annotationBackupRetentionLimit",
+            "createAnnotationBackupFileName",
+            "isAnnotationBackupFileName"
+          ]
+        }
+      ],
+      "exports": [
+        "AnnotationBackupService"
+      ],
+      "totalLines": 66,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/infrastructure/annotationMigrations.ts": {
+      "filePath": "src/annotations/infrastructure/annotationMigrations.ts",
+      "contentHash": "4723373b172b6e47134ac9babbba40d048546495278bb2ec173362bf7fd930bd",
+      "functions": [
+        {
+          "name": "detectAnnotationStoreVersion",
+          "params": [
+            "candidate"
+          ],
+          "returnType": "number | undefined",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "migrateAnnotationStore",
+          "params": [
+            "candidate"
+          ],
+          "returnType": "AnnotationMigrationResult",
+          "exported": true,
+          "lineCount": 28
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../domain/annotationModels",
+          "specifiers": [
+            "annotationSchemaVersion"
+          ]
+        },
+        {
+          "source": "../domain/annotationValidation",
+          "specifiers": [
+            "createAnnotationValidationError"
+          ]
+        }
+      ],
+      "exports": [
+        "detectAnnotationStoreVersion",
+        "migrateAnnotationStore"
+      ],
+      "totalLines": 46,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/infrastructure/annotationStorageController.ts": {
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts",
+      "contentHash": "b8d9096e12421f5c32033df2d31b699554d64b9159b3e6d2d9f9424a4bc9e45a",
+      "functions": [
+        {
+          "name": "createNodeAnnotationFileSystem",
+          "params": [],
+          "returnType": "AnnotationStorageFileSystem",
+          "exported": true,
+          "lineCount": 30
+        },
+        {
+          "name": "serializeAnnotationStore",
+          "params": [
+            "store"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "toPersistedStoreVersion",
+          "params": [
+            "content",
+            "stat"
+          ],
+          "returnType": "PersistedAnnotationStoreVersion",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "toAnnotationValidationError",
+          "params": [
+            "error"
+          ],
+          "returnType": "AnnotationStoreValidationError",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "isNotFoundError",
+          "params": [
+            "error"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "AnnotationStorageController",
+          "methods": [
+            "constructor",
+            "getStorePath",
+            "load",
+            "save",
+            "loadInternal",
+            "saveInternal",
+            "readSnapshot",
+            "writeStoreContent",
+            "enqueue"
+          ],
+          "properties": [
+            "storePath",
+            "storeDirectoryPath",
+            "writeQueue"
+          ],
+          "exported": true,
+          "lineCount": 195
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "createHash"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "* as fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "* as path"
+          ]
+        },
+        {
+          "source": "../domain/annotationModels",
+          "specifiers": [
+            "annotationSchemaVersion",
+            "createEmptyAnnotationStore",
+            "AnnotationStore",
+            "PersistedAnnotationStoreVersion"
+          ]
+        },
+        {
+          "source": "../domain/annotationSchema",
+          "specifiers": [
+            "annotationBackupRetentionLimit",
+            "getAnnotationStoreDirectoryPath",
+            "getAnnotationStorePath"
+          ]
+        },
+        {
+          "source": "../domain/annotationValidation",
+          "specifiers": [
+            "AnnotationStoreValidationError",
+            "parseAnnotationStoreJson",
+            "validateAnnotationStore"
+          ]
+        },
+        {
+          "source": "../util/log",
+          "specifiers": [
+            "logAnnotationStoreConflict",
+            "logAnnotationStoreReload",
+            "logInvalidAnnotationStore",
+            "createAnnotationLogger",
+            "AnnotationLogger"
+          ]
+        },
+        {
+          "source": "./annotationBackupService",
+          "specifiers": [
+            "AnnotationBackupService",
+            "AnnotationFileStat",
+            "AnnotationFileSystem"
+          ]
+        },
+        {
+          "source": "./annotationMigrations",
+          "specifiers": [
+            "migrateAnnotationStore"
+          ]
+        }
+      ],
+      "exports": [
+        "AnnotationStorageController",
+        "createNodeAnnotationFileSystem"
+      ],
+      "totalLines": 353,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/infrastructure/annotationStoreWatcher.ts": {
+      "filePath": "src/annotations/infrastructure/annotationStoreWatcher.ts",
+      "contentHash": "33c3276989b63d94eec2f7b6685936d964beb729bcd337fac56ebc3ba14fd279",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AnnotationStoreWatcher",
+          "methods": [
+            "constructor",
+            "dispose"
+          ],
+          "properties": [
+            "watcher"
+          ],
+          "exported": true,
+          "lineCount": 30
+        }
+      ],
+      "imports": [
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../domain/annotationSchema",
+          "specifiers": [
+            "annotationStoreRelativePath"
+          ]
+        },
+        {
+          "source": "../util/log",
+          "specifiers": [
+            "createAnnotationLogger",
+            "logAnnotationStoreReload",
+            "AnnotationLogger"
+          ]
+        }
+      ],
+      "exports": [
+        "AnnotationStoreWatcher"
+      ],
+      "totalLines": 45,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/presentation/annotationCodeLensProvider.ts": {
+      "filePath": "src/annotations/presentation/annotationCodeLensProvider.ts",
+      "contentHash": "194ca795df8e6245b9a7dd91e5fc0ddb719989f1935d474d0204dc88d31da76c",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AnnotationCodeLensProvider",
+          "methods": [
+            "refresh",
+            "provideCodeLenses",
+            "dispose",
+            "getMatchingEntries"
+          ],
+          "properties": [
+            "onDidChangeCodeLensesEmitter",
+            "onDidChangeCodeLenses",
+            "entriesByWorkspace"
+          ],
+          "exported": true,
+          "lineCount": 68
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:path",
+          "specifiers": [
+            "* as path"
+          ]
+        },
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../application/projectionModel",
+          "specifiers": [
+            "AnnotationProjectionEntry",
+            "AnnotationWorkspaceProjection"
+          ]
+        }
+      ],
+      "exports": [
+        "AnnotationCodeLensProvider"
+      ],
+      "totalLines": 76,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/presentation/annotationCommands.ts": {
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "contentHash": "b90b1a3d489f49f954bbbb2c08710ad87789f886dbce7841dd072b765cf64ccd",
+      "functions": [
+        {
+          "name": "registerAnnotationCommands",
+          "params": [
+            "context",
+            "dependencies"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 27
+        },
+        {
+          "name": "executeAddOrEditAnnotationCommand",
+          "params": [
+            "dependencies",
+            "args"
+          ],
+          "returnType": "Promise<AnnotationCommandResult>",
+          "exported": true,
+          "lineCount": 86
+        },
+        {
+          "name": "executeSelectReviewSessionCommand",
+          "params": [
+            "dependencies"
+          ],
+          "returnType": "Promise<AnnotationCommandResult>",
+          "exported": true,
+          "lineCount": 39
+        },
+        {
+          "name": "executePurgeDismissedAnnotationsCommand",
+          "params": [
+            "dependencies"
+          ],
+          "returnType": "Promise<AnnotationCommandResult>",
+          "exported": true,
+          "lineCount": 60
+        },
+        {
+          "name": "executeDismissAnnotationCommand",
+          "params": [
+            "dependencies",
+            "args"
+          ],
+          "returnType": "Promise<AnnotationCommandResult>",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "executeReanchorAnnotationCommand",
+          "params": [
+            "dependencies",
+            "args"
+          ],
+          "returnType": "Promise<AnnotationCommandResult>",
+          "exported": true,
+          "lineCount": 61
+        },
+        {
+          "name": "executeGenerateDraftOutputCommand",
+          "params": [
+            "dependencies"
+          ],
+          "returnType": "Promise<AnnotationCommandResult>",
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "executeExistingAnnotationAction",
+          "params": [
+            "dependencies",
+            "workspaceFolder",
+            "editor",
+            "annotation"
+          ],
+          "returnType": "Promise<AnnotationCommandResult>",
+          "exported": false,
+          "lineCount": 96
+        },
+        {
+          "name": "resolveAnnotationCommandTarget",
+          "params": [
+            "dependencies",
+            "commandId",
+            "args"
+          ],
+          "returnType": "Promise<\r\n\t| {\r\n\t\tresolved: true;\r\n\t\tservice: AnnotationWorkspaceServiceLike;\r\n\t\tworkspaceFolder: vscode.WorkspaceFolder;\r\n\t\teditor: vscode.TextEditor;\r\n\t\tannotation: AnnotationProjectionEntry;\r\n\t\tfilePath: string;\r\n\t}\r\n\t| AnnotationCommandResult\r\n>",
+          "exported": false,
+          "lineCount": 59
+        },
+        {
+          "name": "ensureReadyState",
+          "params": [
+            "service"
+          ],
+          "returnType": "Promise<\r\n\t| AnnotationWorkspaceReadyState\r\n\t| {\r\n\t\tstatus: 'blocked';\r\n\t\treason: AnnotationWorkspaceBlockedReason;\r\n\t\tmessage: string;\r\n\t\tstorePath: string;\r\n\t\terror?: Error;\r\n\t\tlatestState?: AnnotationWorkspaceReadyState | { status: 'invalid'; storePath: string; error: Error };\r\n\t}\r\n>",
+          "exported": false,
+          "lineCount": 28
+        },
+        {
+          "name": "isWorkspaceBlocked",
+          "params": [
+            "state"
+          ],
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "resolveEditorWorkspaceFolder",
+          "params": [
+            "editor"
+          ],
+          "returnType": "vscode.WorkspaceFolder | undefined",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "resolvePaletteWorkspaceFolder",
+          "params": [
+            "editor"
+          ],
+          "returnType": "vscode.WorkspaceFolder | undefined",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "validateSelection",
+          "params": [
+            "anchor"
+          ],
+          "returnType": "string | undefined",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "blockWithoutWorkspace",
+          "params": [
+            "windowApi",
+            "commandId"
+          ],
+          "returnType": "AnnotationCommandResult",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "reportWorkspaceBlocked",
+          "params": [
+            "commandId",
+            "blocked",
+            "windowApi",
+            "workspaceFolder"
+          ],
+          "returnType": "AnnotationCommandResult",
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "reportBlocked",
+          "params": [
+            "commandId",
+            "workspaceFolder",
+            "reason",
+            "message",
+            "windowApi"
+          ],
+          "returnType": "AnnotationCommandResult",
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "toMutationCommandResult",
+          "params": [
+            "commandId",
+            "result",
+            "windowApi",
+            "workspaceFolder",
+            "successMessage",
+            "operation",
+            "contextKeys"
+          ],
+          "returnType": "Promise<AnnotationCommandResult>",
+          "exported": false,
+          "lineCount": 32
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../domain/annotationModels",
+          "specifiers": [
+            "annotationSelectedTextMaxLength",
+            "AnnotationAnchor"
+          ]
+        },
+        {
+          "source": "../domain/annotationValidation",
+          "specifiers": [
+            "validateNewAnnotationSelectedText"
+          ]
+        },
+        {
+          "source": "../application/annotationWorkspaceService",
+          "specifiers": [
+            "AnnotationWorkspaceBlockedReason",
+            "AnnotationWorkspaceMutationResult",
+            "AnnotationWorkspaceReadyState",
+            "AnnotationWorkspaceServiceLike"
+          ]
+        },
+        {
+          "source": "../application/sessionSelectionService",
+          "specifiers": [
+            "SessionSelectionService"
+          ]
+        },
+        {
+          "source": "../application/projectionModel",
+          "specifiers": [
+            "AnnotationProjectionEntry"
+          ]
+        },
+        {
+          "source": "./annotationInput",
+          "specifiers": [
+            "createVscodeAnnotationInputService",
+            "AnnotationInputService"
+          ]
+        },
+        {
+          "source": "./annotationTargeting",
+          "specifiers": [
+            "createAnchorFromEditorSelection",
+            "findAnnotationForEditorSelection",
+            "toWorkspaceRelativeFilePath"
+          ]
+        },
+        {
+          "source": "../util/workspaceFolders",
+          "specifiers": [
+            "findWorkspaceFolderForEditor",
+            "findWorkspaceFolderForPaletteCommand"
+          ]
+        },
+        {
+          "source": "../application/draftOutputService",
+          "specifiers": [
+            "generateDraftContent"
+          ]
+        },
+        {
+          "source": "../domain/draftShapes",
+          "specifiers": [
+            "DraftOutputFormat"
+          ]
+        }
+      ],
+      "exports": [
+        "annotationCommandIds",
+        "registerAnnotationCommands",
+        "executeAddOrEditAnnotationCommand",
+        "executeSelectReviewSessionCommand",
+        "executePurgeDismissedAnnotationsCommand",
+        "executeDismissAnnotationCommand",
+        "executeReanchorAnnotationCommand",
+        "executeGenerateDraftOutputCommand"
+      ],
+      "totalLines": 760,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/presentation/annotationCommentProjectionService.ts": {
+      "filePath": "src/annotations/presentation/annotationCommentProjectionService.ts",
+      "contentHash": "6a38978932f0d3202b20ae5bebaee7d8dd30c8815dfc20d0edbaae83ffd47ea2",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AnnotationCommentProjectionService",
+          "methods": [
+            "constructor",
+            "refresh",
+            "dispose",
+            "createThread",
+            "disposeWorkspaceThreads"
+          ],
+          "properties": [
+            "controller",
+            "threadsByWorkspace"
+          ],
+          "exported": true,
+          "lineCount": 77
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:path",
+          "specifiers": [
+            "* as path"
+          ]
+        },
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../application/projectionModel",
+          "specifiers": [
+            "AnnotationProjectionEntry",
+            "AnnotationWorkspaceProjection"
+          ]
+        }
+      ],
+      "exports": [
+        "AnnotationCommentProjectionService"
+      ],
+      "totalLines": 85,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/presentation/annotationInput.ts": {
+      "filePath": "src/annotations/presentation/annotationInput.ts",
+      "contentHash": "4ee12998ae66bafc5db500167f783c58f60e707a2fc1682609b9336393e1c273",
+      "functions": [
+        {
+          "name": "createVscodeAnnotationInputService",
+          "params": [
+            "windowApi"
+          ],
+          "returnType": "AnnotationInputService",
+          "exported": true,
+          "lineCount": 59
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../application/projectionModel",
+          "specifiers": [
+            "AnnotationProjectionEntry"
+          ]
+        }
+      ],
+      "exports": [
+        "createVscodeAnnotationInputService"
+      ],
+      "totalLines": 71,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/presentation/annotationTargeting.ts": {
+      "filePath": "src/annotations/presentation/annotationTargeting.ts",
+      "contentHash": "16e25107300e7d0f8fa9c4f3562fbff3f978f61c93f4ed77023ffceb5f45d22d",
+      "functions": [
+        {
+          "name": "toWorkspaceRelativeFilePath",
+          "params": [
+            "workspaceFolder",
+            "documentUri"
+          ],
+          "returnType": "string | undefined",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "createAnchorFromEditorSelection",
+          "params": [
+            "editor"
+          ],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "findAnnotationForEditorSelection",
+          "params": [
+            "annotations",
+            "filePath",
+            "selection"
+          ],
+          "returnType": "AnnotationProjectionEntry | undefined",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "collectContextBeforeLines",
+          "params": [
+            "document",
+            "startLine",
+            "count"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "collectContextAfterLines",
+          "params": [
+            "document",
+            "endLine",
+            "count"
+          ],
+          "returnType": "string[]",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "normalizeSelection",
+          "params": [
+            "selection"
+          ],
+          "returnType": "vscode.Selection",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "selectionToRange",
+          "params": [
+            "selection"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "rangesEqual",
+          "params": [
+            "left",
+            "right"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "containsPosition",
+          "params": [
+            "range",
+            "position"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "comparePosition",
+          "params": [
+            "left",
+            "right"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:path",
+          "specifiers": [
+            "* as path"
+          ]
+        },
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../domain/anchorMatching",
+          "specifiers": [
+            "createAnnotationAnchor"
+          ]
+        },
+        {
+          "source": "../application/projectionModel",
+          "specifiers": [
+            "AnnotationProjectionEntry"
+          ]
+        }
+      ],
+      "exports": [
+        "toWorkspaceRelativeFilePath",
+        "createAnchorFromEditorSelection",
+        "findAnnotationForEditorSelection"
+      ],
+      "totalLines": 127,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/presentation/sessionQuickPick.ts": {
+      "filePath": "src/annotations/presentation/sessionQuickPick.ts",
+      "contentHash": "0d8b0f2ae0580f3e31e58f83b72630ded49281185cd8dd091cd65eff357d7748",
+      "functions": [
+        {
+          "name": "createSessionQuickPickItems",
+          "params": [
+            "projection"
+          ],
+          "returnType": "SessionQuickPickItem[]",
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "createVscodeSessionQuickPickPresenter",
+          "params": [
+            "windowApi"
+          ],
+          "returnType": "SessionQuickPickPresenter",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "toSessionQuickPickItem",
+          "params": [
+            "item"
+          ],
+          "returnType": "SessionQuickPickItem",
+          "exported": false,
+          "lineCount": 18
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../application/projectionModel",
+          "specifiers": [
+            "AnnotationWorkspaceProjection"
+          ]
+        }
+      ],
+      "exports": [
+        "createSessionQuickPickItems",
+        "createVscodeSessionQuickPickPresenter"
+      ],
+      "totalLines": 92,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/util/log.ts": {
+      "filePath": "src/annotations/util/log.ts",
+      "contentHash": "27511c5d7aa0e779687959ef52a08c7bbfd848f4d257a769b3d788b3d9dc2bef",
+      "functions": [
+        {
+          "name": "createAnnotationLogger",
+          "params": [
+            "label"
+          ],
+          "returnType": "AnnotationLogger",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "logInvalidAnnotationStore",
+          "params": [
+            "logger",
+            "storePath",
+            "error"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "logAnnotationStoreReload",
+          "params": [
+            "logger",
+            "storePath",
+            "reason"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "logAnnotationStoreConflict",
+          "params": [
+            "logger",
+            "storePath"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "formatAnnotationLogMessage",
+          "params": [
+            "label",
+            "level",
+            "message",
+            "details"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "createAnnotationLogger",
+        "logInvalidAnnotationStore",
+        "logAnnotationStoreReload",
+        "logAnnotationStoreConflict"
+      ],
+      "totalLines": 57,
+      "hasStructuralAnalysis": true
+    },
+    "src/annotations/util/workspaceFolders.ts": {
+      "filePath": "src/annotations/util/workspaceFolders.ts",
+      "contentHash": "26a6b4ff1c544d7824da5b237796a6f4690f0fc2239c3904ed5a17a8a941cb57",
+      "functions": [
+        {
+          "name": "findWorkspaceFolderForEditor",
+          "params": [
+            "editor"
+          ],
+          "returnType": "vscode.WorkspaceFolder | undefined",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "findWorkspaceFolderForPaletteCommand",
+          "params": [],
+          "returnType": "vscode.WorkspaceFolder | undefined",
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        }
+      ],
+      "exports": [
+        "findWorkspaceFolderForEditor",
+        "findWorkspaceFolderForPaletteCommand"
+      ],
+      "totalLines": 21,
+      "hasStructuralAnalysis": true
+    },
+    "src/extension.ts": {
+      "filePath": "src/extension.ts",
+      "contentHash": "1d1e83d0d42ecb4979aa3ba021d32a2690e02dd72e442a13f18bb341f79af566",
+      "functions": [
+        {
+          "name": "activate",
+          "params": [
+            "context"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "deactivate",
+          "params": [],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "./annotations/bootstrap/registerAnnotationFeature",
+          "specifiers": [
+            "registerAnnotationFeature"
+          ]
+        }
+      ],
+      "exports": [
+        "activate",
+        "deactivate"
+      ],
+      "totalLines": 9,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/extension.test.ts": {
+      "filePath": "src/test/extension.test.ts",
+      "contentHash": "3190b48c7a97c9ea990cca7732ea64016333d20c80696927bb83bc0dfbff7e1f",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "assert",
+          "specifiers": [
+            "* as assert"
+          ]
+        },
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../annotations/bootstrap/registerAnnotationFeature",
+          "specifiers": [
+            "annotationCommandIds",
+            "AnnotationCommandResult"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 49,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/unit/anchorMatching.test.ts": {
+      "filePath": "src/test/unit/anchorMatching.test.ts",
+      "contentHash": "2a80d4d8b1511e32642a87d1a0ee5019ec3b121d9880c7cafdb0ae4c76c47022",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "assert",
+          "specifiers": [
+            "* as assert"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/anchorMatching",
+          "specifiers": [
+            "createAnnotationAnchor",
+            "findAnnotationReanchorMatch"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/unit/annotationCommands.test.ts": {
+      "filePath": "src/test/unit/annotationCommands.test.ts",
+      "contentHash": "42d5c167f2a1423f89d022fd425fcd7f403b0ddba5caf71eeaea99be969a5e68",
+      "functions": [
+        {
+          "name": "workspaceFolder",
+          "params": [],
+          "returnType": "vscode.WorkspaceFolder",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "createWindowApi",
+          "params": [
+            "editor"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "openEditor",
+          "params": [
+            "content"
+          ],
+          "returnType": "Promise<vscode.TextEditor>",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "createStore",
+          "params": [
+            "overrides"
+          ],
+          "returnType": "AnnotationStore",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "createSession",
+          "params": [
+            "sessionId",
+            "annotations"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "createAnnotation",
+          "params": [
+            "annotationId"
+          ],
+          "exported": false,
+          "lineCount": 20
+        }
+      ],
+      "classes": [
+        {
+          "name": "FakeAnnotationWorkspaceService",
+          "methods": [
+            "constructor",
+            "getState",
+            "initialize",
+            "createSession",
+            "createAnnotation",
+            "updateAnnotation",
+            "dismissAnnotation",
+            "reanchorAnnotation",
+            "purgeDismissedAnnotations",
+            "generateDraftOutput",
+            "setActiveSession"
+          ],
+          "properties": [
+            "projection"
+          ],
+          "exported": false,
+          "lineCount": 109
+        }
+      ],
+      "imports": [
+        {
+          "source": "assert",
+          "specifiers": [
+            "* as assert"
+          ]
+        },
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../../annotations/presentation/annotationCommands",
+          "specifiers": [
+            "executeAddOrEditAnnotationCommand",
+            "executeDismissAnnotationCommand",
+            "executeSelectReviewSessionCommand",
+            "annotationCommandIds"
+          ]
+        },
+        {
+          "source": "../../annotations/application/sessionSelectionService",
+          "specifiers": [
+            "SessionSelectionService"
+          ]
+        },
+        {
+          "source": "../../annotations/presentation/annotationInput",
+          "specifiers": [
+            "AnnotationInputService"
+          ]
+        },
+        {
+          "source": "../../annotations/application/annotationWorkspaceService",
+          "specifiers": [
+            "AnnotationWorkspaceBlockedResult",
+            "AnnotationWorkspaceMutationResult",
+            "AnnotationWorkspaceService",
+            "AnnotationWorkspaceState"
+          ]
+        },
+        {
+          "source": "../../annotations/application/projectionModel",
+          "specifiers": [
+            "deriveAnnotationWorkspaceProjection"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/anchorMatching",
+          "specifiers": [
+            "createAnnotationAnchor"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/annotationModels",
+          "specifiers": [
+            "annotationSchemaVersion",
+            "AnnotationStore"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 320,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/unit/annotationProjection.test.ts": {
+      "filePath": "src/test/unit/annotationProjection.test.ts",
+      "contentHash": "7375ec9efac70e4f69358115797c3895e59a48201dea867271ea295439f95e25",
+      "functions": [
+        {
+          "name": "createProjection",
+          "params": [
+            "workspaceFolderPath",
+            "filePath",
+            "annotationId"
+          ],
+          "returnType": "AnnotationWorkspaceProjection",
+          "exported": false,
+          "lineCount": 38
+        },
+        {
+          "name": "createDocument",
+          "params": [
+            "fsPath"
+          ],
+          "returnType": "vscode.TextDocument",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "FakeCommentController",
+          "methods": [
+            "asController"
+          ],
+          "properties": [
+            "threads",
+            "disposed"
+          ],
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "FakeCommentThread",
+          "methods": [
+            "constructor",
+            "asThread"
+          ],
+          "properties": [
+            "canReply",
+            "comments",
+            "contextValue",
+            "disposed",
+            "label"
+          ],
+          "exported": false,
+          "lineCount": 51
+        }
+      ],
+      "imports": [
+        {
+          "source": "assert",
+          "specifiers": [
+            "* as assert"
+          ]
+        },
+        {
+          "source": "vscode",
+          "specifiers": [
+            "* as vscode"
+          ]
+        },
+        {
+          "source": "../../annotations/presentation/annotationCodeLensProvider",
+          "specifiers": [
+            "AnnotationCodeLensProvider"
+          ]
+        },
+        {
+          "source": "../../annotations/presentation/annotationCommentProjectionService",
+          "specifiers": [
+            "AnnotationCommentProjectionService"
+          ]
+        },
+        {
+          "source": "../../annotations/application/projectionModel",
+          "specifiers": [
+            "AnnotationWorkspaceProjection"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 163,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/unit/annotationStorageController.test.ts": {
+      "filePath": "src/test/unit/annotationStorageController.test.ts",
+      "contentHash": "7b01dfa417b5ededc60df166913fdd80f9046fb29a6b9b6733b0f6de5a38851e",
+      "functions": [
+        {
+          "name": "createStore",
+          "params": [
+            "annotationId",
+            "body"
+          ],
+          "returnType": "AnnotationStore",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "createSession",
+          "params": [
+            "annotationId",
+            "body"
+          ],
+          "returnType": "AnnotationSession",
+          "exported": false,
+          "lineCount": 29
+        },
+        {
+          "name": "writeLegacyStore",
+          "params": [
+            "workspaceFolderPath",
+            "store"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "listBackupFiles",
+          "params": [
+            "workspaceFolderPath"
+          ],
+          "returnType": "Promise<string[]>",
+          "exported": false,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "assert",
+          "specifiers": [
+            "* as assert"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "* as os"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "* as path"
+          ]
+        },
+        {
+          "source": "node:fs/promises",
+          "specifiers": [
+            "* as fs"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/annotationModels",
+          "specifiers": [
+            "annotationSchemaVersion",
+            "AnnotationSession",
+            "AnnotationStore"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/annotationSchema",
+          "specifiers": [
+            "annotationStoreRelativePath"
+          ]
+        },
+        {
+          "source": "../../annotations/infrastructure/annotationStorageController",
+          "specifiers": [
+            "AnnotationStorageController"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 156,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/unit/annotationValidation.test.ts": {
+      "filePath": "src/test/unit/annotationValidation.test.ts",
+      "contentHash": "a372016af65c8c6a9a63f6a34df83821aaa53ad47df56b0c612434d601a0120d",
+      "functions": [
+        {
+          "name": "createStore",
+          "params": [
+            "overrides"
+          ],
+          "returnType": "AnnotationStore",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "createSession",
+          "params": [
+            "overrides"
+          ],
+          "returnType": "AnnotationSession",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "createAnnotation",
+          "params": [
+            "overrides"
+          ],
+          "returnType": "AnnotationEntry",
+          "exported": false,
+          "lineCount": 21
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "assert",
+          "specifiers": [
+            "* as assert"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/annotationModels",
+          "specifiers": [
+            "annotationContextLineMaxLength",
+            "annotationSchemaVersion",
+            "annotationSelectedTextMaxLength",
+            "AnnotationEntry",
+            "AnnotationSession",
+            "AnnotationStore"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/annotationValidation",
+          "specifiers": [
+            "AnnotationStoreValidationError",
+            "parseAndValidateAnnotationStore",
+            "validateAnnotationStore"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 144,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/unit/annotationWorkspaceService.test.ts": {
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "contentHash": "72da3f4133ef57ea7ee6ac18cad1349b844dbd9b1acffef06a66f3ecedf89a48",
+      "functions": [
+        {
+          "name": "createService",
+          "params": [
+            "storage",
+            "fileReader"
+          ],
+          "returnType": "AnnotationWorkspaceService",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "createWorkspaceFolder",
+          "params": [],
+          "returnType": "AnnotationWorkspaceFolder",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "createStore",
+          "params": [
+            "overrides"
+          ],
+          "returnType": "AnnotationStore",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "createSession",
+          "params": [
+            "sessionId",
+            "annotations"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "createAnnotation",
+          "params": [
+            "annotationId",
+            "status"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "createAnchor",
+          "params": [],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "createVersion",
+          "params": [
+            "seed"
+          ],
+          "returnType": "PersistedAnnotationStoreVersion",
+          "exported": false,
+          "lineCount": 8
+        }
+      ],
+      "classes": [
+        {
+          "name": "InMemoryStorageController",
+          "methods": [
+            "constructor",
+            "getStorePath",
+            "load",
+            "save"
+          ],
+          "properties": [
+            "store",
+            "version"
+          ],
+          "exported": false,
+          "lineCount": 33
+        },
+        {
+          "name": "InvalidStorageController",
+          "methods": [
+            "constructor",
+            "getStorePath",
+            "load",
+            "save"
+          ],
+          "properties": [],
+          "exported": false,
+          "lineCount": 19
+        }
+      ],
+      "imports": [
+        {
+          "source": "assert",
+          "specifiers": [
+            "* as assert"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/anchorMatching",
+          "specifiers": [
+            "createAnnotationAnchor"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/annotationModels",
+          "specifiers": [
+            "annotationSchemaVersion",
+            "AnnotationStore",
+            "PersistedAnnotationStoreVersion"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/annotationValidation",
+          "specifiers": [
+            "AnnotationStoreValidationError",
+            "createAnnotationValidationError"
+          ]
+        },
+        {
+          "source": "../../annotations/application/annotationWorkspaceService",
+          "specifiers": [
+            "AnnotationWorkspaceService",
+            "AnnotationWorkspaceFileReader",
+            "AnnotationWorkspaceFolder"
+          ]
+        },
+        {
+          "source": "../../annotations/infrastructure/annotationStorageController",
+          "specifiers": [
+            "AnnotationSaveResult"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 266,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/unit/draftOutputService.test.ts": {
+      "filePath": "src/test/unit/draftOutputService.test.ts",
+      "contentHash": "279145389ad8db6a2e8d1336bc4ca90057f097b215eaf9d23f5a7d94b9bdaba3",
+      "functions": [
+        {
+          "name": "createStoreWithAnnotations",
+          "params": [],
+          "returnType": "AnnotationStore",
+          "exported": false,
+          "lineCount": 28
+        },
+        {
+          "name": "createProjection",
+          "params": [
+            "store"
+          ],
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "assert",
+          "specifiers": [
+            "* as assert"
+          ]
+        },
+        {
+          "source": "../../annotations/application/draftOutputService",
+          "specifiers": [
+            "generateDraftContent",
+            "deriveDraftOutput"
+          ]
+        },
+        {
+          "source": "../../annotations/application/projectionModel",
+          "specifiers": [
+            "deriveAnnotationWorkspaceProjection"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/annotationModels",
+          "specifiers": [
+            "AnnotationStore"
+          ]
+        },
+        {
+          "source": "../../annotations/domain/draftShapes",
+          "specifiers": [
+            "DraftOutput"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 198,
+      "hasStructuralAnalysis": true
+    },
+    "tsconfig.json": {
+      "filePath": "tsconfig.json",
+      "contentHash": "5fe707ca938a4356022efa48a129984ef66dd30f38b17d2a7bda3847c92bd37b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 18,
+      "hasStructuralAnalysis": true
+    },
+    "vsc-extension-quickstart.md": {
+      "filePath": "vsc-extension-quickstart.md",
+      "contentHash": "4637bd71dec354c5d5a111655c5be0be843a40124c43cafe7b62e95a21d049ad",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 45,
+      "hasStructuralAnalysis": true
+    }
+  }
+}

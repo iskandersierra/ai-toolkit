@@ -1,0 +1,23 @@
+# .understandignore - patterns to exclude from analysis
+# Built-in defaults: node_modules/, .git/, dist/, build/, *.lock, etc.
+
+# --- From .gitignore (uncomment to exclude) ---
+
+# .vscode-test/
+# .copilot-tracking/
+# *.vsix
+
+# --- Detected directories (uncomment to exclude) ---
+
+# docs/
+# scripts/
+
+# --- Test file patterns (uncomment to exclude) ---
+
+# *.test.*
+# *.spec.*
+
+# --- Project-specific ---
+.copilot-tracking/
+.vscode-test/
+.understand-anything/

@@ -4,3 +4,7 @@ node_modules
 .vscode-test/
 .copilot-tracking/
 *.vsix
+
+# Ignore Understand Anything intermediate files and diff overlay
+.understand-anything/intermediate/
+.understand-anything/diff-overlay.json

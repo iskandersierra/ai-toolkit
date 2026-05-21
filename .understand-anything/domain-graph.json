@@ -1,0 +1,1089 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "ai-toolkit",
+    "description": "VS Code extension providing AI-oriented tools with a code annotation workflow for persisting notes attached to code ranges for agent consumption and VS Code comments projection",
+    "languages": [
+      "TypeScript",
+      "JavaScript",
+      "JSON",
+      "Markdown"
+    ],
+    "frameworks": [
+      "VS Code Extension API",
+      "VS Code Test"
+    ],
+    "analyzedAt": "2026-05-21T09:00:54.913Z",
+    "gitCommit": "c740bd217a5b6eda8d19ceceff07381a98305692"
+  },
+  "nodes": [
+    {
+      "id": "domain:code-annotation",
+      "type": "domain",
+      "name": "Code Annotation",
+      "summary": "Core domain for creating, editing, dismissing, and managing annotation entries attached to code ranges within workspace files.",
+      "tags": [
+        "annotation",
+        "core",
+        "crud"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "domain:session-management",
+      "type": "domain",
+      "name": "Session Management",
+      "summary": "Manages named review sessions that group annotation entries, including session creation, selection, and lifecycle.",
+      "tags": [
+        "session",
+        "workflow",
+        "organization"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "domain:anchor-tracking",
+      "type": "domain",
+      "name": "Anchor Tracking",
+      "summary": "Tracks code range anchors for annotations using content fingerprints and re-anchors stale annotations when target files change.",
+      "tags": [
+        "anchor",
+        "code-range",
+        "fingerprint",
+        "reanchoring"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "domain:draft-generation",
+      "type": "domain",
+      "name": "Draft Generation",
+      "summary": "Produces serialized annotation output in multiple formats (Markdown, JSON, YAML) intended for AI agent consumption.",
+      "tags": [
+        "draft",
+        "output",
+        "ai",
+        "export"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "domain:annotation-persistence",
+      "type": "domain",
+      "name": "Annotation Persistence",
+      "summary": "Manages reliable storage of annotation data through queued writes, timestamped backups, schema migration, and external change detection.",
+      "tags": [
+        "storage",
+        "persistence",
+        "backup",
+        "migration"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "flow:add-or-edit-annotation",
+      "type": "flow",
+      "name": "Add or Edit Annotation",
+      "summary": "User adds a new annotation or edits an existing one on a selected code range, capturing body text and persisting the entry.",
+      "tags": [
+        "annotation",
+        "add",
+        "edit"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/presentation/annotationCommands.ts"
+    },
+    {
+      "id": "flow:dismiss-annotation",
+      "type": "flow",
+      "name": "Dismiss Annotation",
+      "summary": "Soft-deletes an annotation entry by marking it inactive in the store without removing it permanently.",
+      "tags": [
+        "annotation",
+        "dismiss",
+        "soft-delete"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/annotationCommands.ts"
+    },
+    {
+      "id": "flow:purge-dismissed-annotations",
+      "type": "flow",
+      "name": "Purge Dismissed Annotations",
+      "summary": "Hard-deletes all dismissed annotation entries from the store, permanently removing them.",
+      "tags": [
+        "annotation",
+        "purge",
+        "hard-delete"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/annotationCommands.ts"
+    },
+    {
+      "id": "flow:create-review-session",
+      "type": "flow",
+      "name": "Create Review Session",
+      "summary": "Creates a new named review session in the annotation store and sets it as the active session for subsequent annotations.",
+      "tags": [
+        "session",
+        "create",
+        "naming"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/application/sessionSelectionService.ts"
+    },
+    {
+      "id": "flow:select-active-session",
+      "type": "flow",
+      "name": "Select Active Session",
+      "summary": "Presents existing sessions to the user via QuickPick and updates the active session for annotation operations.",
+      "tags": [
+        "session",
+        "select",
+        "quickpick"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/sessionQuickPick.ts"
+    },
+    {
+      "id": "flow:create-annotation-anchor",
+      "type": "flow",
+      "name": "Create Annotation Anchor",
+      "summary": "Resolves an editor selection to a code range anchor by computing a content fingerprint for future re-anchoring.",
+      "tags": [
+        "anchor",
+        "create",
+        "fingerprint"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/domain/anchorMatching.ts"
+    },
+    {
+      "id": "flow:reanchor-annotation",
+      "type": "flow",
+      "name": "Re-anchor Annotation",
+      "summary": "Relocates a stale annotation anchor after the target file has changed using fuzzy fingerprint-based matching.",
+      "tags": [
+        "anchor",
+        "reanchor",
+        "fuzzy-match"
+      ],
+      "complexity": "complex",
+      "filePath": "src/annotations/domain/anchorMatching.ts"
+    },
+    {
+      "id": "flow:generate-draft-output",
+      "type": "flow",
+      "name": "Generate Draft Output",
+      "summary": "Builds a formatted draft of annotation data grouped by file in the user's chosen format for AI agent consumption.",
+      "tags": [
+        "draft",
+        "export",
+        "format",
+        "ai"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/application/draftOutputService.ts"
+    },
+    {
+      "id": "flow:store-write",
+      "type": "flow",
+      "name": "Store Write",
+      "summary": "Persists annotation store changes to disk through a write queue, followed by backup creation and retention pruning.",
+      "tags": [
+        "storage",
+        "write",
+        "queue",
+        "backup"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts"
+    },
+    {
+      "id": "flow:store-migration",
+      "type": "flow",
+      "name": "Store Migration",
+      "summary": "Detects outdated annotation store schema versions and applies incremental migration transforms to bring data up to current format.",
+      "tags": [
+        "migration",
+        "schema",
+        "versioning"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/infrastructure/annotationMigrations.ts"
+    },
+    {
+      "id": "flow:external-change-detection",
+      "type": "flow",
+      "name": "External Change Detection",
+      "summary": "Monitors the annotation store file for changes made outside the extension and triggers a workspace service refresh on detection.",
+      "tags": [
+        "watcher",
+        "external-change",
+        "refresh"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/infrastructure/annotationStoreWatcher.ts"
+    },
+    {
+      "id": "step:add-or-edit-annotation:resolve-target",
+      "type": "step",
+      "name": "Resolve Annotation Target",
+      "summary": "Resolves the active editor selection to a workspace-relative file path and code range for the annotation target.",
+      "tags": [
+        "targeting",
+        "editor-selection"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts"
+    },
+    {
+      "id": "step:add-or-edit-annotation:ensure-active-session",
+      "type": "step",
+      "name": "Ensure Active Session",
+      "summary": "Verifies that an active review session exists, prompting the user to create or select one if none is set.",
+      "tags": [
+        "session",
+        "guard"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/application/sessionSelectionService.ts"
+    },
+    {
+      "id": "step:add-or-edit-annotation:capture-annotation-body",
+      "type": "step",
+      "name": "Capture Annotation Body",
+      "summary": "Opens a VS Code input box to collect the annotation body text, pre-filling existing content for edit workflows.",
+      "tags": [
+        "input",
+        "text-capture"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/annotationInput.ts"
+    },
+    {
+      "id": "step:add-or-edit-annotation:persist-annotation-entry",
+      "type": "step",
+      "name": "Persist Annotation Entry",
+      "summary": "Commits the new or updated annotation entry to the workspace service, triggering a store write.",
+      "tags": [
+        "persist",
+        "commit"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts"
+    },
+    {
+      "id": "step:dismiss-annotation:resolve-target",
+      "type": "step",
+      "name": "Resolve Annotation Target",
+      "summary": "Resolves the annotation entry to dismiss from the active editor selection or CodeLens context.",
+      "tags": [
+        "targeting",
+        "lookup"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts"
+    },
+    {
+      "id": "step:dismiss-annotation:mark-as-dismissed",
+      "type": "step",
+      "name": "Mark as Dismissed",
+      "summary": "Updates the annotation entry's state to dismissed in the workspace service store.",
+      "tags": [
+        "dismiss",
+        "state-change"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts"
+    },
+    {
+      "id": "step:dismiss-annotation:refresh-projection",
+      "type": "step",
+      "name": "Refresh Projection",
+      "summary": "Derives an updated read-only projection from the modified store and notifies the presentation layer to reflect the dismissal.",
+      "tags": [
+        "projection",
+        "refresh"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/application/projectionModel.ts"
+    },
+    {
+      "id": "step:purge-dismissed-annotations:execute-purge-command",
+      "type": "step",
+      "name": "Execute Purge Command",
+      "summary": "User triggers the purge command, which confirms the operation and initiates removal of all dismissed entries.",
+      "tags": [
+        "command",
+        "purge"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/annotationCommands.ts"
+    },
+    {
+      "id": "step:purge-dismissed-annotations:remove-dismissed-entries",
+      "type": "step",
+      "name": "Remove Dismissed Entries",
+      "summary": "Deletes all annotation entries flagged as dismissed from the in-memory annotation store.",
+      "tags": [
+        "delete",
+        "cleanup"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts"
+    },
+    {
+      "id": "step:purge-dismissed-annotations:persist-store",
+      "type": "step",
+      "name": "Persist Store",
+      "summary": "Writes the purged annotation store back to disk via the storage controller.",
+      "tags": [
+        "persist",
+        "write"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts"
+    },
+    {
+      "id": "step:create-review-session:prompt-session-name",
+      "type": "step",
+      "name": "Prompt for Session Name",
+      "summary": "Opens an input box prompting the user to enter a name for the new review session.",
+      "tags": [
+        "input",
+        "naming"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/annotationInput.ts"
+    },
+    {
+      "id": "step:create-review-session:validate-session-name",
+      "type": "step",
+      "name": "Validate Session Name",
+      "summary": "Checks the entered session name for uniqueness and format compliance within the current store.",
+      "tags": [
+        "validation",
+        "naming"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts"
+    },
+    {
+      "id": "step:create-review-session:create-session-in-store",
+      "type": "step",
+      "name": "Create Session in Store",
+      "summary": "Adds the new session record to the annotation store using the domain session factory.",
+      "tags": [
+        "session",
+        "factory",
+        "store"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/domain/annotationModels.ts"
+    },
+    {
+      "id": "step:create-review-session:set-as-active-session",
+      "type": "step",
+      "name": "Set as Active Session",
+      "summary": "Marks the newly created session as the active session in the workspace service and updates context keys.",
+      "tags": [
+        "session",
+        "activation",
+        "context-keys"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/application/sessionSelectionService.ts"
+    },
+    {
+      "id": "step:select-active-session:list-sessions",
+      "type": "step",
+      "name": "List Available Sessions",
+      "summary": "Builds a QuickPick item list from all existing sessions in the current annotation store.",
+      "tags": [
+        "quickpick",
+        "list"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/sessionQuickPick.ts"
+    },
+    {
+      "id": "step:select-active-session:user-picks-session",
+      "type": "step",
+      "name": "User Picks Session",
+      "summary": "Displays the QuickPick UI and waits for the user to select a session or cancel.",
+      "tags": [
+        "quickpick",
+        "user-interaction"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/sessionQuickPick.ts"
+    },
+    {
+      "id": "step:select-active-session:update-active-session",
+      "type": "step",
+      "name": "Update Active Session",
+      "summary": "Sets the selected session as active in the workspace service and fires a state change event.",
+      "tags": [
+        "session",
+        "activation",
+        "state"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts"
+    },
+    {
+      "id": "step:create-annotation-anchor:resolve-editor-selection",
+      "type": "step",
+      "name": "Resolve Editor Selection",
+      "summary": "Reads the active editor selection and converts it to a workspace-relative file path and line/column range.",
+      "tags": [
+        "editor-selection",
+        "range"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts"
+    },
+    {
+      "id": "step:create-annotation-anchor:compute-content-fingerprint",
+      "type": "step",
+      "name": "Compute Content Fingerprint",
+      "summary": "Extracts the source text at the selected range and computes a fingerprint hash for future re-anchoring comparisons.",
+      "tags": [
+        "fingerprint",
+        "hashing",
+        "anchor"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/domain/anchorMatching.ts"
+    },
+    {
+      "id": "step:create-annotation-anchor:store-anchor-with-entry",
+      "type": "step",
+      "name": "Store Anchor with Entry",
+      "summary": "Persists the computed anchor alongside the annotation entry in the workspace service store.",
+      "tags": [
+        "anchor",
+        "persist"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts"
+    },
+    {
+      "id": "step:reanchor-annotation:detect-stale-anchor",
+      "type": "step",
+      "name": "Detect Stale Anchor",
+      "summary": "Identifies annotation entries whose anchors no longer match the current file content at the stored position.",
+      "tags": [
+        "stale",
+        "detection",
+        "anchor"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/presentation/annotationCommands.ts"
+    },
+    {
+      "id": "step:reanchor-annotation:compute-fuzzy-match",
+      "type": "step",
+      "name": "Compute Fuzzy Match",
+      "summary": "Searches the modified file for the closest matching content block using fingerprint-based fuzzy comparison.",
+      "tags": [
+        "fuzzy-match",
+        "fingerprint",
+        "search"
+      ],
+      "complexity": "complex",
+      "filePath": "src/annotations/domain/anchorMatching.ts"
+    },
+    {
+      "id": "step:reanchor-annotation:update-anchor-position",
+      "type": "step",
+      "name": "Update Anchor Position",
+      "summary": "Updates the annotation anchor to the new line/column offsets discovered by the fuzzy match.",
+      "tags": [
+        "anchor",
+        "update",
+        "position"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts"
+    },
+    {
+      "id": "step:reanchor-annotation:persist-updated-anchor",
+      "type": "step",
+      "name": "Persist Updated Anchor",
+      "summary": "Writes the store with the updated anchor positions back to disk via the storage controller.",
+      "tags": [
+        "persist",
+        "write"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts"
+    },
+    {
+      "id": "step:generate-draft-output:select-output-format",
+      "type": "step",
+      "name": "Select Output Format",
+      "summary": "User selects the desired draft output format (Markdown, JSON, or YAML) from the command palette.",
+      "tags": [
+        "format",
+        "user-selection"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/domain/draftShapes.ts"
+    },
+    {
+      "id": "step:generate-draft-output:build-projection",
+      "type": "step",
+      "name": "Build Annotation Projection",
+      "summary": "Derives an immutable read-only projection of the current annotation store scoped to the active session.",
+      "tags": [
+        "projection",
+        "read-only"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/application/projectionModel.ts"
+    },
+    {
+      "id": "step:generate-draft-output:group-entries-by-file",
+      "type": "step",
+      "name": "Group Entries by File",
+      "summary": "Organizes annotation entries from the projection into per-file groups for structured output rendering.",
+      "tags": [
+        "grouping",
+        "file-organization"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/application/draftOutputService.ts"
+    },
+    {
+      "id": "step:generate-draft-output:render-to-format",
+      "type": "step",
+      "name": "Render to Format",
+      "summary": "Serializes the grouped annotation data into the selected format string (Markdown, JSON, or YAML).",
+      "tags": [
+        "rendering",
+        "serialization"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/application/draftOutputService.ts"
+    },
+    {
+      "id": "step:generate-draft-output:deliver-output",
+      "type": "step",
+      "name": "Deliver Output",
+      "summary": "Copies or displays the rendered draft string to the clipboard or a VS Code document for AI agent handoff.",
+      "tags": [
+        "delivery",
+        "clipboard",
+        "output"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/presentation/annotationCommands.ts"
+    },
+    {
+      "id": "step:store-write:queue-write-operation",
+      "type": "step",
+      "name": "Queue Write Operation",
+      "summary": "Enqueues a pending store write to serialize concurrent modification requests.",
+      "tags": [
+        "queue",
+        "concurrency"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts"
+    },
+    {
+      "id": "step:store-write:execute-queued-write",
+      "type": "step",
+      "name": "Execute Queued Write",
+      "summary": "Writes the serialized annotation store JSON to disk at the configured store file path.",
+      "tags": [
+        "write",
+        "disk-io",
+        "json"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts"
+    },
+    {
+      "id": "step:store-write:create-backup",
+      "type": "step",
+      "name": "Create Backup",
+      "summary": "Creates a timestamped backup copy of the annotation store after a successful write.",
+      "tags": [
+        "backup",
+        "timestamped"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/infrastructure/annotationBackupService.ts"
+    },
+    {
+      "id": "step:store-write:prune-old-backups",
+      "type": "step",
+      "name": "Prune Old Backups",
+      "summary": "Removes the oldest backup files exceeding the configured retention limit.",
+      "tags": [
+        "backup",
+        "retention",
+        "cleanup"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/infrastructure/annotationBackupService.ts"
+    },
+    {
+      "id": "step:store-migration:detect-schema-version",
+      "type": "step",
+      "name": "Detect Schema Version",
+      "summary": "Reads the schema version field from the loaded annotation store and determines if migration is required.",
+      "tags": [
+        "schema",
+        "version-detection"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/infrastructure/annotationMigrations.ts"
+    },
+    {
+      "id": "step:store-migration:apply-migration-transforms",
+      "type": "step",
+      "name": "Apply Migration Transforms",
+      "summary": "Sequentially applies each pending migration step to upgrade the annotation store data structure.",
+      "tags": [
+        "migration",
+        "transform"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/infrastructure/annotationMigrations.ts"
+    },
+    {
+      "id": "step:store-migration:validate-migrated-data",
+      "type": "step",
+      "name": "Validate Migrated Data",
+      "summary": "Runs comprehensive runtime validation on the migrated store to confirm structural integrity before persisting.",
+      "tags": [
+        "validation",
+        "integrity"
+      ],
+      "complexity": "complex",
+      "filePath": "src/annotations/domain/annotationValidation.ts"
+    },
+    {
+      "id": "step:store-migration:persist-migrated-store",
+      "type": "step",
+      "name": "Persist Migrated Store",
+      "summary": "Writes the fully migrated and validated annotation store to disk via the storage controller.",
+      "tags": [
+        "persist",
+        "write"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts"
+    },
+    {
+      "id": "step:external-change-detection:watch-store-file",
+      "type": "step",
+      "name": "Watch Store File",
+      "summary": "Registers a VS Code file system watcher on the annotation store path to monitor for external modifications.",
+      "tags": [
+        "watcher",
+        "file-system"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/infrastructure/annotationStoreWatcher.ts"
+    },
+    {
+      "id": "step:external-change-detection:detect-external-change",
+      "type": "step",
+      "name": "Detect External Change",
+      "summary": "Compares the watcher event source against the last known write timestamp to identify externally-driven changes.",
+      "tags": [
+        "detection",
+        "timestamp"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/infrastructure/annotationStoreWatcher.ts"
+    },
+    {
+      "id": "step:external-change-detection:trigger-workspace-refresh",
+      "type": "step",
+      "name": "Trigger Workspace Refresh",
+      "summary": "Signals the annotation workspace service to reload the store from disk.",
+      "tags": [
+        "refresh",
+        "signal"
+      ],
+      "complexity": "simple",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts"
+    },
+    {
+      "id": "step:external-change-detection:validate-reloaded-store",
+      "type": "step",
+      "name": "Validate Reloaded Store",
+      "summary": "Runs validation on the freshly loaded store data before integrating it into the active workspace state.",
+      "tags": [
+        "validation",
+        "reload"
+      ],
+      "complexity": "moderate",
+      "filePath": "src/annotations/domain/annotationValidation.ts"
+    }
+  ],
+  "edges": [
+    {
+      "source": "domain:code-annotation",
+      "target": "flow:add-or-edit-annotation",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:code-annotation",
+      "target": "flow:dismiss-annotation",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:code-annotation",
+      "target": "flow:purge-dismissed-annotations",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:session-management",
+      "target": "flow:create-review-session",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:session-management",
+      "target": "flow:select-active-session",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:anchor-tracking",
+      "target": "flow:create-annotation-anchor",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:anchor-tracking",
+      "target": "flow:reanchor-annotation",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:draft-generation",
+      "target": "flow:generate-draft-output",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:annotation-persistence",
+      "target": "flow:store-write",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:annotation-persistence",
+      "target": "flow:store-migration",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:annotation-persistence",
+      "target": "flow:external-change-detection",
+      "type": "contains_flow",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:add-or-edit-annotation",
+      "target": "step:add-or-edit-annotation:resolve-target",
+      "type": "flow_step",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:add-or-edit-annotation",
+      "target": "step:add-or-edit-annotation:ensure-active-session",
+      "type": "flow_step",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:add-or-edit-annotation",
+      "target": "step:add-or-edit-annotation:capture-annotation-body",
+      "type": "flow_step",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:add-or-edit-annotation",
+      "target": "step:add-or-edit-annotation:persist-annotation-entry",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:dismiss-annotation",
+      "target": "step:dismiss-annotation:resolve-target",
+      "type": "flow_step",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:dismiss-annotation",
+      "target": "step:dismiss-annotation:mark-as-dismissed",
+      "type": "flow_step",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:dismiss-annotation",
+      "target": "step:dismiss-annotation:refresh-projection",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:purge-dismissed-annotations",
+      "target": "step:purge-dismissed-annotations:execute-purge-command",
+      "type": "flow_step",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:purge-dismissed-annotations",
+      "target": "step:purge-dismissed-annotations:remove-dismissed-entries",
+      "type": "flow_step",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:purge-dismissed-annotations",
+      "target": "step:purge-dismissed-annotations:persist-store",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:create-review-session",
+      "target": "step:create-review-session:prompt-session-name",
+      "type": "flow_step",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:create-review-session",
+      "target": "step:create-review-session:validate-session-name",
+      "type": "flow_step",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:create-review-session",
+      "target": "step:create-review-session:create-session-in-store",
+      "type": "flow_step",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:create-review-session",
+      "target": "step:create-review-session:set-as-active-session",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:select-active-session",
+      "target": "step:select-active-session:list-sessions",
+      "type": "flow_step",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:select-active-session",
+      "target": "step:select-active-session:user-picks-session",
+      "type": "flow_step",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:select-active-session",
+      "target": "step:select-active-session:update-active-session",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:create-annotation-anchor",
+      "target": "step:create-annotation-anchor:resolve-editor-selection",
+      "type": "flow_step",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:create-annotation-anchor",
+      "target": "step:create-annotation-anchor:compute-content-fingerprint",
+      "type": "flow_step",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:create-annotation-anchor",
+      "target": "step:create-annotation-anchor:store-anchor-with-entry",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:reanchor-annotation",
+      "target": "step:reanchor-annotation:detect-stale-anchor",
+      "type": "flow_step",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:reanchor-annotation",
+      "target": "step:reanchor-annotation:compute-fuzzy-match",
+      "type": "flow_step",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:reanchor-annotation",
+      "target": "step:reanchor-annotation:update-anchor-position",
+      "type": "flow_step",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:reanchor-annotation",
+      "target": "step:reanchor-annotation:persist-updated-anchor",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:generate-draft-output",
+      "target": "step:generate-draft-output:select-output-format",
+      "type": "flow_step",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:generate-draft-output",
+      "target": "step:generate-draft-output:build-projection",
+      "type": "flow_step",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:generate-draft-output",
+      "target": "step:generate-draft-output:group-entries-by-file",
+      "type": "flow_step",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:generate-draft-output",
+      "target": "step:generate-draft-output:render-to-format",
+      "type": "flow_step",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:generate-draft-output",
+      "target": "step:generate-draft-output:deliver-output",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:store-write",
+      "target": "step:store-write:queue-write-operation",
+      "type": "flow_step",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:store-write",
+      "target": "step:store-write:execute-queued-write",
+      "type": "flow_step",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:store-write",
+      "target": "step:store-write:create-backup",
+      "type": "flow_step",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:store-write",
+      "target": "step:store-write:prune-old-backups",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:store-migration",
+      "target": "step:store-migration:detect-schema-version",
+      "type": "flow_step",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:store-migration",
+      "target": "step:store-migration:apply-migration-transforms",
+      "type": "flow_step",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:store-migration",
+      "target": "step:store-migration:validate-migrated-data",
+      "type": "flow_step",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:store-migration",
+      "target": "step:store-migration:persist-migrated-store",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "flow:external-change-detection",
+      "target": "step:external-change-detection:watch-store-file",
+      "type": "flow_step",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:external-change-detection",
+      "target": "step:external-change-detection:detect-external-change",
+      "type": "flow_step",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:external-change-detection",
+      "target": "step:external-change-detection:trigger-workspace-refresh",
+      "type": "flow_step",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:external-change-detection",
+      "target": "step:external-change-detection:validate-reloaded-store",
+      "type": "flow_step",
+      "weight": 1.0
+    },
+    {
+      "source": "domain:session-management",
+      "target": "domain:code-annotation",
+      "type": "cross_domain",
+      "description": "A valid active session is required before annotation entries can be created or edited; session management acts as a prerequisite gate for annotation authoring.",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:anchor-tracking",
+      "target": "domain:code-annotation",
+      "type": "cross_domain",
+      "description": "Annotation anchors are created and updated as part of the annotation entry lifecycle; anchor tracking is an integral sub-process of annotation authoring.",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:code-annotation",
+      "target": "domain:annotation-persistence",
+      "type": "cross_domain",
+      "description": "Every annotation create, edit, dismiss, or purge operation triggers a store write through the annotation persistence domain.",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:anchor-tracking",
+      "target": "domain:annotation-persistence",
+      "type": "cross_domain",
+      "description": "Re-anchoring updates the annotation store and requires a store write to persist the relocated anchor positions.",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:code-annotation",
+      "target": "domain:draft-generation",
+      "type": "cross_domain",
+      "description": "Annotation entries accumulated in the code annotation domain are the primary data source consumed by draft generation to produce AI-ready output.",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:session-management",
+      "target": "domain:draft-generation",
+      "type": "cross_domain",
+      "description": "Draft output is scoped to the active review session, making session management a dependency for draft generation.",
+      "weight": 0.6
+    }
+  ],
+  "layers": [],
+  "tour": []
+}

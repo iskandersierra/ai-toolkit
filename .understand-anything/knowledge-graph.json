@@ -1,0 +1,3763 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "ai-toolkit",
+    "languages": [
+      "javascript",
+      "json",
+      "markdown",
+      "typescript",
+      "unknown"
+    ],
+    "frameworks": [
+      "TypeScript",
+      "VS Code Test"
+    ],
+    "description": "VS Code extension providing AI-oriented tools, starting with a code annotation workflow that persists notes attached to code ranges for agent consumption and VS Code comments projection.",
+    "analyzedAt": "2026-05-21T09:00:54.913Z",
+    "gitCommitHash": "c740bd217a5b6eda8d19ceceff07381a98305692"
+  },
+  "nodes": [
+    {
+      "id": "file:.npmrc",
+      "type": "file",
+      "name": ".npmrc",
+      "filePath": ".npmrc",
+      "summary": "npm registry configuration restricting package publishing.",
+      "tags": [
+        "configuration",
+        "npm",
+        "build-system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.vscode-test.mjs",
+      "type": "file",
+      "name": ".vscode-test.mjs",
+      "filePath": ".vscode-test.mjs",
+      "summary": "VS Code extension test runner configuration.",
+      "tags": [
+        "configuration",
+        "testing",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.vscodeignore",
+      "type": "file",
+      "name": ".vscodeignore",
+      "filePath": ".vscodeignore",
+      "summary": "Specifies files to exclude from the packaged VS Code extension.",
+      "tags": [
+        "configuration",
+        "packaging",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:CHANGELOG.md",
+      "type": "document",
+      "name": "CHANGELOG.md",
+      "filePath": "CHANGELOG.md",
+      "summary": "Release history tracking version changes and improvements.",
+      "tags": [
+        "documentation",
+        "changelog"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:CONTEXT.md",
+      "type": "document",
+      "name": "CONTEXT.md",
+      "filePath": "CONTEXT.md",
+      "summary": "Canonical domain glossary defining ubiquitous language for the AI Toolkit annotation workflow.",
+      "tags": [
+        "documentation",
+        "domain-model",
+        "glossary"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/annotation-v1-implementation-plan.md",
+      "type": "document",
+      "name": "annotation-v1-implementation-plan.md",
+      "filePath": "docs/annotation-v1-implementation-plan.md",
+      "summary": "Detailed implementation plan for the annotation v1 feature describing architecture decisions, phases, and acceptance criteria.",
+      "tags": [
+        "documentation",
+        "planning",
+        "architecture"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:eslint.config.mjs",
+      "type": "file",
+      "name": "eslint.config.mjs",
+      "filePath": "eslint.config.mjs",
+      "summary": "ESLint flat configuration defining linting rules for the TypeScript codebase.",
+      "tags": [
+        "configuration",
+        "linting",
+        "code-quality"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "Package manifest defining VS Code extension metadata, dependencies, activation events, and contribution points.",
+      "tags": [
+        "configuration",
+        "entry-point",
+        "build-system",
+        "vscode"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Project overview and getting-started guide for the AI Toolkit VS Code extension.",
+      "tags": [
+        "documentation",
+        "entry-point",
+        "overview"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:schemas/ai-toolkit.annotations.schema.json",
+      "type": "config",
+      "name": "ai-toolkit.annotations.schema.json",
+      "filePath": "schemas/ai-toolkit.annotations.schema.json",
+      "summary": "JSON Schema definition for the annotation store file format, validating structure and field types.",
+      "tags": [
+        "schema-definition",
+        "validation",
+        "data-model"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:scripts/run-vscode-test.mjs",
+      "type": "file",
+      "name": "run-vscode-test.mjs",
+      "filePath": "scripts/run-vscode-test.mjs",
+      "summary": "CLI test runner script that retries VS Code extension tests with configurable retry logic and subprocess management.",
+      "tags": [
+        "utility",
+        "testing",
+        "cli",
+        "entry-point"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/run-vscode-test.mjs:runAttempt",
+      "type": "function",
+      "name": "runAttempt",
+      "filePath": "scripts/run-vscode-test.mjs",
+      "summary": "runAttempt function in run-vscode-test.mjs.",
+      "tags": [
+        "utility",
+        "cli"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/run-vscode-test.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/run-vscode-test.mjs",
+      "summary": "main function in run-vscode-test.mjs.",
+      "tags": [
+        "utility",
+        "cli"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/extension.ts",
+      "type": "file",
+      "name": "extension.ts",
+      "filePath": "src/extension.ts",
+      "summary": "VS Code extension entry point exposing activate and deactivate lifecycle hooks.",
+      "tags": [
+        "entry-point",
+        "vscode",
+        "lifecycle",
+        "tested"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/extension.ts:activate",
+      "type": "function",
+      "name": "activate",
+      "filePath": "src/extension.ts",
+      "summary": "activate function in extension.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/extension.ts:deactivate",
+      "type": "function",
+      "name": "deactivate",
+      "filePath": "src/extension.ts",
+      "summary": "deactivate function in extension.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/bootstrap/annotationContextKeys.ts",
+      "type": "file",
+      "name": "annotationContextKeys.ts",
+      "filePath": "src/annotations/bootstrap/annotationContextKeys.ts",
+      "summary": "Registers VS Code context keys that drive conditional UI visibility and command availability for the annotation feature.",
+      "tags": [
+        "bootstrap",
+        "vscode",
+        "context-keys",
+        "ui-state"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/bootstrap/annotationContextKeys.ts:registerAnnotationContextKeys",
+      "type": "function",
+      "name": "registerAnnotationContextKeys",
+      "filePath": "src/annotations/bootstrap/annotationContextKeys.ts",
+      "summary": "registerAnnotationContextKeys function in annotationContextKeys.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "type": "file",
+      "name": "registerAnnotationFeature.ts",
+      "filePath": "src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "summary": "Top-level feature registration composing all annotation subsystems — storage, commands, projections, and watchers — into the VS Code extension context.",
+      "tags": [
+        "bootstrap",
+        "entry-point",
+        "vscode",
+        "dependency-composition"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/bootstrap/registerAnnotationFeature.ts:registerAnnotationFeature",
+      "type": "function",
+      "name": "registerAnnotationFeature",
+      "filePath": "src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "summary": "registerAnnotationFeature function in registerAnnotationFeature.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/annotations/bootstrap/registerAnnotationFeature.ts:AnnotationWorkspaceServiceRegistry",
+      "type": "class",
+      "name": "AnnotationWorkspaceServiceRegistry",
+      "filePath": "src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "summary": "AnnotationWorkspaceServiceRegistry class in registerAnnotationFeature.ts.",
+      "tags": [
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/annotations/domain/anchorMatching.ts",
+      "type": "file",
+      "name": "anchorMatching.ts",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "Domain logic for creating and re-anchoring annotation anchors to code ranges using fingerprint-based fuzzy matching.",
+      "tags": [
+        "domain",
+        "anchor-matching",
+        "algorithm",
+        "tested"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:createAnnotationAnchor",
+      "type": "function",
+      "name": "createAnnotationAnchor",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "createAnnotationAnchor function in anchorMatching.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:findAnnotationReanchorMatch",
+      "type": "function",
+      "name": "findAnnotationReanchorMatch",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "findAnnotationReanchorMatch function in anchorMatching.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:tryExactRangeMatch",
+      "type": "function",
+      "name": "tryExactRangeMatch",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "tryExactRangeMatch function in anchorMatching.ts.",
+      "tags": [
+        "algorithm",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:tryFingerprintRangeMatch",
+      "type": "function",
+      "name": "tryFingerprintRangeMatch",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "tryFingerprintRangeMatch function in anchorMatching.ts.",
+      "tags": [
+        "algorithm",
+        "domain"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:scoreContextMatch",
+      "type": "function",
+      "name": "scoreContextMatch",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "scoreContextMatch function in anchorMatching.ts.",
+      "tags": [
+        "algorithm",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:findSelectedTextCandidates",
+      "type": "function",
+      "name": "findSelectedTextCandidates",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "findSelectedTextCandidates function in anchorMatching.ts.",
+      "tags": [
+        "algorithm",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:rangeToOffsets",
+      "type": "function",
+      "name": "rangeToOffsets",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "rangeToOffsets function in anchorMatching.ts.",
+      "tags": [
+        "algorithm",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:createLineIndex",
+      "type": "function",
+      "name": "createLineIndex",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "createLineIndex function in anchorMatching.ts.",
+      "tags": [
+        "algorithm",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:positionToOffset",
+      "type": "function",
+      "name": "positionToOffset",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "positionToOffset function in anchorMatching.ts.",
+      "tags": [
+        "algorithm",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:offsetsToRange",
+      "type": "function",
+      "name": "offsetsToRange",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "offsetsToRange function in anchorMatching.ts.",
+      "tags": [
+        "algorithm",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/anchorMatching.ts:offsetToPosition",
+      "type": "function",
+      "name": "offsetToPosition",
+      "filePath": "src/annotations/domain/anchorMatching.ts",
+      "summary": "offsetToPosition function in anchorMatching.ts.",
+      "tags": [
+        "algorithm",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/domain/annotationModels.ts",
+      "type": "file",
+      "name": "annotationModels.ts",
+      "filePath": "src/annotations/domain/annotationModels.ts",
+      "summary": "Core domain model types and factory functions for annotation stores, sessions, entries, and anchors.",
+      "tags": [
+        "domain",
+        "data-model",
+        "type-definition"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationModels.ts:createEmptyAnnotationStore",
+      "type": "function",
+      "name": "createEmptyAnnotationStore",
+      "filePath": "src/annotations/domain/annotationModels.ts",
+      "summary": "createEmptyAnnotationStore function in annotationModels.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationModels.ts:truncateAnnotationContextLine",
+      "type": "function",
+      "name": "truncateAnnotationContextLine",
+      "filePath": "src/annotations/domain/annotationModels.ts",
+      "summary": "truncateAnnotationContextLine function in annotationModels.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationModels.ts:normalizeAnnotationContextLines",
+      "type": "function",
+      "name": "normalizeAnnotationContextLines",
+      "filePath": "src/annotations/domain/annotationModels.ts",
+      "summary": "normalizeAnnotationContextLines function in annotationModels.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/domain/annotationSchema.ts",
+      "type": "file",
+      "name": "annotationSchema.ts",
+      "filePath": "src/annotations/domain/annotationSchema.ts",
+      "summary": "Schema constants and path helpers for locating annotation store and backup files within workspace folders.",
+      "tags": [
+        "domain",
+        "schema",
+        "path-helpers"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationSchema.ts:getAnnotationStorePath",
+      "type": "function",
+      "name": "getAnnotationStorePath",
+      "filePath": "src/annotations/domain/annotationSchema.ts",
+      "summary": "getAnnotationStorePath function in annotationSchema.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationSchema.ts:getAnnotationStoreDirectoryPath",
+      "type": "function",
+      "name": "getAnnotationStoreDirectoryPath",
+      "filePath": "src/annotations/domain/annotationSchema.ts",
+      "summary": "getAnnotationStoreDirectoryPath function in annotationSchema.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationSchema.ts:getAnnotationSchemaAssetPath",
+      "type": "function",
+      "name": "getAnnotationSchemaAssetPath",
+      "filePath": "src/annotations/domain/annotationSchema.ts",
+      "summary": "getAnnotationSchemaAssetPath function in annotationSchema.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationSchema.ts:createAnnotationBackupFileName",
+      "type": "function",
+      "name": "createAnnotationBackupFileName",
+      "filePath": "src/annotations/domain/annotationSchema.ts",
+      "summary": "createAnnotationBackupFileName function in annotationSchema.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationSchema.ts:isAnnotationBackupFileName",
+      "type": "function",
+      "name": "isAnnotationBackupFileName",
+      "filePath": "src/annotations/domain/annotationSchema.ts",
+      "summary": "isAnnotationBackupFileName function in annotationSchema.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/domain/annotationValidation.ts",
+      "type": "file",
+      "name": "annotationValidation.ts",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "Comprehensive runtime validation for annotation store JSON including schema version checks, session structure, entry integrity, and range validation.",
+      "tags": [
+        "domain",
+        "validation",
+        "data-integrity",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:createAnnotationValidationError",
+      "type": "function",
+      "name": "createAnnotationValidationError",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "createAnnotationValidationError function in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:parseAnnotationStoreJson",
+      "type": "function",
+      "name": "parseAnnotationStoreJson",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "parseAnnotationStoreJson function in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:parseAndValidateAnnotationStore",
+      "type": "function",
+      "name": "parseAndValidateAnnotationStore",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "parseAndValidateAnnotationStore function in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationStore",
+      "type": "function",
+      "name": "validateAnnotationStore",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateAnnotationStore function in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateNewAnnotationSelectedText",
+      "type": "function",
+      "name": "validateNewAnnotationSelectedText",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateNewAnnotationSelectedText function in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateContextFingerprintLines",
+      "type": "function",
+      "name": "validateContextFingerprintLines",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateContextFingerprintLines function in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationAnchor",
+      "type": "function",
+      "name": "validateAnnotationAnchor",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateAnnotationAnchor function in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateSchemaVersion",
+      "type": "function",
+      "name": "validateSchemaVersion",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateSchemaVersion function in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateMaybeEmptyAnnotationStore",
+      "type": "function",
+      "name": "validateMaybeEmptyAnnotationStore",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateMaybeEmptyAnnotationStore function in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateStore",
+      "type": "function",
+      "name": "validateStore",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateStore function in annotationValidation.ts.",
+      "tags": [
+        "validation",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationSession",
+      "type": "function",
+      "name": "validateAnnotationSession",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateAnnotationSession function in annotationValidation.ts.",
+      "tags": [
+        "validation",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationEntry",
+      "type": "function",
+      "name": "validateAnnotationEntry",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateAnnotationEntry function in annotationValidation.ts.",
+      "tags": [
+        "validation",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationRange",
+      "type": "function",
+      "name": "validateAnnotationRange",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateAnnotationRange function in annotationValidation.ts.",
+      "tags": [
+        "validation",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateRelativeFilePath",
+      "type": "function",
+      "name": "validateRelativeFilePath",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateRelativeFilePath function in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/domain/annotationValidation.ts:validateEnum",
+      "type": "function",
+      "name": "validateEnum",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "validateEnum function in annotationValidation.ts.",
+      "tags": [
+        "validation",
+        "domain"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/annotations/domain/annotationValidation.ts:AnnotationStoreValidationError",
+      "type": "class",
+      "name": "AnnotationStoreValidationError",
+      "filePath": "src/annotations/domain/annotationValidation.ts",
+      "summary": "AnnotationStoreValidationError class in annotationValidation.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/domain/draftShapes.ts",
+      "type": "file",
+      "name": "draftShapes.ts",
+      "filePath": "src/annotations/domain/draftShapes.ts",
+      "summary": "Draft output shape types and constants representing the structured annotation data for export formats (Markdown, JSON, YAML).",
+      "tags": [
+        "domain",
+        "data-model",
+        "type-definition"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/util/log.ts",
+      "type": "file",
+      "name": "log.ts",
+      "filePath": "src/annotations/util/log.ts",
+      "summary": "Structured logging utilities for annotation subsystem events including store reloads, conflicts, and invalid store warnings.",
+      "tags": [
+        "utility",
+        "logging",
+        "diagnostics"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/util/log.ts:createAnnotationLogger",
+      "type": "function",
+      "name": "createAnnotationLogger",
+      "filePath": "src/annotations/util/log.ts",
+      "summary": "createAnnotationLogger function in log.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/util/log.ts:logInvalidAnnotationStore",
+      "type": "function",
+      "name": "logInvalidAnnotationStore",
+      "filePath": "src/annotations/util/log.ts",
+      "summary": "logInvalidAnnotationStore function in log.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/util/log.ts:logAnnotationStoreReload",
+      "type": "function",
+      "name": "logAnnotationStoreReload",
+      "filePath": "src/annotations/util/log.ts",
+      "summary": "logAnnotationStoreReload function in log.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/util/log.ts:logAnnotationStoreConflict",
+      "type": "function",
+      "name": "logAnnotationStoreConflict",
+      "filePath": "src/annotations/util/log.ts",
+      "summary": "logAnnotationStoreConflict function in log.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/util/workspaceFolders.ts",
+      "type": "file",
+      "name": "workspaceFolders.ts",
+      "filePath": "src/annotations/util/workspaceFolders.ts",
+      "summary": "Helpers to resolve the relevant VS Code workspace folder from the active editor or palette command context.",
+      "tags": [
+        "utility",
+        "vscode",
+        "workspace"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/util/workspaceFolders.ts:findWorkspaceFolderForEditor",
+      "type": "function",
+      "name": "findWorkspaceFolderForEditor",
+      "filePath": "src/annotations/util/workspaceFolders.ts",
+      "summary": "findWorkspaceFolderForEditor function in workspaceFolders.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/util/workspaceFolders.ts:findWorkspaceFolderForPaletteCommand",
+      "type": "function",
+      "name": "findWorkspaceFolderForPaletteCommand",
+      "filePath": "src/annotations/util/workspaceFolders.ts",
+      "summary": "findWorkspaceFolderForPaletteCommand function in workspaceFolders.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:tsconfig.json",
+      "type": "config",
+      "name": "tsconfig.json",
+      "filePath": "tsconfig.json",
+      "summary": "TypeScript compiler configuration enabling strict mode for the extension source.",
+      "tags": [
+        "configuration",
+        "typescript",
+        "build-system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:vsc-extension-quickstart.md",
+      "type": "document",
+      "name": "vsc-extension-quickstart.md",
+      "filePath": "vsc-extension-quickstart.md",
+      "summary": "VS Code extension quickstart guide generated by the extension scaffolding tool.",
+      "tags": [
+        "documentation",
+        "getting-started"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "type": "file",
+      "name": "annotationWorkspaceService.ts",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "Central application service managing annotation workspace state — sessions, entries, anchors, commits, and draft generation — with reactive state change events.",
+      "tags": [
+        "service",
+        "application-layer",
+        "state-management",
+        "singleton",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:findAnnotation",
+      "type": "function",
+      "name": "findAnnotation",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "findAnnotation function in annotationWorkspaceService.ts.",
+      "tags": [
+        "application",
+        "application-layer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/annotations/application/annotationWorkspaceService.ts:AnnotationWorkspaceService",
+      "type": "class",
+      "name": "AnnotationWorkspaceService",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "AnnotationWorkspaceService class in annotationWorkspaceService.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/annotations/application/draftOutputService.ts",
+      "type": "file",
+      "name": "draftOutputService.ts",
+      "filePath": "src/annotations/application/draftOutputService.ts",
+      "summary": "Generates formatted draft output (Markdown, JSON, YAML) from annotation projection data grouped by file.",
+      "tags": [
+        "service",
+        "serialization",
+        "draft-output",
+        "tested"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/application/draftOutputService.ts:generateDraftContent",
+      "type": "function",
+      "name": "generateDraftContent",
+      "filePath": "src/annotations/application/draftOutputService.ts",
+      "summary": "generateDraftContent function in draftOutputService.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/draftOutputService.ts:deriveDraftOutput",
+      "type": "function",
+      "name": "deriveDraftOutput",
+      "filePath": "src/annotations/application/draftOutputService.ts",
+      "summary": "deriveDraftOutput function in draftOutputService.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/draftOutputService.ts:groupByFile",
+      "type": "function",
+      "name": "groupByFile",
+      "filePath": "src/annotations/application/draftOutputService.ts",
+      "summary": "groupByFile function in draftOutputService.ts.",
+      "tags": [
+        "serialization",
+        "application-layer"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/application/draftOutputService.ts:serializeMarkdown",
+      "type": "function",
+      "name": "serializeMarkdown",
+      "filePath": "src/annotations/application/draftOutputService.ts",
+      "summary": "serializeMarkdown function in draftOutputService.ts.",
+      "tags": [
+        "serialization",
+        "application-layer"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/application/draftOutputService.ts:serializeYaml",
+      "type": "function",
+      "name": "serializeYaml",
+      "filePath": "src/annotations/application/draftOutputService.ts",
+      "summary": "serializeYaml function in draftOutputService.ts.",
+      "tags": [
+        "serialization",
+        "application-layer"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/application/draftOutputService.ts:yamlScalar",
+      "type": "function",
+      "name": "yamlScalar",
+      "filePath": "src/annotations/application/draftOutputService.ts",
+      "summary": "yamlScalar function in draftOutputService.ts.",
+      "tags": [
+        "serialization",
+        "application-layer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/application/projectionModel.ts",
+      "type": "file",
+      "name": "projectionModel.ts",
+      "filePath": "src/annotations/application/projectionModel.ts",
+      "summary": "Derives an immutable read-only workspace projection from raw annotation store state for consumption by presentation layer components.",
+      "tags": [
+        "application-layer",
+        "projection",
+        "data-model"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/application/projectionModel.ts:deriveAnnotationWorkspaceProjection",
+      "type": "function",
+      "name": "deriveAnnotationWorkspaceProjection",
+      "filePath": "src/annotations/application/projectionModel.ts",
+      "summary": "deriveAnnotationWorkspaceProjection function in projectionModel.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/projectionModel.ts:projectSession",
+      "type": "function",
+      "name": "projectSession",
+      "filePath": "src/annotations/application/projectionModel.ts",
+      "summary": "projectSession function in projectionModel.ts.",
+      "tags": [
+        "projection",
+        "application-layer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/projectionModel.ts:projectAnnotation",
+      "type": "function",
+      "name": "projectAnnotation",
+      "filePath": "src/annotations/application/projectionModel.ts",
+      "summary": "projectAnnotation function in projectionModel.ts.",
+      "tags": [
+        "projection",
+        "application-layer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/application/sessionSelectionService.ts",
+      "type": "file",
+      "name": "sessionSelectionService.ts",
+      "filePath": "src/annotations/application/sessionSelectionService.ts",
+      "summary": "Orchestrates session creation and selection workflows, ensuring an active session exists before annotation operations proceed.",
+      "tags": [
+        "service",
+        "application-layer",
+        "session-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/application/sessionSelectionService.ts:getReadyState",
+      "type": "function",
+      "name": "getReadyState",
+      "filePath": "src/annotations/application/sessionSelectionService.ts",
+      "summary": "getReadyState function in sessionSelectionService.ts.",
+      "tags": [
+        "state-management",
+        "application-layer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/sessionSelectionService.ts:toSessionSelectionResult",
+      "type": "function",
+      "name": "toSessionSelectionResult",
+      "filePath": "src/annotations/application/sessionSelectionService.ts",
+      "summary": "toSessionSelectionResult function in sessionSelectionService.ts.",
+      "tags": [
+        "application",
+        "application-layer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/annotations/application/sessionSelectionService.ts:SessionSelectionService",
+      "type": "class",
+      "name": "SessionSelectionService",
+      "filePath": "src/annotations/application/sessionSelectionService.ts",
+      "summary": "SessionSelectionService class in sessionSelectionService.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/annotations/infrastructure/annotationBackupService.ts",
+      "type": "file",
+      "name": "annotationBackupService.ts",
+      "filePath": "src/annotations/infrastructure/annotationBackupService.ts",
+      "summary": "Creates timestamped annotation store backups and prunes old backups to the configured retention limit.",
+      "tags": [
+        "infrastructure",
+        "backup",
+        "file-system"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:src/annotations/infrastructure/annotationBackupService.ts:AnnotationBackupService",
+      "type": "class",
+      "name": "AnnotationBackupService",
+      "filePath": "src/annotations/infrastructure/annotationBackupService.ts",
+      "summary": "AnnotationBackupService class in annotationBackupService.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/infrastructure/annotationMigrations.ts",
+      "type": "file",
+      "name": "annotationMigrations.ts",
+      "filePath": "src/annotations/infrastructure/annotationMigrations.ts",
+      "summary": "Detects and migrates annotation store data from older schema versions to the current format.",
+      "tags": [
+        "infrastructure",
+        "migration",
+        "schema-versioning"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/infrastructure/annotationMigrations.ts:detectAnnotationStoreVersion",
+      "type": "function",
+      "name": "detectAnnotationStoreVersion",
+      "filePath": "src/annotations/infrastructure/annotationMigrations.ts",
+      "summary": "detectAnnotationStoreVersion function in annotationMigrations.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/infrastructure/annotationMigrations.ts:migrateAnnotationStore",
+      "type": "function",
+      "name": "migrateAnnotationStore",
+      "filePath": "src/annotations/infrastructure/annotationMigrations.ts",
+      "summary": "migrateAnnotationStore function in annotationMigrations.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "type": "file",
+      "name": "annotationStorageController.ts",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts",
+      "summary": "Manages reading and writing the annotation store JSON file with queued writes, backup integration, and schema migration support.",
+      "tags": [
+        "infrastructure",
+        "storage",
+        "file-io",
+        "serialization",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/annotations/infrastructure/annotationStorageController.ts:createNodeAnnotationFileSystem",
+      "type": "function",
+      "name": "createNodeAnnotationFileSystem",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts",
+      "summary": "createNodeAnnotationFileSystem function in annotationStorageController.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/infrastructure/annotationStorageController.ts:toPersistedStoreVersion",
+      "type": "function",
+      "name": "toPersistedStoreVersion",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts",
+      "summary": "toPersistedStoreVersion function in annotationStorageController.ts.",
+      "tags": [
+        "serialization",
+        "file-io"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/infrastructure/annotationStorageController.ts:toAnnotationValidationError",
+      "type": "function",
+      "name": "toAnnotationValidationError",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts",
+      "summary": "toAnnotationValidationError function in annotationStorageController.ts.",
+      "tags": [
+        "infrastructure",
+        "file-io"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/annotations/infrastructure/annotationStorageController.ts:AnnotationStorageController",
+      "type": "class",
+      "name": "AnnotationStorageController",
+      "filePath": "src/annotations/infrastructure/annotationStorageController.ts",
+      "summary": "AnnotationStorageController class in annotationStorageController.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/annotations/infrastructure/annotationStoreWatcher.ts",
+      "type": "file",
+      "name": "annotationStoreWatcher.ts",
+      "filePath": "src/annotations/infrastructure/annotationStoreWatcher.ts",
+      "summary": "Watches the annotation store file for external changes and triggers workspace service refresh.",
+      "tags": [
+        "infrastructure",
+        "file-system",
+        "event-driven"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/annotations/infrastructure/annotationStoreWatcher.ts:AnnotationStoreWatcher",
+      "type": "class",
+      "name": "AnnotationStoreWatcher",
+      "filePath": "src/annotations/infrastructure/annotationStoreWatcher.ts",
+      "summary": "AnnotationStoreWatcher class in annotationStoreWatcher.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/presentation/annotationCodeLensProvider.ts",
+      "type": "file",
+      "name": "annotationCodeLensProvider.ts",
+      "filePath": "src/annotations/presentation/annotationCodeLensProvider.ts",
+      "summary": "VS Code CodeLens provider that shows annotation actions inline with annotated code ranges.",
+      "tags": [
+        "presentation",
+        "vscode",
+        "code-lens",
+        "ui-component"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:src/annotations/presentation/annotationCodeLensProvider.ts:AnnotationCodeLensProvider",
+      "type": "class",
+      "name": "AnnotationCodeLensProvider",
+      "filePath": "src/annotations/presentation/annotationCodeLensProvider.ts",
+      "summary": "AnnotationCodeLensProvider class in annotationCodeLensProvider.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/annotations/presentation/annotationCommands.ts",
+      "type": "file",
+      "name": "annotationCommands.ts",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "Registers and implements all VS Code annotation commands — add/edit, select session, dismiss, reanchor, purge, and draft generation.",
+      "tags": [
+        "presentation",
+        "vscode",
+        "commands",
+        "api-handler",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:registerAnnotationCommands",
+      "type": "function",
+      "name": "registerAnnotationCommands",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "registerAnnotationCommands function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeAddOrEditAnnotationCommand",
+      "type": "function",
+      "name": "executeAddOrEditAnnotationCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeAddOrEditAnnotationCommand function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeSelectReviewSessionCommand",
+      "type": "function",
+      "name": "executeSelectReviewSessionCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeSelectReviewSessionCommand function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executePurgeDismissedAnnotationsCommand",
+      "type": "function",
+      "name": "executePurgeDismissedAnnotationsCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executePurgeDismissedAnnotationsCommand function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeDismissAnnotationCommand",
+      "type": "function",
+      "name": "executeDismissAnnotationCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeDismissAnnotationCommand function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeReanchorAnnotationCommand",
+      "type": "function",
+      "name": "executeReanchorAnnotationCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeReanchorAnnotationCommand function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeGenerateDraftOutputCommand",
+      "type": "function",
+      "name": "executeGenerateDraftOutputCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeGenerateDraftOutputCommand function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeExistingAnnotationAction",
+      "type": "function",
+      "name": "executeExistingAnnotationAction",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeExistingAnnotationAction function in annotationCommands.ts.",
+      "tags": [
+        "command-handler",
+        "vscode"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:resolveAnnotationCommandTarget",
+      "type": "function",
+      "name": "resolveAnnotationCommandTarget",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "resolveAnnotationCommandTarget function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:ensureReadyState",
+      "type": "function",
+      "name": "ensureReadyState",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "ensureReadyState function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:isWorkspaceBlocked",
+      "type": "function",
+      "name": "isWorkspaceBlocked",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "isWorkspaceBlocked function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:validateSelection",
+      "type": "function",
+      "name": "validateSelection",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "validateSelection function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:blockWithoutWorkspace",
+      "type": "function",
+      "name": "blockWithoutWorkspace",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "blockWithoutWorkspace function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:reportWorkspaceBlocked",
+      "type": "function",
+      "name": "reportWorkspaceBlocked",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "reportWorkspaceBlocked function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:reportBlocked",
+      "type": "function",
+      "name": "reportBlocked",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "reportBlocked function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:toMutationCommandResult",
+      "type": "function",
+      "name": "toMutationCommandResult",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "toMutationCommandResult function in annotationCommands.ts.",
+      "tags": [
+        "presentation",
+        "vscode"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/annotations/presentation/annotationCommentProjectionService.ts",
+      "type": "file",
+      "name": "annotationCommentProjectionService.ts",
+      "filePath": "src/annotations/presentation/annotationCommentProjectionService.ts",
+      "summary": "Projects annotation entries as VS Code comment threads providing in-editor annotation visibility.",
+      "tags": [
+        "presentation",
+        "vscode",
+        "comment-threads",
+        "ui-component",
+        "tested"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:src/annotations/presentation/annotationCommentProjectionService.ts:AnnotationCommentProjectionService",
+      "type": "class",
+      "name": "AnnotationCommentProjectionService",
+      "filePath": "src/annotations/presentation/annotationCommentProjectionService.ts",
+      "summary": "AnnotationCommentProjectionService class in annotationCommentProjectionService.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/annotations/presentation/annotationInput.ts",
+      "type": "file",
+      "name": "annotationInput.ts",
+      "filePath": "src/annotations/presentation/annotationInput.ts",
+      "summary": "VS Code input box service for capturing annotation body text with pre-fill support for edit workflows.",
+      "tags": [
+        "presentation",
+        "vscode",
+        "user-input",
+        "ui-component"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationInput.ts:createVscodeAnnotationInputService",
+      "type": "function",
+      "name": "createVscodeAnnotationInputService",
+      "filePath": "src/annotations/presentation/annotationInput.ts",
+      "summary": "createVscodeAnnotationInputService function in annotationInput.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/annotations/presentation/annotationTargeting.ts",
+      "type": "file",
+      "name": "annotationTargeting.ts",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts",
+      "summary": "Resolves editor selections to workspace-relative file paths, anchors, and annotation lookup for command targeting.",
+      "tags": [
+        "presentation",
+        "domain",
+        "selection-resolution"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationTargeting.ts:toWorkspaceRelativeFilePath",
+      "type": "function",
+      "name": "toWorkspaceRelativeFilePath",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts",
+      "summary": "toWorkspaceRelativeFilePath function in annotationTargeting.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationTargeting.ts:createAnchorFromEditorSelection",
+      "type": "function",
+      "name": "createAnchorFromEditorSelection",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts",
+      "summary": "createAnchorFromEditorSelection function in annotationTargeting.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationTargeting.ts:findAnnotationForEditorSelection",
+      "type": "function",
+      "name": "findAnnotationForEditorSelection",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts",
+      "summary": "findAnnotationForEditorSelection function in annotationTargeting.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationTargeting.ts:collectContextBeforeLines",
+      "type": "function",
+      "name": "collectContextBeforeLines",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts",
+      "summary": "collectContextBeforeLines function in annotationTargeting.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationTargeting.ts:collectContextAfterLines",
+      "type": "function",
+      "name": "collectContextAfterLines",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts",
+      "summary": "collectContextAfterLines function in annotationTargeting.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationTargeting.ts:rangesEqual",
+      "type": "function",
+      "name": "rangesEqual",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts",
+      "summary": "rangesEqual function in annotationTargeting.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationTargeting.ts:comparePosition",
+      "type": "function",
+      "name": "comparePosition",
+      "filePath": "src/annotations/presentation/annotationTargeting.ts",
+      "summary": "comparePosition function in annotationTargeting.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/annotations/presentation/sessionQuickPick.ts",
+      "type": "file",
+      "name": "sessionQuickPick.ts",
+      "filePath": "src/annotations/presentation/sessionQuickPick.ts",
+      "summary": "Creates VS Code QuickPick items for review session selection and implements the session picker presenter.",
+      "tags": [
+        "presentation",
+        "vscode",
+        "quick-pick",
+        "ui-component"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/presentation/sessionQuickPick.ts:createSessionQuickPickItems",
+      "type": "function",
+      "name": "createSessionQuickPickItems",
+      "filePath": "src/annotations/presentation/sessionQuickPick.ts",
+      "summary": "createSessionQuickPickItems function in sessionQuickPick.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/sessionQuickPick.ts:createVscodeSessionQuickPickPresenter",
+      "type": "function",
+      "name": "createVscodeSessionQuickPickPresenter",
+      "filePath": "src/annotations/presentation/sessionQuickPick.ts",
+      "summary": "createVscodeSessionQuickPickPresenter function in sessionQuickPick.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/sessionQuickPick.ts:toSessionQuickPickItem",
+      "type": "function",
+      "name": "toSessionQuickPickItem",
+      "filePath": "src/annotations/presentation/sessionQuickPick.ts",
+      "summary": "toSessionQuickPickItem function in sessionQuickPick.ts.",
+      "tags": [
+        "presentation",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/test/extension.test.ts",
+      "type": "file",
+      "name": "extension.test.ts",
+      "filePath": "src/test/extension.test.ts",
+      "summary": "Extension-level integration test verifying basic extension activation.",
+      "tags": [
+        "test",
+        "integration",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/test/unit/anchorMatching.test.ts",
+      "type": "file",
+      "name": "anchorMatching.test.ts",
+      "filePath": "src/test/unit/anchorMatching.test.ts",
+      "summary": "Unit tests for anchor matching and re-anchoring algorithms.",
+      "tags": [
+        "test",
+        "unit",
+        "anchor-matching"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/test/unit/annotationCommands.test.ts",
+      "type": "file",
+      "name": "annotationCommands.test.ts",
+      "filePath": "src/test/unit/annotationCommands.test.ts",
+      "summary": "Unit tests for annotation command handlers with fake workspace service and editor API stubs.",
+      "tags": [
+        "test",
+        "unit",
+        "commands"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/test/unit/annotationCommands.test.ts:createSession",
+      "type": "function",
+      "name": "createSession",
+      "filePath": "src/test/unit/annotationCommands.test.ts",
+      "summary": "createSession function in annotationCommands.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/unit/annotationCommands.test.ts:createAnnotation",
+      "type": "function",
+      "name": "createAnnotation",
+      "filePath": "src/test/unit/annotationCommands.test.ts",
+      "summary": "createAnnotation function in annotationCommands.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/test/unit/annotationCommands.test.ts:FakeAnnotationWorkspaceService",
+      "type": "class",
+      "name": "FakeAnnotationWorkspaceService",
+      "filePath": "src/test/unit/annotationCommands.test.ts",
+      "summary": "FakeAnnotationWorkspaceService class in annotationCommands.test.ts.",
+      "tags": [
+        "test-double",
+        "test"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/test/unit/annotationProjection.test.ts",
+      "type": "file",
+      "name": "annotationProjection.test.ts",
+      "filePath": "src/test/unit/annotationProjection.test.ts",
+      "summary": "Unit tests for annotation projection to VS Code comment threads.",
+      "tags": [
+        "test",
+        "unit",
+        "projection"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/test/unit/annotationProjection.test.ts:createProjection",
+      "type": "function",
+      "name": "createProjection",
+      "filePath": "src/test/unit/annotationProjection.test.ts",
+      "summary": "createProjection function in annotationProjection.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:src/test/unit/annotationProjection.test.ts:FakeCommentController",
+      "type": "class",
+      "name": "FakeCommentController",
+      "filePath": "src/test/unit/annotationProjection.test.ts",
+      "summary": "FakeCommentController class in annotationProjection.test.ts.",
+      "tags": [
+        "test-double",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/test/unit/annotationProjection.test.ts:FakeCommentThread",
+      "type": "class",
+      "name": "FakeCommentThread",
+      "filePath": "src/test/unit/annotationProjection.test.ts",
+      "summary": "FakeCommentThread class in annotationProjection.test.ts.",
+      "tags": [
+        "test-double",
+        "test"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/test/unit/annotationStorageController.test.ts",
+      "type": "file",
+      "name": "annotationStorageController.test.ts",
+      "filePath": "src/test/unit/annotationStorageController.test.ts",
+      "summary": "Unit tests for annotation storage controller including reads, writes, migration, and backup behavior.",
+      "tags": [
+        "test",
+        "unit",
+        "storage"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/test/unit/annotationStorageController.test.ts:createSession",
+      "type": "function",
+      "name": "createSession",
+      "filePath": "src/test/unit/annotationStorageController.test.ts",
+      "summary": "createSession function in annotationStorageController.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/test/unit/annotationValidation.test.ts",
+      "type": "file",
+      "name": "annotationValidation.test.ts",
+      "filePath": "src/test/unit/annotationValidation.test.ts",
+      "summary": "Unit tests for annotation store JSON validation covering valid and invalid shapes.",
+      "tags": [
+        "test",
+        "unit",
+        "validation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/test/unit/annotationValidation.test.ts:createSession",
+      "type": "function",
+      "name": "createSession",
+      "filePath": "src/test/unit/annotationValidation.test.ts",
+      "summary": "createSession function in annotationValidation.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/unit/annotationValidation.test.ts:createAnnotation",
+      "type": "function",
+      "name": "createAnnotation",
+      "filePath": "src/test/unit/annotationValidation.test.ts",
+      "summary": "createAnnotation function in annotationValidation.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "type": "file",
+      "name": "annotationWorkspaceService.test.ts",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "Unit tests for the annotation workspace service covering session lifecycle, annotation CRUD, and conflict resolution.",
+      "tags": [
+        "test",
+        "unit",
+        "workspace-service"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/test/unit/annotationWorkspaceService.test.ts:createService",
+      "type": "function",
+      "name": "createService",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "createService function in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/unit/annotationWorkspaceService.test.ts:createSession",
+      "type": "function",
+      "name": "createSession",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "createSession function in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/unit/annotationWorkspaceService.test.ts:createAnnotation",
+      "type": "function",
+      "name": "createAnnotation",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "createAnnotation function in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/unit/annotationWorkspaceService.test.ts:createAnchor",
+      "type": "function",
+      "name": "createAnchor",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "createAnchor function in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/test/unit/annotationWorkspaceService.test.ts:InMemoryStorageController",
+      "type": "class",
+      "name": "InMemoryStorageController",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "InMemoryStorageController class in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-double",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/test/unit/annotationWorkspaceService.test.ts:InvalidStorageController",
+      "type": "class",
+      "name": "InvalidStorageController",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "InvalidStorageController class in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-double",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/test/unit/draftOutputService.test.ts",
+      "type": "file",
+      "name": "draftOutputService.test.ts",
+      "filePath": "src/test/unit/draftOutputService.test.ts",
+      "summary": "Unit tests for draft output generation verifying Markdown, JSON, and YAML formatting.",
+      "tags": [
+        "test",
+        "unit",
+        "draft-output"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/test/unit/draftOutputService.test.ts:createStoreWithAnnotations",
+      "type": "function",
+      "name": "createStoreWithAnnotations",
+      "filePath": "src/test/unit/draftOutputService.test.ts",
+      "summary": "createStoreWithAnnotations function in draftOutputService.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:scripts/run-vscode-test.mjs",
+      "target": "function:scripts/run-vscode-test.mjs:runAttempt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/run-vscode-test.mjs",
+      "target": "function:scripts/run-vscode-test.mjs:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/extension.ts",
+      "target": "function:src/extension.ts:activate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/extension.ts",
+      "target": "function:src/extension.ts:activate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/extension.ts",
+      "target": "function:src/extension.ts:deactivate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/extension.ts",
+      "target": "function:src/extension.ts:deactivate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/extension.ts",
+      "target": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/annotationContextKeys.ts",
+      "target": "function:src/annotations/bootstrap/annotationContextKeys.ts:registerAnnotationContextKeys",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/bootstrap/annotationContextKeys.ts",
+      "target": "function:src/annotations/bootstrap/annotationContextKeys.ts:registerAnnotationContextKeys",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/bootstrap/annotationContextKeys.ts",
+      "target": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/annotationContextKeys.ts",
+      "target": "file:src/annotations/presentation/annotationTargeting.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/annotationContextKeys.ts",
+      "target": "file:src/annotations/util/workspaceFolders.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "function:src/annotations/bootstrap/registerAnnotationFeature.ts:registerAnnotationFeature",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "function:src/annotations/bootstrap/registerAnnotationFeature.ts:registerAnnotationFeature",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "class:src/annotations/bootstrap/registerAnnotationFeature.ts:AnnotationWorkspaceServiceRegistry",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "file:src/annotations/application/sessionSelectionService.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "file:src/annotations/bootstrap/annotationContextKeys.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "file:src/annotations/presentation/annotationCommands.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "file:src/annotations/presentation/annotationInput.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "file:src/annotations/presentation/sessionQuickPick.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "file:src/annotations/infrastructure/annotationStoreWatcher.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "file:src/annotations/presentation/annotationCommentProjectionService.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+      "target": "file:src/annotations/presentation/annotationCodeLensProvider.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:createAnnotationAnchor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:createAnnotationAnchor",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:findAnnotationReanchorMatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:findAnnotationReanchorMatch",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:tryExactRangeMatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:tryFingerprintRangeMatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:scoreContextMatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:findSelectedTextCandidates",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:rangeToOffsets",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:createLineIndex",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:positionToOffset",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:offsetsToRange",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "function:src/annotations/domain/anchorMatching.ts:offsetToPosition",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationModels.ts",
+      "target": "function:src/annotations/domain/annotationModels.ts:createEmptyAnnotationStore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationModels.ts",
+      "target": "function:src/annotations/domain/annotationModels.ts:createEmptyAnnotationStore",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationModels.ts",
+      "target": "function:src/annotations/domain/annotationModels.ts:truncateAnnotationContextLine",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationModels.ts",
+      "target": "function:src/annotations/domain/annotationModels.ts:truncateAnnotationContextLine",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationModels.ts",
+      "target": "function:src/annotations/domain/annotationModels.ts:normalizeAnnotationContextLines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationModels.ts",
+      "target": "function:src/annotations/domain/annotationModels.ts:normalizeAnnotationContextLines",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationSchema.ts",
+      "target": "function:src/annotations/domain/annotationSchema.ts:getAnnotationStorePath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationSchema.ts",
+      "target": "function:src/annotations/domain/annotationSchema.ts:getAnnotationStorePath",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationSchema.ts",
+      "target": "function:src/annotations/domain/annotationSchema.ts:getAnnotationStoreDirectoryPath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationSchema.ts",
+      "target": "function:src/annotations/domain/annotationSchema.ts:getAnnotationStoreDirectoryPath",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationSchema.ts",
+      "target": "function:src/annotations/domain/annotationSchema.ts:getAnnotationSchemaAssetPath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationSchema.ts",
+      "target": "function:src/annotations/domain/annotationSchema.ts:getAnnotationSchemaAssetPath",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationSchema.ts",
+      "target": "function:src/annotations/domain/annotationSchema.ts:createAnnotationBackupFileName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationSchema.ts",
+      "target": "function:src/annotations/domain/annotationSchema.ts:createAnnotationBackupFileName",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationSchema.ts",
+      "target": "function:src/annotations/domain/annotationSchema.ts:isAnnotationBackupFileName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationSchema.ts",
+      "target": "function:src/annotations/domain/annotationSchema.ts:isAnnotationBackupFileName",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:createAnnotationValidationError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:createAnnotationValidationError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:parseAnnotationStoreJson",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:parseAnnotationStoreJson",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:parseAndValidateAnnotationStore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:parseAndValidateAnnotationStore",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationStore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationStore",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateNewAnnotationSelectedText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateNewAnnotationSelectedText",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateContextFingerprintLines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateContextFingerprintLines",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationAnchor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationAnchor",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateSchemaVersion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateSchemaVersion",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateMaybeEmptyAnnotationStore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateMaybeEmptyAnnotationStore",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateStore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationEntry",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateAnnotationRange",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateRelativeFilePath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateRelativeFilePath",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "function:src/annotations/domain/annotationValidation.ts:validateEnum",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "class:src/annotations/domain/annotationValidation.ts:AnnotationStoreValidationError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "class:src/annotations/domain/annotationValidation.ts:AnnotationStoreValidationError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/domain/draftShapes.ts",
+      "target": "file:src/annotations/domain/annotationModels.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/util/log.ts",
+      "target": "function:src/annotations/util/log.ts:createAnnotationLogger",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/util/log.ts",
+      "target": "function:src/annotations/util/log.ts:createAnnotationLogger",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/util/log.ts",
+      "target": "function:src/annotations/util/log.ts:logInvalidAnnotationStore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/util/log.ts",
+      "target": "function:src/annotations/util/log.ts:logInvalidAnnotationStore",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/util/log.ts",
+      "target": "function:src/annotations/util/log.ts:logAnnotationStoreReload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/util/log.ts",
+      "target": "function:src/annotations/util/log.ts:logAnnotationStoreReload",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/util/log.ts",
+      "target": "function:src/annotations/util/log.ts:logAnnotationStoreConflict",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/util/log.ts",
+      "target": "function:src/annotations/util/log.ts:logAnnotationStoreConflict",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/util/workspaceFolders.ts",
+      "target": "function:src/annotations/util/workspaceFolders.ts:findWorkspaceFolderForEditor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/util/workspaceFolders.ts",
+      "target": "function:src/annotations/util/workspaceFolders.ts:findWorkspaceFolderForEditor",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/util/workspaceFolders.ts",
+      "target": "function:src/annotations/util/workspaceFolders.ts:findWorkspaceFolderForPaletteCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/util/workspaceFolders.ts",
+      "target": "function:src/annotations/util/workspaceFolders.ts:findWorkspaceFolderForPaletteCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "config:tsconfig.json",
+      "target": "file:src/extension.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:src/extension.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:findAnnotation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "class:src/annotations/application/annotationWorkspaceService.ts:AnnotationWorkspaceService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "class:src/annotations/application/annotationWorkspaceService.ts:AnnotationWorkspaceService",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "file:src/annotations/domain/annotationModels.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "file:src/annotations/domain/annotationValidation.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "file:src/annotations/util/log.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "function:src/annotations/application/draftOutputService.ts:generateDraftContent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "function:src/annotations/application/draftOutputService.ts:generateDraftContent",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "function:src/annotations/application/draftOutputService.ts:deriveDraftOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "function:src/annotations/application/draftOutputService.ts:deriveDraftOutput",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "function:src/annotations/application/draftOutputService.ts:groupByFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "function:src/annotations/application/draftOutputService.ts:serializeMarkdown",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "function:src/annotations/application/draftOutputService.ts:serializeYaml",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "function:src/annotations/application/draftOutputService.ts:yamlScalar",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "file:src/annotations/application/projectionModel.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "file:src/annotations/domain/draftShapes.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/application/projectionModel.ts",
+      "target": "function:src/annotations/application/projectionModel.ts:deriveAnnotationWorkspaceProjection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/projectionModel.ts",
+      "target": "function:src/annotations/application/projectionModel.ts:deriveAnnotationWorkspaceProjection",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/application/projectionModel.ts",
+      "target": "function:src/annotations/application/projectionModel.ts:projectSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/projectionModel.ts",
+      "target": "function:src/annotations/application/projectionModel.ts:projectAnnotation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/sessionSelectionService.ts",
+      "target": "function:src/annotations/application/sessionSelectionService.ts:getReadyState",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/sessionSelectionService.ts",
+      "target": "function:src/annotations/application/sessionSelectionService.ts:toSessionSelectionResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/sessionSelectionService.ts",
+      "target": "class:src/annotations/application/sessionSelectionService.ts:SessionSelectionService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/sessionSelectionService.ts",
+      "target": "class:src/annotations/application/sessionSelectionService.ts:SessionSelectionService",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/application/sessionSelectionService.ts",
+      "target": "file:src/annotations/application/projectionModel.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationBackupService.ts",
+      "target": "class:src/annotations/infrastructure/annotationBackupService.ts:AnnotationBackupService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationBackupService.ts",
+      "target": "class:src/annotations/infrastructure/annotationBackupService.ts:AnnotationBackupService",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
+      "target": "function:src/annotations/infrastructure/annotationMigrations.ts:detectAnnotationStoreVersion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
+      "target": "function:src/annotations/infrastructure/annotationMigrations.ts:detectAnnotationStoreVersion",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
+      "target": "function:src/annotations/infrastructure/annotationMigrations.ts:migrateAnnotationStore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
+      "target": "function:src/annotations/infrastructure/annotationMigrations.ts:migrateAnnotationStore",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
+      "target": "file:src/annotations/domain/annotationModels.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
+      "target": "file:src/annotations/domain/annotationValidation.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "target": "function:src/annotations/infrastructure/annotationStorageController.ts:createNodeAnnotationFileSystem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "target": "function:src/annotations/infrastructure/annotationStorageController.ts:createNodeAnnotationFileSystem",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "target": "function:src/annotations/infrastructure/annotationStorageController.ts:toPersistedStoreVersion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "target": "function:src/annotations/infrastructure/annotationStorageController.ts:toAnnotationValidationError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "target": "class:src/annotations/infrastructure/annotationStorageController.ts:AnnotationStorageController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "target": "class:src/annotations/infrastructure/annotationStorageController.ts:AnnotationStorageController",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "target": "file:src/annotations/infrastructure/annotationMigrations.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStoreWatcher.ts",
+      "target": "class:src/annotations/infrastructure/annotationStoreWatcher.ts:AnnotationStoreWatcher",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStoreWatcher.ts",
+      "target": "class:src/annotations/infrastructure/annotationStoreWatcher.ts:AnnotationStoreWatcher",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStoreWatcher.ts",
+      "target": "file:src/annotations/domain/annotationSchema.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCodeLensProvider.ts",
+      "target": "class:src/annotations/presentation/annotationCodeLensProvider.ts:AnnotationCodeLensProvider",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCodeLensProvider.ts",
+      "target": "class:src/annotations/presentation/annotationCodeLensProvider.ts:AnnotationCodeLensProvider",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:registerAnnotationCommands",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:registerAnnotationCommands",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeAddOrEditAnnotationCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeAddOrEditAnnotationCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeSelectReviewSessionCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeSelectReviewSessionCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executePurgeDismissedAnnotationsCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executePurgeDismissedAnnotationsCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeDismissAnnotationCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeDismissAnnotationCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeReanchorAnnotationCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeReanchorAnnotationCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeGenerateDraftOutputCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeGenerateDraftOutputCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeExistingAnnotationAction",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:resolveAnnotationCommandTarget",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:ensureReadyState",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:isWorkspaceBlocked",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:validateSelection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:blockWithoutWorkspace",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:reportWorkspaceBlocked",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:reportBlocked",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:toMutationCommandResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "file:src/annotations/domain/annotationValidation.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "file:src/annotations/application/sessionSelectionService.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "file:src/annotations/application/projectionModel.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "file:src/annotations/presentation/annotationInput.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "file:src/annotations/application/draftOutputService.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "file:src/annotations/domain/draftShapes.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommentProjectionService.ts",
+      "target": "class:src/annotations/presentation/annotationCommentProjectionService.ts:AnnotationCommentProjectionService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommentProjectionService.ts",
+      "target": "class:src/annotations/presentation/annotationCommentProjectionService.ts:AnnotationCommentProjectionService",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationInput.ts",
+      "target": "function:src/annotations/presentation/annotationInput.ts:createVscodeAnnotationInputService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationInput.ts",
+      "target": "function:src/annotations/presentation/annotationInput.ts:createVscodeAnnotationInputService",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationInput.ts",
+      "target": "file:src/annotations/application/projectionModel.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "function:src/annotations/presentation/annotationTargeting.ts:toWorkspaceRelativeFilePath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "function:src/annotations/presentation/annotationTargeting.ts:toWorkspaceRelativeFilePath",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "function:src/annotations/presentation/annotationTargeting.ts:createAnchorFromEditorSelection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "function:src/annotations/presentation/annotationTargeting.ts:createAnchorFromEditorSelection",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "function:src/annotations/presentation/annotationTargeting.ts:findAnnotationForEditorSelection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "function:src/annotations/presentation/annotationTargeting.ts:findAnnotationForEditorSelection",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "function:src/annotations/presentation/annotationTargeting.ts:collectContextBeforeLines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "function:src/annotations/presentation/annotationTargeting.ts:collectContextAfterLines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "function:src/annotations/presentation/annotationTargeting.ts:rangesEqual",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "function:src/annotations/presentation/annotationTargeting.ts:comparePosition",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "file:src/annotations/domain/anchorMatching.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationTargeting.ts",
+      "target": "file:src/annotations/application/projectionModel.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/presentation/sessionQuickPick.ts",
+      "target": "function:src/annotations/presentation/sessionQuickPick.ts:createSessionQuickPickItems",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/sessionQuickPick.ts",
+      "target": "function:src/annotations/presentation/sessionQuickPick.ts:createSessionQuickPickItems",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/sessionQuickPick.ts",
+      "target": "function:src/annotations/presentation/sessionQuickPick.ts:createVscodeSessionQuickPickPresenter",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/sessionQuickPick.ts",
+      "target": "function:src/annotations/presentation/sessionQuickPick.ts:createVscodeSessionQuickPickPresenter",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/sessionQuickPick.ts",
+      "target": "function:src/annotations/presentation/sessionQuickPick.ts:toSessionQuickPickItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/sessionQuickPick.ts",
+      "target": "file:src/annotations/application/projectionModel.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/annotationCommands.test.ts",
+      "target": "function:src/test/unit/annotationCommands.test.ts:createSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationCommands.test.ts",
+      "target": "function:src/test/unit/annotationCommands.test.ts:createAnnotation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationCommands.test.ts",
+      "target": "class:src/test/unit/annotationCommands.test.ts:FakeAnnotationWorkspaceService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationCommands.test.ts",
+      "target": "file:src/annotations/application/sessionSelectionService.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/annotationCommands.test.ts",
+      "target": "file:src/annotations/presentation/annotationInput.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/annotationCommands.test.ts",
+      "target": "file:src/annotations/application/projectionModel.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/annotationCommands.test.ts",
+      "target": "file:src/annotations/domain/anchorMatching.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/annotationProjection.test.ts",
+      "target": "function:src/test/unit/annotationProjection.test.ts:createProjection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationProjection.test.ts",
+      "target": "class:src/test/unit/annotationProjection.test.ts:FakeCommentController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationProjection.test.ts",
+      "target": "class:src/test/unit/annotationProjection.test.ts:FakeCommentThread",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationProjection.test.ts",
+      "target": "file:src/annotations/presentation/annotationCodeLensProvider.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/annotationProjection.test.ts",
+      "target": "file:src/annotations/presentation/annotationCommentProjectionService.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/annotationProjection.test.ts",
+      "target": "file:src/annotations/application/projectionModel.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/annotationStorageController.test.ts",
+      "target": "function:src/test/unit/annotationStorageController.test.ts:createSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationStorageController.test.ts",
+      "target": "file:src/annotations/domain/annotationSchema.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/annotationStorageController.test.ts",
+      "target": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/annotationValidation.test.ts",
+      "target": "function:src/test/unit/annotationValidation.test.ts:createSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationValidation.test.ts",
+      "target": "function:src/test/unit/annotationValidation.test.ts:createAnnotation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "function:src/test/unit/annotationWorkspaceService.test.ts:createService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "function:src/test/unit/annotationWorkspaceService.test.ts:createSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "function:src/test/unit/annotationWorkspaceService.test.ts:createAnnotation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "function:src/test/unit/annotationWorkspaceService.test.ts:createAnchor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "class:src/test/unit/annotationWorkspaceService.test.ts:InMemoryStorageController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "class:src/test/unit/annotationWorkspaceService.test.ts:InvalidStorageController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/draftOutputService.test.ts",
+      "target": "function:src/test/unit/draftOutputService.test.ts:createStoreWithAnnotations",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/draftOutputService.test.ts",
+      "target": "file:src/annotations/application/projectionModel.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/draftOutputService.test.ts",
+      "target": "file:src/annotations/domain/annotationModels.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/unit/draftOutputService.test.ts",
+      "target": "file:src/annotations/domain/draftShapes.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/domain/anchorMatching.ts",
+      "target": "file:src/test/unit/anchorMatching.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "file:src/test/unit/annotationCommands.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommentProjectionService.ts",
+      "target": "file:src/test/unit/annotationProjection.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/annotations/infrastructure/annotationStorageController.ts",
+      "target": "file:src/test/unit/annotationStorageController.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/annotations/domain/annotationValidation.ts",
+      "target": "file:src/test/unit/annotationValidation.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/annotations/application/draftOutputService.ts",
+      "target": "file:src/test/unit/draftOutputService.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/extension.ts",
+      "target": "file:src/test/extension.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5,
+      "description": "Path-based pairing (deterministic)"
+    },
+    {
+      "source": "config:schemas/ai-toolkit.annotations.schema.json",
+      "target": "file:src/annotations/domain/annotationSchema.ts",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:documentation-and-config",
+      "name": "Documentation & Configuration",
+      "description": "Project documentation, configuration files, and build tooling. Includes README, CHANGELOG, planning docs, package manifest, TypeScript config, ESLint config, JSON schema, and extension packaging config.",
+      "nodeIds": [
+        "document:README.md",
+        "document:CHANGELOG.md",
+        "document:CONTEXT.md",
+        "document:docs/annotation-v1-implementation-plan.md",
+        "document:vsc-extension-quickstart.md",
+        "config:package.json",
+        "config:tsconfig.json",
+        "config:schemas/ai-toolkit.annotations.schema.json",
+        "file:eslint.config.mjs",
+        "file:.npmrc",
+        "file:.vscodeignore"
+      ]
+    },
+    {
+      "id": "layer:extension-entry-point",
+      "name": "Extension Entry Point",
+      "description": "VS Code extension lifecycle hooks and top-level feature registration. The activate/deactivate entry point and the bootstrap that wires all annotation subsystems into the extension context.",
+      "nodeIds": [
+        "file:src/extension.ts",
+        "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+        "file:src/annotations/bootstrap/annotationContextKeys.ts"
+      ]
+    },
+    {
+      "id": "layer:domain",
+      "name": "Domain",
+      "description": "Core domain model, validation logic, schema constants, and anchor-matching algorithms. Pure business logic with no VS Code dependencies — defines the annotation lifecycle, data shapes, and structural invariants.",
+      "nodeIds": [
+        "file:src/annotations/domain/anchorMatching.ts",
+        "file:src/annotations/domain/annotationModels.ts",
+        "file:src/annotations/domain/annotationSchema.ts",
+        "file:src/annotations/domain/annotationValidation.ts",
+        "file:src/annotations/domain/draftShapes.ts"
+      ]
+    },
+    {
+      "id": "layer:application",
+      "name": "Application",
+      "description": "Application services orchestrating domain operations: workspace state management, session selection, draft output generation, and projection derivation. Mediates between domain and infrastructure/presentation layers.",
+      "nodeIds": [
+        "file:src/annotations/application/annotationWorkspaceService.ts",
+        "file:src/annotations/application/draftOutputService.ts",
+        "file:src/annotations/application/projectionModel.ts",
+        "file:src/annotations/application/sessionSelectionService.ts"
+      ]
+    },
+    {
+      "id": "layer:infrastructure",
+      "name": "Infrastructure",
+      "description": "Persistence and file-system adapters: storage controller for reading/writing the annotation JSON store, file watcher for external changes, backup service, and schema migrations.",
+      "nodeIds": [
+        "file:src/annotations/infrastructure/annotationBackupService.ts",
+        "file:src/annotations/infrastructure/annotationMigrations.ts",
+        "file:src/annotations/infrastructure/annotationStorageController.ts",
+        "file:src/annotations/infrastructure/annotationStoreWatcher.ts"
+      ]
+    },
+    {
+      "id": "layer:presentation",
+      "name": "Presentation",
+      "description": "VS Code UI layer: commands, CodeLens provider, comment thread projections, session quick-pick, annotation input, and editor targeting. All components that interact directly with the VS Code API.",
+      "nodeIds": [
+        "file:src/annotations/presentation/annotationCodeLensProvider.ts",
+        "file:src/annotations/presentation/annotationCommands.ts",
+        "file:src/annotations/presentation/annotationCommentProjectionService.ts",
+        "file:src/annotations/presentation/annotationInput.ts",
+        "file:src/annotations/presentation/annotationTargeting.ts",
+        "file:src/annotations/presentation/sessionQuickPick.ts"
+      ]
+    },
+    {
+      "id": "layer:utilities",
+      "name": "Utilities",
+      "description": "Cross-cutting utility helpers: structured logging and workspace folder resolution.",
+      "nodeIds": [
+        "file:src/annotations/util/log.ts",
+        "file:src/annotations/util/workspaceFolders.ts"
+      ]
+    },
+    {
+      "id": "layer:tests",
+      "name": "Tests",
+      "description": "Automated test suite: integration test for extension activation and unit tests covering domain validation, storage, commands, projections, workspace service, and draft output.",
+      "nodeIds": [
+        "file:src/test/extension.test.ts",
+        "file:src/test/unit/anchorMatching.test.ts",
+        "file:src/test/unit/annotationCommands.test.ts",
+        "file:src/test/unit/annotationProjection.test.ts",
+        "file:src/test/unit/annotationStorageController.test.ts",
+        "file:src/test/unit/annotationValidation.test.ts",
+        "file:src/test/unit/annotationWorkspaceService.test.ts",
+        "file:src/test/unit/draftOutputService.test.ts"
+      ]
+    },
+    {
+      "id": "layer:tooling-and-scripts",
+      "name": "Tooling & Scripts",
+      "description": "Build, test, and packaging scripts: the VS Code test runner script and VS Code test configuration.",
+      "nodeIds": [
+        "file:scripts/run-vscode-test.mjs",
+        "file:.vscode-test.mjs"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Project Overview",
+      "description": "Start with the README and domain glossary to understand the purpose of AI Toolkit and its annotation workflow. The CONTEXT.md defines the ubiquitous language used throughout the codebase — key terms like Annotation, Review Session, Anchor, and Comment Projection.",
+      "nodeIds": [
+        "document:README.md",
+        "document:CONTEXT.md"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Extension Entry Point",
+      "description": "The extension activates through src/extension.ts which delegates immediately to registerAnnotationFeature. This bootstrap function wires together all subsystems — storage, commands, watchers, and projections — into VS Code's extension context using disposables.",
+      "nodeIds": [
+        "file:src/extension.ts",
+        "file:src/annotations/bootstrap/registerAnnotationFeature.ts",
+        "file:src/annotations/bootstrap/annotationContextKeys.ts"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Domain Model",
+      "description": "The domain layer defines the core data shapes and business rules. annotationModels.ts holds the fundamental types (stores, sessions, entries, anchors). annotationValidation.ts enforces store integrity at runtime. annotationSchema.ts provides file-path constants. draftShapes.ts defines the export format shapes.",
+      "nodeIds": [
+        "file:src/annotations/domain/annotationModels.ts",
+        "file:src/annotations/domain/annotationValidation.ts",
+        "file:src/annotations/domain/annotationSchema.ts",
+        "file:src/annotations/domain/draftShapes.ts"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "Anchor Matching Algorithm",
+      "description": "anchorMatching.ts implements the fingerprint-based fuzzy re-anchoring algorithm. When a file changes, this code finds the best match for each annotation's anchor using a multi-strategy approach: exact range match, fingerprint similarity scoring, and selected-text candidate search.",
+      "nodeIds": [
+        "file:src/annotations/domain/anchorMatching.ts"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "Application Services",
+      "description": "The application layer orchestrates domain operations. AnnotationWorkspaceService is the central stateful service managing sessions, annotations, and commits. SessionSelectionService ensures an active session before operations proceed. projectionModel.ts derives the read-only view consumed by UI components. draftOutputService.ts formats annotations for export.",
+      "nodeIds": [
+        "file:src/annotations/application/annotationWorkspaceService.ts",
+        "file:src/annotations/application/sessionSelectionService.ts",
+        "file:src/annotations/application/projectionModel.ts",
+        "file:src/annotations/application/draftOutputService.ts"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "Persistence Infrastructure",
+      "description": "The infrastructure layer handles all file I/O. AnnotationStorageController manages queued reads and writes of the JSON store file with migration support. AnnotationStoreWatcher detects external file changes and triggers refresh. AnnotationBackupService creates timestamped backups and prunes old ones.",
+      "nodeIds": [
+        "file:src/annotations/infrastructure/annotationStorageController.ts",
+        "file:src/annotations/infrastructure/annotationStoreWatcher.ts",
+        "file:src/annotations/infrastructure/annotationBackupService.ts",
+        "file:src/annotations/infrastructure/annotationMigrations.ts"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "VS Code UI Commands",
+      "description": "annotationCommands.ts registers all user-facing commands: add/edit annotation, select session, dismiss, reanchor, purge dismissed, and generate draft output. Each command follows a consistent pattern: resolve workspace folder, ensure ready state, invoke the service, and report results.",
+      "nodeIds": [
+        "file:src/annotations/presentation/annotationCommands.ts",
+        "file:src/annotations/presentation/annotationTargeting.ts",
+        "file:src/annotations/presentation/annotationInput.ts",
+        "file:src/annotations/presentation/sessionQuickPick.ts"
+      ]
+    },
+    {
+      "order": 8,
+      "title": "VS Code UI Projections",
+      "description": "Two projection components keep the editor UI in sync with the annotation state. AnnotationCommentProjectionService renders annotations as VS Code comment threads. AnnotationCodeLensProvider shows action lenses inline on annotated code ranges.",
+      "nodeIds": [
+        "file:src/annotations/presentation/annotationCommentProjectionService.ts",
+        "file:src/annotations/presentation/annotationCodeLensProvider.ts"
+      ]
+    },
+    {
+      "order": 9,
+      "title": "Test Suite",
+      "description": "The test suite covers domain validation, storage, commands, projections, workspace service, and draft output with unit tests that use fake implementations for VS Code APIs and storage. The extension integration test verifies basic activation.",
+      "nodeIds": [
+        "file:src/test/unit/annotationWorkspaceService.test.ts",
+        "file:src/test/unit/annotationStorageController.test.ts",
+        "file:src/test/unit/annotationCommands.test.ts",
+        "file:src/test/unit/annotationValidation.test.ts",
+        "file:src/test/extension.test.ts"
+      ]
+    }
+  ]
+}
