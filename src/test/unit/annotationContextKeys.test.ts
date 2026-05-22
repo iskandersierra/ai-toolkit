@@ -209,6 +209,12 @@ function createWorkspaceService(
 		setActiveSession: async () => {
 			throw new Error('Not implemented in test');
 		},
+		deleteSession: async () => {
+			throw new Error('Not implemented in test');
+		},
+		clearSessionAnnotations: async () => {
+			throw new Error('Not implemented in test');
+		},
 		createAnnotation: async () => {
 			throw new Error('Not implemented in test');
 		},

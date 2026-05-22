@@ -79,7 +79,7 @@
         "selectedText": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 2000
+          "description": "Stored selectedText preserves the captured line count and truncates each line to 200 characters."
         },
         "contextBeforeLines": {
           "type": "array",

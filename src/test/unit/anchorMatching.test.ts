@@ -180,6 +180,52 @@ suite('Anchor Matching', () => {
 		});
 	});
 
+	// Scenario: Given the original range text is edited nearby without an exact literal match, When reanchoring, Then the local position-first matcher keeps the annotation near the stored coordinates.
+	test('findAnnotationReanchorMatch keeps a locally edited anchor near its original range', () => {
+		const anchor = createAnnotationAnchor(
+			{ start: { line: 2, character: 0 }, end: { line: 2, character: 8 } },
+			'target()',
+			['before'],
+			['after'],
+		);
+		const documentText = ['intro', 'before', 'targeted', 'after', 'tail'].join('\n');
+
+		const match = findAnnotationReanchorMatch(documentText, anchor);
+
+		assert.deepStrictEqual(match, {
+			range: {
+				start: { line: 2, character: 0 },
+				end: { line: 2, character: 8 },
+			},
+			strategy: 'fingerprint',
+			contextScore: 2,
+			contextScoreMax: 2,
+		});
+	});
+
+	// Scenario: Given a farther exact-text candidate and a nearer edited candidate, When reanchoring, Then distance wins before text similarity.
+	test('findAnnotationReanchorMatch prefers the nearer local candidate before a farther exact-text match', () => {
+		const anchor = createAnnotationAnchor(
+			{ start: { line: 0, character: 0 }, end: { line: 0, character: 8 } },
+			'target()',
+			[],
+			[],
+		);
+		const documentText = ['header', 'targeted', 'middle', 'middle', 'middle', 'target()'].join('\n');
+
+		const match = findAnnotationReanchorMatch(documentText, anchor);
+
+		assert.deepStrictEqual(match, {
+			range: {
+				start: { line: 1, character: 0 },
+				end: { line: 1, character: 8 },
+			},
+			strategy: 'fingerprint',
+			contextScore: 0,
+			contextScoreMax: 0,
+		});
+	});
+
 	// Scenario: Given selectedText moved to line 55 (beyond the 50-line proximity radius) with matching context, When reanchoring, Then proximity yields no match and fingerprint succeeds.
 	test('findAnnotationReanchorMatch falls through proximity to fingerprint when no candidates within radius', () => {
 		const anchor = createAnnotationAnchor(

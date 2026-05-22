@@ -101,6 +101,8 @@ export interface AnnotationWorkspaceServiceLike {
 	initialize(): Promise<AnnotationWorkspaceState>;
 	createSession(name: string): Promise<AnnotationWorkspaceMutationResult>;
 	setActiveSession(sessionId: string): Promise<AnnotationWorkspaceMutationResult>;
+	deleteSession(sessionId: string): Promise<AnnotationWorkspaceMutationResult>;
+	clearSessionAnnotations(sessionId: string): Promise<AnnotationWorkspaceMutationResult>;
 	createAnnotation(input: CreateAnnotationInput): Promise<AnnotationWorkspaceMutationResult>;
 	updateAnnotation(input: UpdateAnnotationInput): Promise<AnnotationWorkspaceMutationResult>;
 	dismissAnnotation(annotationId: string): Promise<AnnotationWorkspaceMutationResult>;
@@ -243,6 +245,42 @@ export class AnnotationWorkspaceService implements AnnotationWorkspaceServiceLik
 			}
 
 			store.activeSessionId = sessionId;
+			return { store, sessionId };
+		});
+	}
+
+	public async deleteSession(sessionId: string): Promise<AnnotationWorkspaceMutationResult> {
+		return this.commit((store) => {
+			const sessionIndex = store.sessions.findIndex((entry) => entry.sessionId === sessionId);
+
+			if (sessionIndex === -1) {
+				return this.blocked('sessionNotFound', 'The selected review session could not be found.');
+			}
+
+			store.sessions.splice(sessionIndex, 1);
+
+			if (store.activeSessionId === sessionId) {
+				store.activeSessionId = selectMostRecentlyUpdatedSessionId(store.sessions);
+			}
+
+			return {
+				store,
+				sessionId: store.activeSessionId ?? undefined,
+			};
+		});
+	}
+
+	public async clearSessionAnnotations(sessionId: string): Promise<AnnotationWorkspaceMutationResult> {
+		return this.commit((store) => {
+			const session = store.sessions.find((entry) => entry.sessionId === sessionId);
+
+			if (!session) {
+				return this.blocked('sessionNotFound', 'The selected review session could not be found.');
+			}
+
+			session.annotations = [];
+			session.updatedAt = this.timestamp();
+
 			return { store, sessionId };
 		});
 	}
@@ -684,6 +722,16 @@ function createSessionSlug(name: string): string {
 
 function createOpaqueId(): string {
 	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function selectMostRecentlyUpdatedSessionId(sessions: AnnotationSession[]): string | null {
+	if (sessions.length === 0) {
+		return null;
+	}
+
+	return sessions.reduce((mostRecent, current) =>
+		current.updatedAt > mostRecent.updatedAt ? current : mostRecent,
+	).sessionId;
 }
 
 function areRangesEqual(left: AnnotationAnchor['range'], right: AnnotationAnchor['range']): boolean {

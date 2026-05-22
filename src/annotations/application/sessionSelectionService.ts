@@ -10,6 +10,9 @@ import {
 	type SessionQuickPickPresenter,
 } from '../presentation/sessionQuickPick';
 
+const defaultReviewSessionName = 'Review Session';
+const defaultReviewSessionNamePattern = /^Review Session(?: (\d+))?$/;
+
 export type SessionSelectionResult =
 	| {
 		status: 'ready';
@@ -24,6 +27,26 @@ export type SessionSelectionResult =
 
 export class SessionSelectionService {
 	public constructor(private readonly presenter: SessionQuickPickPresenter) {}
+
+	public getNextDefaultSessionName(projection: AnnotationWorkspaceProjection): string {
+		let highestSequence = 0;
+
+		for (const session of projection.sessions) {
+			const match = defaultReviewSessionNamePattern.exec(session.name);
+			if (!match) {
+				continue;
+			}
+
+			const sequence = match[1] ? Number.parseInt(match[1], 10) : 1;
+			highestSequence = Math.max(highestSequence, sequence);
+		}
+
+		if (highestSequence === 0) {
+			return defaultReviewSessionName;
+		}
+
+		return `${defaultReviewSessionName} ${highestSequence + 1}`;
+	}
 
 	public async ensureActiveSession(service: AnnotationWorkspaceServiceLike): Promise<SessionSelectionResult> {
 		const state = await getReadyState(service);
@@ -41,7 +64,12 @@ export class SessionSelectionService {
 			};
 		}
 
-		return this.selectSession(service);
+		if (state.projection.sessions.length === 0) {
+			const result = await service.createSession(defaultReviewSessionName);
+			return toSessionSelectionResult(result, true);
+		}
+
+		return this.selectSessionFromState(service, state);
 	}
 
 	public async selectSession(service: AnnotationWorkspaceServiceLike): Promise<SessionSelectionResult> {
@@ -51,6 +79,15 @@ export class SessionSelectionService {
 			return state;
 		}
 
+		return this.selectSessionFromState(service, state);
+	}
+
+	private async selectSessionFromState(
+		service: AnnotationWorkspaceServiceLike,
+		state: AnnotationWorkspaceReadyState,
+	): Promise<SessionSelectionResult> {
+		const suggestedName = this.getNextDefaultSessionName(state.projection);
+
 		const choice = await this.presenter.pickSession(createSessionQuickPickItems(state.projection));
 
 		if (!choice) {
@@ -58,7 +95,7 @@ export class SessionSelectionService {
 		}
 
 		if (choice.type === 'create') {
-			const name = await this.presenter.promptForNewSessionName();
+			const name = await this.presenter.promptForNewSessionName(suggestedName);
 
 			if (!name) {
 				return { status: 'cancelled' };
@@ -71,7 +108,7 @@ export class SessionSelectionService {
 		const result = await service.setActiveSession(choice.sessionId);
 		return toSessionSelectionResult(result, false);
 	}
-	}
+}
 
 async function getReadyState(
 	service: AnnotationWorkspaceServiceLike,

@@ -37,6 +37,16 @@
         "category": "AI Toolkit"
       },
       {
+        "command": "ai-toolkit.deleteReviewSession",
+        "title": "AI Toolkit: Delete Review Session",
+        "category": "AI Toolkit"
+      },
+      {
+        "command": "ai-toolkit.clearReviewSessionAnnotations",
+        "title": "AI Toolkit: Clear Review Session Annotations",
+        "category": "AI Toolkit"
+      },
+      {
         "command": "ai-toolkit.reanchorAnnotation",
         "title": "AI Toolkit: Reanchor Annotation",
         "category": "AI Toolkit"
@@ -70,6 +80,12 @@
         },
         {
           "command": "ai-toolkit.purgeDismissedAnnotations"
+        },
+        {
+          "command": "ai-toolkit.deleteReviewSession"
+        },
+        {
+          "command": "ai-toolkit.clearReviewSessionAnnotations"
         },
         {
           "command": "ai-toolkit.reanchorAnnotation",
@@ -116,6 +132,11 @@
         }
       ],
       "comments/commentThread/context": [
+        {
+          "command": "ai-toolkit.addOrEditAnnotation",
+          "group": "annotation@0",
+          "when": "commentController == ai-toolkit-annotations"
+        },
         {
           "command": "ai-toolkit.resolveAnnotation",
           "group": "annotation@1",

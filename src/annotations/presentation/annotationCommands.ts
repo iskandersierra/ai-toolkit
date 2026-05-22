@@ -15,6 +15,12 @@ import type { AnnotationContextKeyController } from '../bootstrap/annotationCont
 import type { AnnotationCommentProjectionService } from './annotationCommentProjectionService';
 import { createVscodeAnnotationInputService, type AnnotationInputService, type ExistingAnnotationAction } from './annotationInput';
 import {
+	createSessionMaintenanceQuickPickItems,
+	createVscodeSessionMaintenanceQuickPickPresenter,
+	type SessionMaintenanceOperation,
+	type SessionMaintenanceQuickPickPresenter,
+} from './sessionMaintenanceQuickPick';
+import {
 	createAnchorFromEditorSelection,
 	resolveAnnotationTarget,
 	toWorkspaceRelativeFilePath,
@@ -28,12 +34,15 @@ import type { DraftOutputFormat } from '../domain/draftShapes';
 import { createAnnotationLogger } from '../util/log';
 
 const logger = createAnnotationLogger();
+const maxAnnotationSelectionLines = 50;
 
 export const annotationCommandIds = {
 	addOrEditAnnotation: 'ai-toolkit.addOrEditAnnotation',
 	selectReviewSession: 'ai-toolkit.selectReviewSession',
 	generateDraftOutput: 'ai-toolkit.generateDraftOutput',
 	purgeDismissedAnnotations: 'ai-toolkit.purgeDismissedAnnotations',
+	deleteReviewSession: 'ai-toolkit.deleteReviewSession',
+	clearReviewSessionAnnotations: 'ai-toolkit.clearReviewSessionAnnotations',
 	reanchorAnnotation: 'ai-toolkit.reanchorAnnotation',
 	dismissAnnotation: 'ai-toolkit.dismissAnnotation',
 	resolveAnnotation: 'ai-toolkit.resolveAnnotation',
@@ -64,6 +73,8 @@ export type AnnotationCommandResult =
 			| 'annotationReopened'
 			| 'annotationReanchored'
 			| 'reviewSessionSelected'
+			| 'reviewSessionDeleted'
+			| 'reviewSessionAnnotationsCleared'
 			| 'dismissedAnnotationsPurged'
 			| 'draftOutputGenerated';
 		annotationId?: string;
@@ -91,6 +102,7 @@ export interface AnnotationCommandDependencies {
 	workspace?: Pick<typeof vscode.workspace, 'getConfiguration' | 'openTextDocument'>;
 	commands?: Pick<typeof vscode.commands, 'registerCommand'>;
 	inputService?: AnnotationInputService;
+	sessionMaintenancePresenter?: SessionMaintenanceQuickPickPresenter;
 	sessionSelectionService: SessionSelectionService;
 	getWorkspaceService(workspaceFolder: vscode.WorkspaceFolder): Promise<AnnotationWorkspaceServiceLike>;
 	contextKeys?: AnnotationContextKeyController;
@@ -123,6 +135,12 @@ export function registerAnnotationCommands(
 		commands.registerCommand(annotationCommandIds.purgeDismissedAnnotations, () =>
 			executePurgeDismissedAnnotationsCommand(dependencies),
 		),
+		commands.registerCommand(annotationCommandIds.deleteReviewSession, () =>
+			executeDeleteReviewSessionCommand(dependencies),
+		),
+		commands.registerCommand(annotationCommandIds.clearReviewSessionAnnotations, () =>
+			executeClearReviewSessionAnnotationsCommand(dependencies),
+		),
 		commands.registerCommand(annotationCommandIds.reanchorAnnotation, (args?: AnnotationCommandArguments) =>
 			executeReanchorAnnotationCommand(dependencies, args),
 		),
@@ -145,6 +163,7 @@ export async function executeAddOrEditAnnotationCommand(
 	const windowApi = dependencies.window ?? vscode.window;
 	const workspaceApi = dependencies.workspace ?? vscode.workspace;
 	const editor = windowApi.activeTextEditor;
+	const thread = extractCommentThread(args);
 	const workspaceFolder = resolveEditorWorkspaceFolder(editor);
 
 	if (!workspaceFolder || !editor) {
@@ -177,7 +196,9 @@ export async function executeAddOrEditAnnotationCommand(
 			(annotation) => annotation.annotationId === explicitAnnotationId,
 		);
 		if (target) {
-			return executeExistingAnnotationAction(dependencies, workspaceFolder, editor, target);
+			return executeExistingAnnotationAction(dependencies, workspaceFolder, editor, target, {
+				allowReanchor: !thread,
+			});
 		}
 	} else {
 		const targetResult = resolveAnnotationTarget(
@@ -212,7 +233,7 @@ export async function executeAddOrEditAnnotationCommand(
 	}
 
 	const anchor = createAnchorFromEditorSelection(editor);
-	const validation = validateSelection(anchor);
+	const validation = validateSelection(editor.selection, anchor);
 
 	if (validation) {
 		void windowApi.showErrorMessage(validation);
@@ -379,73 +400,37 @@ export async function executePurgeDismissedAnnotationsCommand(
 	);
 }
 
+export async function executeDeleteReviewSessionCommand(
+	dependencies: AnnotationCommandDependencies,
+): Promise<AnnotationCommandResult> {
+	return executeSessionMaintenanceCommand(dependencies, 'delete');
+}
+
+export async function executeClearReviewSessionAnnotationsCommand(
+	dependencies: AnnotationCommandDependencies,
+): Promise<AnnotationCommandResult> {
+	return executeSessionMaintenanceCommand(dependencies, 'clear');
+}
+
 export async function executeDismissAnnotationCommand(
 	dependencies: AnnotationCommandDependencies,
 	args?: AnnotationCommandArguments,
 ): Promise<AnnotationCommandResult> {
-	const windowApi = dependencies.window ?? vscode.window;
-	const resolved = await resolveAnnotationCommandTarget(dependencies, annotationCommandIds.dismissAnnotation, args);
-
-	if ('commandId' in resolved) {
-		return resolved;
-	}
-
-	const result = await resolved.service.dismissAnnotation(resolved.annotation.annotationId);
-	return toMutationCommandResult(
-		annotationCommandIds.dismissAnnotation,
-		result,
-		windowApi,
-		resolved.workspaceFolder.uri.fsPath,
-		'Annotation dismissed.',
-		'annotationDismissed',
-		dependencies.contextKeys,
-	);
+	return executeDirectLifecycleCommand(dependencies, annotationCommandIds.dismissAnnotation, 'dismiss', args);
 }
 
 export async function executeResolveAnnotationCommand(
 	dependencies: AnnotationCommandDependencies,
 	args?: AnnotationCommandArguments,
 ): Promise<AnnotationCommandResult> {
-	const windowApi = dependencies.window ?? vscode.window;
-	const resolved = await resolveAnnotationCommandTarget(dependencies, annotationCommandIds.resolveAnnotation, args);
-
-	if ('commandId' in resolved) {
-		return resolved;
-	}
-
-	const result = await resolved.service.resolveAnnotation(resolved.annotation.annotationId);
-	return toMutationCommandResult(
-		annotationCommandIds.resolveAnnotation,
-		result,
-		windowApi,
-		resolved.workspaceFolder.uri.fsPath,
-		'Annotation resolved.',
-		'annotationResolved',
-		dependencies.contextKeys,
-	);
+	return executeDirectLifecycleCommand(dependencies, annotationCommandIds.resolveAnnotation, 'resolve', args);
 }
 
 export async function executeReopenAnnotationCommand(
 	dependencies: AnnotationCommandDependencies,
 	args?: AnnotationCommandArguments,
 ): Promise<AnnotationCommandResult> {
-	const windowApi = dependencies.window ?? vscode.window;
-	const resolved = await resolveAnnotationCommandTarget(dependencies, annotationCommandIds.reopenAnnotation, args);
-
-	if ('commandId' in resolved) {
-		return resolved;
-	}
-
-	const result = await resolved.service.reopenAnnotation(resolved.annotation.annotationId);
-	return toMutationCommandResult(
-		annotationCommandIds.reopenAnnotation,
-		result,
-		windowApi,
-		resolved.workspaceFolder.uri.fsPath,
-		'Annotation reopened.',
-		'annotationReopened',
-		dependencies.contextKeys,
-	);
+	return executeDirectLifecycleCommand(dependencies, annotationCommandIds.reopenAnnotation, 'reopen', args);
 }
 
 export async function executeReanchorAnnotationCommand(
@@ -479,19 +464,8 @@ export async function executeReanchorAnnotationCommand(
 		);
 	}
 
-	const inputService = dependencies.inputService ?? createVscodeAnnotationInputService();
-	const confirmed = await inputService.confirmReanchor();
-
-	if (!confirmed) {
-		return {
-			status: 'cancelled',
-			commandId: annotationCommandIds.reanchorAnnotation,
-			workspaceFolder: resolved.workspaceFolder.uri.fsPath,
-		};
-	}
-
 	const anchor = createAnchorFromEditorSelection(resolved.editor);
-	const validation = validateSelection(anchor);
+	const validation = validateSelection(resolved.editor.selection, anchor);
 
 	if (validation) {
 		void windowApi.showErrorMessage(validation);
@@ -500,6 +474,17 @@ export async function executeReanchorAnnotationCommand(
 			commandId: annotationCommandIds.reanchorAnnotation,
 			reason: 'invalidSelection',
 			message: validation,
+			workspaceFolder: resolved.workspaceFolder.uri.fsPath,
+		};
+	}
+
+	const inputService = dependencies.inputService ?? createVscodeAnnotationInputService();
+	const confirmed = await inputService.confirmReanchor();
+
+	if (!confirmed) {
+		return {
+			status: 'cancelled',
+			commandId: annotationCommandIds.reanchorAnnotation,
 			workspaceFolder: resolved.workspaceFolder.uri.fsPath,
 		};
 	}
@@ -587,21 +572,16 @@ async function executeExistingAnnotationAction(
 	workspaceFolder: vscode.WorkspaceFolder,
 	editor: vscode.TextEditor,
 	annotation: AnnotationProjectionEntry,
+	options: { allowReanchor?: boolean } = {},
 ): Promise<AnnotationCommandResult> {
+	const service = await dependencies.getWorkspaceService(workspaceFolder);
 	const windowApi = dependencies.window ?? vscode.window;
 	const inputService = dependencies.inputService ?? createVscodeAnnotationInputService();
-	const service = await dependencies.getWorkspaceService(workspaceFolder);
-	const availableActions: ExistingAnnotationAction[] = ['edit'];
-	if (annotation.status === 'active') {
-		availableActions.push('resolve');
-	}
-	if (annotation.status === 'resolved') {
-		availableActions.push('reopen');
-	}
-	availableActions.push('dismiss');
-	if (!editor.selection.isEmpty) {
-		availableActions.push('reanchor');
-	}
+	const availableActions = listAvailableExistingAnnotationActions(
+		annotation,
+		editor,
+		options.allowReanchor ?? true,
+	);
 	const action = await inputService.pickExistingAnnotationAction(annotation, availableActions);
 
 	if (!action) {
@@ -612,10 +592,60 @@ async function executeExistingAnnotationAction(
 		};
 	}
 
+	return executeAnnotationAction({
+		dependencies,
+		service,
+		workspaceFolder,
+		editor,
+		annotation,
+		commandId: annotationCommandIds.addOrEditAnnotation,
+		action,
+	});
+}
+
+function listAvailableExistingAnnotationActions(
+	annotation: AnnotationProjectionEntry,
+	editor: vscode.TextEditor | undefined,
+	allowReanchor: boolean,
+): ExistingAnnotationAction[] {
+	const availableActions: ExistingAnnotationAction[] = ['edit'];
+
+	if (annotation.status === 'active') {
+		availableActions.push('resolve');
+	}
+
+	if (annotation.status === 'resolved') {
+		availableActions.push('reopen');
+	}
+
+	availableActions.push('dismiss');
+
+	if (allowReanchor && editor && !editor.selection.isEmpty) {
+		availableActions.push('reanchor');
+	}
+
+	return availableActions;
+}
+
+async function executeAnnotationAction(
+	params: {
+		dependencies: AnnotationCommandDependencies;
+		service: AnnotationWorkspaceServiceLike;
+		workspaceFolder: vscode.WorkspaceFolder;
+		editor?: vscode.TextEditor;
+		annotation: AnnotationProjectionEntry;
+		commandId: AnnotationCommandId;
+		action: ExistingAnnotationAction;
+	},
+): Promise<AnnotationCommandResult> {
+	const { dependencies, service, workspaceFolder, editor, annotation, commandId, action } = params;
+	const windowApi = dependencies.window ?? vscode.window;
+	const inputService = dependencies.inputService ?? createVscodeAnnotationInputService();
+
 	if (action === 'dismiss') {
 		const result = await service.dismissAnnotation(annotation.annotationId);
 		return toMutationCommandResult(
-			annotationCommandIds.addOrEditAnnotation,
+			commandId,
 			result,
 			windowApi,
 			workspaceFolder.uri.fsPath,
@@ -626,9 +656,9 @@ async function executeExistingAnnotationAction(
 	}
 
 	if (action === 'reanchor') {
-		if (editor.selection.isEmpty) {
+		if (!editor || editor.selection.isEmpty) {
 			return reportBlocked(
-				annotationCommandIds.addOrEditAnnotation,
+				commandId,
 				workspaceFolder.uri.fsPath,
 				'noEditorSelection',
 				'Select the new anchor range before reanchoring the annotation.',
@@ -636,12 +666,26 @@ async function executeExistingAnnotationAction(
 			);
 		}
 
+		const anchor = createAnchorFromEditorSelection(editor);
+		const validation = validateSelection(editor.selection, anchor);
+
+		if (validation) {
+			void windowApi.showErrorMessage(validation);
+			return {
+				status: 'blocked',
+				commandId,
+				reason: 'invalidSelection',
+				message: validation,
+				workspaceFolder: workspaceFolder.uri.fsPath,
+			};
+		}
+
 		const confirmed = await inputService.confirmReanchor();
 
 		if (!confirmed) {
 			return {
 				status: 'cancelled',
-				commandId: annotationCommandIds.addOrEditAnnotation,
+				commandId,
 				workspaceFolder: workspaceFolder.uri.fsPath,
 			};
 		}
@@ -649,21 +693,7 @@ async function executeExistingAnnotationAction(
 		const filePath = toWorkspaceRelativeFilePath(workspaceFolder, editor.document.uri);
 
 		if (!filePath) {
-			return blockWithoutWorkspace(windowApi, annotationCommandIds.addOrEditAnnotation);
-		}
-
-		const anchor = createAnchorFromEditorSelection(editor);
-		const validation = validateSelection(anchor);
-
-		if (validation) {
-			void windowApi.showErrorMessage(validation);
-			return {
-				status: 'blocked',
-				commandId: annotationCommandIds.addOrEditAnnotation,
-				reason: 'invalidSelection',
-				message: validation,
-				workspaceFolder: workspaceFolder.uri.fsPath,
-			};
+			return blockWithoutWorkspace(windowApi, commandId);
 		}
 
 		const result = await service.reanchorAnnotation({
@@ -672,7 +702,7 @@ async function executeExistingAnnotationAction(
 			anchor,
 		});
 		return toMutationCommandResult(
-			annotationCommandIds.addOrEditAnnotation,
+			commandId,
 			result,
 			windowApi,
 			workspaceFolder.uri.fsPath,
@@ -685,7 +715,7 @@ async function executeExistingAnnotationAction(
 	if (action === 'resolve') {
 		const result = await service.resolveAnnotation(annotation.annotationId);
 		return toMutationCommandResult(
-			annotationCommandIds.addOrEditAnnotation,
+			commandId,
 			result,
 			windowApi,
 			workspaceFolder.uri.fsPath,
@@ -698,7 +728,7 @@ async function executeExistingAnnotationAction(
 	if (action === 'reopen') {
 		const result = await service.reopenAnnotation(annotation.annotationId);
 		return toMutationCommandResult(
-			annotationCommandIds.addOrEditAnnotation,
+			commandId,
 			result,
 			windowApi,
 			workspaceFolder.uri.fsPath,
@@ -713,14 +743,14 @@ async function executeExistingAnnotationAction(
 	if (!body) {
 		return {
 			status: 'cancelled',
-			commandId: annotationCommandIds.addOrEditAnnotation,
+			commandId,
 			workspaceFolder: workspaceFolder.uri.fsPath,
 		};
 	}
 
 	const result = await service.updateAnnotation({ annotationId: annotation.annotationId, body });
 	return toMutationCommandResult(
-		annotationCommandIds.addOrEditAnnotation,
+		commandId,
 		result,
 		windowApi,
 		workspaceFolder.uri.fsPath,
@@ -728,6 +758,49 @@ async function executeExistingAnnotationAction(
 		'annotationUpdated',
 		dependencies.contextKeys,
 	);
+}
+
+function getInvalidLifecycleMessage(action: Extract<ExistingAnnotationAction, 'resolve' | 'reopen'>): string {
+	return action === 'resolve'
+		? 'Only active annotations can be resolved.'
+		: 'Only resolved annotations can be reopened.';
+}
+
+async function executeDirectLifecycleCommand(
+	dependencies: AnnotationCommandDependencies,
+	commandId: Extract<AnnotationCommandId, 'ai-toolkit.dismissAnnotation' | 'ai-toolkit.resolveAnnotation' | 'ai-toolkit.reopenAnnotation'>,
+	action: Extract<ExistingAnnotationAction, 'dismiss' | 'resolve' | 'reopen'>,
+	args?: AnnotationCommandArguments,
+): Promise<AnnotationCommandResult> {
+	const windowApi = dependencies.window ?? vscode.window;
+	const resolved = await resolveAnnotationCommandTarget(dependencies, commandId, args);
+
+	if ('commandId' in resolved) {
+		return resolved;
+	}
+
+	const availableActions = listAvailableExistingAnnotationActions(resolved.annotation, resolved.editor, true);
+	if (action !== 'dismiss' && !availableActions.includes(action)) {
+		const message = getInvalidLifecycleMessage(action);
+		void windowApi.showWarningMessage(message);
+		return {
+			status: 'blocked',
+			commandId,
+			reason: 'invalidAnnotationStatus',
+			message,
+			workspaceFolder: resolved.workspaceFolder.uri.fsPath,
+		};
+	}
+
+	return executeAnnotationAction({
+		dependencies,
+		service: resolved.service,
+		workspaceFolder: resolved.workspaceFolder,
+		editor: resolved.editor,
+		annotation: resolved.annotation,
+		commandId,
+		action,
+	});
 }
 
 async function resolveAnnotationCommandTarget(
@@ -925,13 +998,33 @@ function resolvePaletteWorkspaceFolder(
 	return findWorkspaceFolderForEditor(editor) ?? findWorkspaceFolderForPaletteCommand();
 }
 
-function validateSelection(anchor: AnnotationAnchor): string | undefined {
+function validateSelection(selection: vscode.Selection, anchor: AnnotationAnchor): string | undefined {
+	if (countSelectedLines(selection) > maxAnnotationSelectionLines) {
+		return `Select ${maxAnnotationSelectionLines} lines or fewer before creating or reanchoring an annotation.`;
+	}
+
 	try {
 		validateNewAnnotationSelectedText(anchor.selectedText);
 		return undefined;
 	} catch {
 		return 'Select at least one character before creating or reanchoring an annotation.';
 	}
+}
+
+function countSelectedLines(selection: vscode.Selection): number {
+	if (selection.isEmpty) {
+		return 0;
+	}
+
+	const selectionStart = selection.start;
+	const selectionEnd = selection.end;
+	let selectedLineCount = selectionEnd.line - selectionStart.line + 1;
+
+	if (selectionEnd.character === 0 && selectionEnd.line > selectionStart.line) {
+		selectedLineCount -= 1;
+	}
+
+	return selectedLineCount;
 }
 
 function blockWithoutWorkspace(
@@ -1058,4 +1151,102 @@ async function refreshContextKeysBestEffort(
 			error: error instanceof Error ? error.message : String(error),
 		});
 	}
+}
+
+async function executeSessionMaintenanceCommand(
+	dependencies: AnnotationCommandDependencies,
+	operation: SessionMaintenanceOperation,
+): Promise<AnnotationCommandResult> {
+	const commandId = operation === 'delete'
+		? annotationCommandIds.deleteReviewSession
+		: annotationCommandIds.clearReviewSessionAnnotations;
+	const windowApi = dependencies.window ?? vscode.window;
+	const workspaceApi = dependencies.workspace ?? vscode.workspace;
+	const workspaceFolder = resolvePaletteWorkspaceFolder(windowApi.activeTextEditor);
+
+	if (!workspaceFolder) {
+		return blockWithoutWorkspace(windowApi, commandId);
+	}
+
+	const service = await dependencies.getWorkspaceService(workspaceFolder);
+	const readyState = await ensureReadyState(service);
+
+	if (isWorkspaceBlocked(readyState)) {
+		return reportWorkspaceBlocked(commandId, readyState, windowApi, workspaceFolder.uri.fsPath, workspaceApi);
+	}
+
+	const presenter = dependencies.sessionMaintenancePresenter ?? createVscodeSessionMaintenanceQuickPickPresenter();
+	const selected = await presenter.pickSession(
+		operation,
+		createSessionMaintenanceQuickPickItems(readyState.projection.sessions),
+	);
+
+	if (!selected) {
+		return {
+			status: 'cancelled',
+			commandId,
+			workspaceFolder: workspaceFolder.uri.fsPath,
+		};
+	}
+
+	const inputService = dependencies.inputService ?? createVscodeAnnotationInputService();
+	const confirmed = operation === 'delete'
+		? await (inputService.confirmDeleteSession
+			? inputService.confirmDeleteSession(selected.label, selected.annotationCount)
+			: confirmDeleteSessionWithWindow(windowApi, selected.label, selected.annotationCount))
+		: await (inputService.confirmClearSessionAnnotations
+			? inputService.confirmClearSessionAnnotations(selected.label, selected.annotationCount)
+			: confirmClearSessionAnnotationsWithWindow(windowApi, selected.label, selected.annotationCount));
+
+	if (!confirmed) {
+		return {
+			status: 'cancelled',
+			commandId,
+			workspaceFolder: workspaceFolder.uri.fsPath,
+		};
+	}
+
+	const result = operation === 'delete'
+		? await service.deleteSession(selected.sessionId)
+		: await service.clearSessionAnnotations(selected.sessionId);
+
+	return toMutationCommandResult(
+		commandId,
+		result,
+		windowApi,
+		workspaceFolder.uri.fsPath,
+		operation === 'delete'
+			? `Deleted review session "${selected.label}".`
+			: `Cleared annotations from review session "${selected.label}".`,
+		operation === 'delete' ? 'reviewSessionDeleted' : 'reviewSessionAnnotationsCleared',
+		dependencies.contextKeys,
+	);
+}
+
+async function confirmDeleteSessionWithWindow(
+	windowApi: Pick<typeof vscode.window, 'showWarningMessage'>,
+	sessionName: string,
+	annotationCount: number,
+): Promise<boolean> {
+	const choice = await windowApi.showWarningMessage(
+		`Delete review session "${sessionName}" and remove its ${annotationCount} annotation${annotationCount === 1 ? '' : 's'}?`,
+		{ modal: true },
+		'Delete Session',
+	);
+
+	return choice === 'Delete Session';
+}
+
+async function confirmClearSessionAnnotationsWithWindow(
+	windowApi: Pick<typeof vscode.window, 'showWarningMessage'>,
+	sessionName: string,
+	annotationCount: number,
+): Promise<boolean> {
+	const choice = await windowApi.showWarningMessage(
+		`Clear ${annotationCount} annotation${annotationCount === 1 ? '' : 's'} from review session "${sessionName}"?`,
+		{ modal: true },
+		'Clear Annotations',
+	);
+
+	return choice === 'Clear Annotations';
 }

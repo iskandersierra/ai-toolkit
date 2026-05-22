@@ -156,6 +156,105 @@ suite('Annotation Workspace Service', () => {
 		);
 	});
 
+	// Scenario: Given the active review session, When deleteSession removes it, Then the most recently updated remaining session becomes active.
+	test('deletes the active session and reassigns the active session to the most recently updated remaining session', async () => {
+		const storage = new InMemoryStorageController(
+			createStore({
+				activeSessionId: 'session-1',
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', 'active')], '2026-05-20T10:00:00.000Z'),
+					createSession('session-2', [createAnnotation('annotation-2', 'active')], '2026-05-20T11:00:00.000Z'),
+					createSession('session-3', [createAnnotation('annotation-3', 'active')], '2026-05-20T12:00:00.000Z'),
+				],
+			}),
+		);
+		const service = createService(storage);
+
+		const result = await service.deleteSession('session-1');
+
+		assert.strictEqual(result.status, 'ready');
+		if (result.status !== 'ready') {
+			return;
+		}
+
+		assert.deepStrictEqual(storage.store.sessions.map((session) => session.sessionId), ['session-2', 'session-3']);
+		assert.strictEqual(storage.store.activeSessionId, 'session-3');
+	});
+
+	// Scenario: Given a non-active review session, When deleteSession removes it, Then the active session stays unchanged.
+	test('deletes a non-active session without changing the active session', async () => {
+		const storage = new InMemoryStorageController(
+			createStore({
+				activeSessionId: 'session-1',
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', 'active')]),
+					createSession('session-2', [createAnnotation('annotation-2', 'active')]),
+				],
+			}),
+		);
+		const service = createService(storage);
+
+		const result = await service.deleteSession('session-2');
+
+		assert.strictEqual(result.status, 'ready');
+		if (result.status !== 'ready') {
+			return;
+		}
+
+		assert.deepStrictEqual(storage.store.sessions.map((session) => session.sessionId), ['session-1']);
+		assert.strictEqual(storage.store.activeSessionId, 'session-1');
+	});
+
+	// Scenario: Given a populated review session, When clearSessionAnnotations runs, Then only that session's annotations are removed and updatedAt is refreshed.
+	test('clears annotations from a populated session and refreshes its updatedAt timestamp', async () => {
+		const storage = new InMemoryStorageController(
+			createStore({
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', 'active')]),
+					createSession('session-2', [createAnnotation('annotation-2', 'dismissed')]),
+				],
+			}),
+		);
+		const service = createService(storage);
+
+		const result = await service.clearSessionAnnotations('session-2');
+
+		assert.strictEqual(result.status, 'ready');
+		if (result.status !== 'ready') {
+			return;
+		}
+
+		assert.deepStrictEqual(storage.store.sessions[0]?.annotations.map((annotation) => annotation.annotationId), ['annotation-1']);
+		assert.deepStrictEqual(storage.store.sessions[1]?.annotations, []);
+		assert.strictEqual(storage.store.sessions[1]?.updatedAt, '2026-05-20T12:00:00.000Z');
+	});
+
+	// Scenario: Given an unknown review session, When deleteSession or clearSessionAnnotations runs, Then the mutation is blocked with sessionNotFound.
+	test('blocks deleteSession and clearSessionAnnotations when the session is unknown', async () => {
+		const storage = new InMemoryStorageController(createStore());
+		const service = createService(storage);
+
+		const deleteResult = await service.deleteSession('missing-session');
+		const clearResult = await service.clearSessionAnnotations('missing-session');
+
+		assert.deepStrictEqual(deleteResult, {
+			status: 'blocked',
+			reason: 'sessionNotFound',
+			message: 'The selected review session could not be found.',
+			storePath: storage.getStorePath(),
+			error: undefined,
+			latestState: undefined,
+		});
+		assert.deepStrictEqual(clearResult, {
+			status: 'blocked',
+			reason: 'sessionNotFound',
+			message: 'The selected review session could not be found.',
+			storePath: storage.getStorePath(),
+			error: undefined,
+			latestState: undefined,
+		});
+	});
+
 	// Scenario: reanchor rejects traversal input before any filesystem read can escape the workspace.
 	test('blocks reanchor traversal before reading the target file', async () => {
 		const storage = new InMemoryStorageController(createStore());
@@ -380,13 +479,17 @@ function createStore(overrides: Partial<AnnotationStore> = {}): AnnotationStore 
 	};
 }
 
-function createSession(sessionId: string, annotations = [createAnnotation('annotation-1', 'active')]) {
+function createSession(
+	sessionId: string,
+	annotations = [createAnnotation('annotation-1', 'active')],
+	updatedAt = '2026-05-20T10:00:00.000Z',
+) {
 	return {
 		sessionId,
 		name: `Session ${sessionId}`,
 		sessionSlug: `session-${sessionId}`,
 		createdAt: '2026-05-20T10:00:00.000Z',
-		updatedAt: '2026-05-20T10:00:00.000Z',
+		updatedAt,
 		annotations,
 	};
 }

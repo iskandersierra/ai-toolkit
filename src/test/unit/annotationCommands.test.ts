@@ -3,6 +3,8 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import {
 	executeAddOrEditAnnotationCommand,
+	executeClearReviewSessionAnnotationsCommand,
+	executeDeleteReviewSessionCommand,
 	executeDismissAnnotationCommand,
 	executeGenerateDraftOutputCommand,
 	executeReanchorAnnotationCommand,
@@ -21,6 +23,7 @@ import type {
 } from '../../annotations/application/annotationWorkspaceService';
 import { deriveAnnotationWorkspaceProjection } from '../../annotations/application/projectionModel';
 import { createAnnotationAnchor } from '../../annotations/domain/anchorMatching';
+import { createSessionMaintenanceQuickPickItems } from '../../annotations/presentation/sessionMaintenanceQuickPick';
 import {
 	annotationSelectedTextMaxLength,
 	annotationSchemaVersion,
@@ -47,16 +50,23 @@ suite('Annotation Commands', () => {
 	test('creates an annotation after session selection when no session is active', async () => {
 		const editor = await openEditor(['before a', 'before b', 'target()', 'after a', 'after b'].join('\n'));
 		editor.selection = new vscode.Selection(new vscode.Position(3, 0), new vscode.Position(3, 22));
+		const callOrder: string[] = [];
 
 		const service = new FakeAnnotationWorkspaceService(
 			createStore({ activeSessionId: null, sessions: [createSession('session-1', [])] }),
 		);
 		const selectionService = new SessionSelectionService({
-			pickSession: async (items) => items[0],
+			pickSession: async (items) => {
+				callOrder.push('pickSession');
+				return items[0];
+			},
 			promptForNewSessionName: async () => undefined,
 		});
 		const inputService: AnnotationInputService = {
-			promptForAnnotationBody: async () => 'Validate this call path.',
+			promptForAnnotationBody: async () => {
+				callOrder.push('promptForAnnotationBody');
+				return 'Validate this call path.';
+			},
 			pickExistingAnnotationAction: async () => 'edit',
 			confirmPurgeDismissed: async () => true,
 			confirmReanchor: async () => true,
@@ -81,6 +91,64 @@ suite('Annotation Commands', () => {
 		});
 		assert.strictEqual(service.store.activeSessionId, 'session-1');
 		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.body, 'Validate this call path.');
+		assert.deepStrictEqual(callOrder, ['pickSession', 'promptForAnnotationBody']);
+	});
+
+	// Scenario: Given zero review sessions, When add-or-edit runs, Then it auto-creates Review Session before prompting for the annotation body.
+	test('creates an annotation after auto-creating the first review session', async () => {
+		const editor = await openEditor(['before a', 'before b', 'target()', 'after a', 'after b'].join('\n'));
+		editor.selection = new vscode.Selection(new vscode.Position(3, 0), new vscode.Position(3, 22));
+		const callOrder: string[] = [];
+		let pickSessionCount = 0;
+		let promptForSessionNameCount = 0;
+
+		const service = new FakeAnnotationWorkspaceService(createStore({ activeSessionId: null, sessions: [] }));
+		const selectionService = new SessionSelectionService({
+			pickSession: async () => {
+				pickSessionCount += 1;
+				callOrder.push('pickSession');
+				return undefined;
+			},
+			promptForNewSessionName: async () => {
+				promptForSessionNameCount += 1;
+				callOrder.push('promptForNewSessionName');
+				return undefined;
+			},
+		});
+		const inputService: AnnotationInputService = {
+			promptForAnnotationBody: async () => {
+				callOrder.push('promptForAnnotationBody');
+				return 'Validate this call path.';
+			},
+			pickExistingAnnotationAction: async () => 'edit',
+			confirmPurgeDismissed: async () => true,
+			confirmReanchor: async () => true,
+		};
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: selectionService,
+			inputService,
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationCreated',
+			annotationId: 'annotation-new',
+			sessionId: undefined,
+			purgedCount: undefined,
+		});
+		assert.strictEqual(service.store.sessions.length, 1);
+		assert.strictEqual(service.store.sessions[0]?.name, 'Review Session');
+		assert.strictEqual(service.store.activeSessionId, 'session-1');
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.body, 'Validate this call path.');
+		assert.strictEqual(pickSessionCount, 0);
+		assert.strictEqual(promptForSessionNameCount, 0);
+		assert.deepStrictEqual(callOrder, ['promptForAnnotationBody']);
 	});
 
 	// Scenario: Given an empty selection with no annotation target, When add-or-edit runs, Then it blocks before prompting for the annotation body.
@@ -112,6 +180,107 @@ suite('Annotation Commands', () => {
 			workspaceFolder: workspaceFolder().uri.fsPath,
 		});
 		assert.strictEqual(promptCount, 0);
+	});
+
+	// Scenario: Given a forward selection spanning more than 50 lines, When add-or-edit runs, Then it blocks before prompting for the annotation body.
+	test('blocks oversized forward selections before prompting for the annotation body', async () => {
+		const editor = await openEditor(Array.from({ length: 52 }, (_, index) => `line ${index}`).join('\n'));
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(51, 6));
+		let promptCount = 0;
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(
+				createStore({ sessions: [createSession('session-1', [])] }),
+			),
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => {
+					promptCount += 1;
+					return 'should not be used';
+				},
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			reason: 'invalidSelection',
+			message: 'Select 50 lines or fewer before creating or reanchoring an annotation.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.strictEqual(promptCount, 0);
+	});
+
+	// Scenario: Given a reversed selection spanning more than 50 lines, When add-or-edit runs, Then it blocks before prompting for the annotation body.
+	test('blocks oversized reversed selections before prompting for the annotation body', async () => {
+		const editor = await openEditor(Array.from({ length: 52 }, (_, index) => `line ${index}`).join('\n'));
+		editor.selection = new vscode.Selection(new vscode.Position(51, 6), new vscode.Position(0, 0));
+		let promptCount = 0;
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(
+				createStore({ sessions: [createSession('session-1', [])] }),
+			),
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => {
+					promptCount += 1;
+					return 'should not be used';
+				},
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			reason: 'invalidSelection',
+			message: 'Select 50 lines or fewer before creating or reanchoring an annotation.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.strictEqual(promptCount, 0);
+	});
+
+	// Scenario: Given a 51-line selection ending at column 0, When add-or-edit runs, Then the trailing line is excluded and annotation capture proceeds.
+	test('allows the trailing-column-0 selection exception at the 50-line limit', async () => {
+		const editor = await openEditor(Array.from({ length: 51 }, (_, index) => `line ${index}`).join('\n'));
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(50, 0));
+		let promptCount = 0;
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(
+				createStore({ sessions: [createSession('session-1', [])] }),
+			),
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => {
+					promptCount += 1;
+					return 'Validate this call path.';
+				},
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationCreated',
+			annotationId: 'annotation-new',
+			sessionId: undefined,
+			purgedCount: undefined,
+		});
+		assert.strictEqual(promptCount, 1);
 	});
 
 	// Scenario: annotation actions fail clearly when the current editor selection does not resolve to a workspace folder.
@@ -161,6 +330,191 @@ suite('Annotation Commands', () => {
 			commandId: annotationCommandIds.selectReviewSession,
 			reason: 'invalidStore',
 			message: 'The annotation store is invalid. Fix the store file before running annotation commands.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+	});
+
+	// Scenario: Given sessions with different updatedAt values, When maintenance picker items are created, Then they are ordered by most recent update and mark the active session.
+	test('orders maintenance picker items by updatedAt descending and marks the active session', () => {
+		const items = createSessionMaintenanceQuickPickItems(
+			deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, createStore({
+				activeSessionId: 'session-2',
+				sessions: [
+					createSession('session-1', [], 'Older session', '2026-05-20T10:00:00.000Z'),
+					createSession('session-2', [], 'Newest session', '2026-05-20T12:00:00.000Z'),
+					createSession('session-3', [], 'Middle session', '2026-05-20T11:00:00.000Z'),
+				],
+			})).sessions,
+		);
+
+		assert.deepStrictEqual(items.map((item) => item.sessionId), ['session-2', 'session-3', 'session-1']);
+		assert.strictEqual(items[0]?.description, 'Active session');
+		assert.strictEqual(items[0]?.annotationCount, 0);
+	});
+
+	// Scenario: Given a selected review session, When delete review session runs, Then it confirms destructively and deletes the chosen session.
+	test('deletes the selected review session through picker and confirmation orchestration', async () => {
+		const editor = await openEditor('target()');
+		const service = new FakeAnnotationWorkspaceService(createStore({
+			activeSessionId: 'session-1',
+			sessions: [
+				createSession('session-1', [createAnnotation('annotation-1')], 'Security pass'),
+				createSession('session-2', [createAnnotation('annotation-2')], 'Review Session 2'),
+			],
+		}));
+		const pickedSessions: string[] = [];
+		const confirmationCalls: Array<{ name: string; count: number }> = [];
+
+		const result = await executeDeleteReviewSessionCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async (_operation, items) => {
+					pickedSessions.push(...items.map((item) => item.sessionId));
+					return items.find((item) => item.sessionId === 'session-2');
+				},
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+				confirmDeleteSession: async (sessionName, annotationCount) => {
+					confirmationCalls.push({ name: sessionName, count: annotationCount });
+					return true;
+				},
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.deleteReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionDeleted',
+			annotationId: undefined,
+			sessionId: 'session-1',
+			purgedCount: undefined,
+		});
+		assert.deepStrictEqual(pickedSessions, ['session-1', 'session-2']);
+		assert.deepStrictEqual(confirmationCalls, [{ name: 'Review Session 2', count: 1 }]);
+		assert.deepStrictEqual(service.store.sessions.map((session) => session.sessionId), ['session-1']);
+	});
+
+	// Scenario: Given a populated review session, When clear review session annotations runs, Then it confirms destructively and clears only that session.
+	test('clears the selected review session annotations through picker and confirmation orchestration', async () => {
+		const editor = await openEditor('target()');
+		const service = new FakeAnnotationWorkspaceService(createStore({
+			activeSessionId: 'session-1',
+			sessions: [
+				createSession('session-1', [createAnnotation('annotation-1')], 'Security pass'),
+				createSession('session-2', [createAnnotation('annotation-2')], 'Review Session 2'),
+			],
+		}));
+		const confirmationCalls: Array<{ name: string; count: number }> = [];
+
+		const result = await executeClearReviewSessionAnnotationsCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async (_operation, items) => items.find((item) => item.sessionId === 'session-2'),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+				confirmClearSessionAnnotations: async (sessionName, annotationCount) => {
+					confirmationCalls.push({ name: sessionName, count: annotationCount });
+					return true;
+				},
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.clearReviewSessionAnnotations,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionAnnotationsCleared',
+			annotationId: undefined,
+			sessionId: 'session-2',
+			purgedCount: undefined,
+		});
+		assert.deepStrictEqual(confirmationCalls, [{ name: 'Review Session 2', count: 1 }]);
+		assert.deepStrictEqual(service.store.sessions[0]?.annotations.map((annotation) => annotation.annotationId), ['annotation-1']);
+		assert.deepStrictEqual(service.store.sessions[1]?.annotations, []);
+	});
+
+	// Scenario: Given an unknown picked review session, When delete or clear runs, Then the command returns the blocked unknown-session result from the service.
+	test('surfaces unknown-session blocked results for delete and clear maintenance commands', async () => {
+		const editor = await openEditor('target()');
+		const service = new FakeAnnotationWorkspaceService(createStore());
+		service.deletedSessionIds.add('missing-session');
+		service.clearedSessionIds.add('missing-session');
+
+		const deleteResult = await executeDeleteReviewSessionCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async () => ({
+					type: 'session',
+					sessionId: 'missing-session',
+					label: 'Missing',
+					detail: '0 annotations, 0 dismissed, updated 2026-05-20T10:00:00.000Z',
+					annotationCount: 0,
+					updatedAt: '2026-05-20T10:00:00.000Z',
+				}),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+				confirmDeleteSession: async () => true,
+				confirmClearSessionAnnotations: async () => true,
+			},
+		});
+
+		const clearResult = await executeClearReviewSessionAnnotationsCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async () => ({
+					type: 'session',
+					sessionId: 'missing-session',
+					label: 'Missing',
+					detail: '0 annotations, 0 dismissed, updated 2026-05-20T10:00:00.000Z',
+					annotationCount: 0,
+					updatedAt: '2026-05-20T10:00:00.000Z',
+				}),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+				confirmDeleteSession: async () => true,
+				confirmClearSessionAnnotations: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(deleteResult, {
+			status: 'blocked',
+			commandId: annotationCommandIds.deleteReviewSession,
+			reason: 'sessionNotFound',
+			message: 'The selected review session could not be found.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(clearResult, {
+			status: 'blocked',
+			commandId: annotationCommandIds.clearReviewSessionAnnotations,
+			reason: 'sessionNotFound',
+			message: 'The selected review session could not be found.',
 			workspaceFolder: workspaceFolder().uri.fsPath,
 		});
 	});
@@ -339,6 +693,46 @@ suite('Annotation Commands', () => {
 			sessionId: undefined,
 			purgedCount: undefined,
 		});
+	});
+
+	// Scenario: Given a direct reanchor selection spanning more than 50 lines, When reanchor runs, Then it blocks before confirmation and service mutation.
+	test('blocks oversized selections before direct reanchor confirmation and mutation', async () => {
+		const editor = await openEditor(Array.from({ length: 52 }, (_, index) => `line ${index}`).join('\n'));
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(51, 6));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', 'line 0', 0, 6, filePath)]),
+				],
+			}),
+		);
+		let confirmCount = 0;
+
+		const result = await executeReanchorAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'Validate this call path.',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => {
+					confirmCount += 1;
+					return true;
+				},
+			},
+		}, { annotationId: 'annotation-1' });
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.reanchorAnnotation,
+			reason: 'invalidSelection',
+			message: 'Select 50 lines or fewer before creating or reanchoring an annotation.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.strictEqual(confirmCount, 0);
+		assert.strictEqual(service.reanchorCalls.length, 0);
 	});
 
 	// Scenario: invalid-store recovery handles Open Store document failures without creating an unhandled rejection.
@@ -655,6 +1049,51 @@ suite('Annotation Commands', () => {
 		);
 	});
 
+		// Scenario: Given a clicked annotation comment thread and a non-empty editor selection, When add-or-edit runs from the comments surface, Then it still omits one-click reanchor from the available actions.
+		test('comment-thread add-or-edit does not offer reanchor even with an active editor selection', async () => {
+			const editor = await openEditor('export function activate()');
+			const filePath = toRelativeEditorPath(editor);
+			editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 22));
+			const service = new FakeAnnotationWorkspaceService(
+				createStore({
+					sessions: [
+						createSession('session-1', [createAnnotation('annotation-1', 'export function activate', 0, 22, filePath)]),
+					],
+				}),
+			);
+			const thread = createCommentThread(editor.document.uri);
+			let capturedAvailableActions: ExistingAnnotationAction[] | undefined;
+
+			const result = await executeAddOrEditAnnotationCommand({
+				window: createWindowApi(editor),
+				getWorkspaceService: async () => service,
+				sessionSelectionService: createSessionSelectionService(),
+				inputService: {
+					promptForAnnotationBody: async () => 'body',
+					pickExistingAnnotationAction: async (_annotation, availableActions) => {
+						capturedAvailableActions = availableActions;
+						return undefined;
+					},
+					confirmPurgeDismissed: async () => true,
+					confirmReanchor: async () => true,
+				},
+				commentProjection: {
+					getAnnotationId: (candidate: vscode.CommentThread) => candidate === thread ? 'annotation-1' : undefined,
+				},
+			}, thread);
+
+			assert.deepStrictEqual(result, {
+				status: 'cancelled',
+				commandId: annotationCommandIds.addOrEditAnnotation,
+				workspaceFolder: workspaceFolder().uri.fsPath,
+			});
+			assert.ok(capturedAvailableActions !== undefined, 'Expected pickExistingAnnotationAction to be called');
+			assert.ok(capturedAvailableActions.includes('edit'));
+			assert.ok(capturedAvailableActions.includes('resolve'));
+			assert.ok(capturedAvailableActions.includes('dismiss'));
+			assert.ok(!capturedAvailableActions.includes('reanchor'));
+		});
+
 	// Scenario: Given an active annotation and resolve selected in quick-pick, When executeAddOrEditAnnotationCommand runs, Then resolveAnnotation is called and annotationResolved is returned.
 	test('resolve action in quick-pick calls resolveAnnotation and returns annotationResolved', async () => {
 		const editor = await openEditor('target()');
@@ -690,6 +1129,46 @@ suite('Annotation Commands', () => {
 		});
 		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'resolved');
 	});
+
+		// Scenario: Given a clicked annotation comment thread, When add-or-edit selects resolve, Then it reaches the same lifecycle outcome as the editor quick-pick flow.
+		test('comment-thread add-or-edit resolves the mapped annotation through the shared action path', async () => {
+			const editor = await openEditor('target()');
+			const filePath = toRelativeEditorPath(editor);
+			editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0));
+			const service = new FakeAnnotationWorkspaceService(
+				createStore({
+					sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+				}),
+			);
+			const thread = createCommentThread(editor.document.uri);
+
+			const result = await executeAddOrEditAnnotationCommand({
+				window: createWindowApi(editor),
+				getWorkspaceService: async () => service,
+				sessionSelectionService: createSessionSelectionService(),
+				inputService: {
+					promptForAnnotationBody: async () => 'body',
+					pickExistingAnnotationAction: async () => 'resolve',
+					confirmPurgeDismissed: async () => true,
+					confirmReanchor: async () => true,
+				},
+				commentProjection: {
+					getAnnotationId: (candidate: vscode.CommentThread) => candidate === thread ? 'annotation-1' : undefined,
+				},
+				contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+			}, thread);
+
+			assert.deepStrictEqual(result, {
+				status: 'ready',
+				commandId: annotationCommandIds.addOrEditAnnotation,
+				workspaceFolder: workspaceFolder().uri.fsPath,
+				operation: 'annotationResolved',
+				annotationId: 'annotation-1',
+				sessionId: undefined,
+				purgedCount: undefined,
+			});
+			assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'resolved');
+		});
 
 	// Scenario: Given an active annotation selected in the editor, When the direct resolve command runs, Then it resolves the annotation.
 	test('resolves the annotation at the current editor selection', async () => {
@@ -1012,19 +1491,19 @@ function createWorkspaceApi(overrides: Partial<Pick<typeof vscode.workspace, 'ge
 		openTextDocument: vscode.workspace.openTextDocument.bind(vscode.workspace),
 		...overrides,
 	};
-	}
+}
 
 function createSessionSelectionService(): SessionSelectionService {
 	return new SessionSelectionService({
 		pickSession: async () => undefined,
 		promptForNewSessionName: async () => undefined,
 	});
-	}
+}
 
 async function flushAsyncWork(): Promise<void> {
 	await new Promise<void>((resolve) => setImmediate(resolve));
 	await Promise.resolve();
-	}
+}
 
 async function openEditor(content: string): Promise<vscode.TextEditor> {
 	const fixtureUri = vscode.Uri.file(
@@ -1069,13 +1548,18 @@ function createStore(overrides: Partial<AnnotationStore> = {}): AnnotationStore 
 	};
 }
 
-function createSession(sessionId: string, annotations = [createAnnotation('annotation-1')]) {
+function createSession(
+	sessionId: string,
+	annotations = [createAnnotation('annotation-1')],
+	name = 'Security pass',
+	updatedAt = '2026-05-20T10:00:00.000Z',
+) {
 	return {
 		sessionId,
-		name: 'Security pass',
-		sessionSlug: 'security-pass',
+		name,
+		sessionSlug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
 		createdAt: '2026-05-20T10:00:00.000Z',
-		updatedAt: '2026-05-20T10:00:00.000Z',
+		updatedAt,
 		annotations,
 	};
 }
@@ -1111,6 +1595,8 @@ function createAnnotation(
 class FakeAnnotationWorkspaceService implements Pick<AnnotationWorkspaceService, 'getState' | 'initialize' | 'createAnnotation' | 'updateAnnotation' | 'dismissAnnotation' | 'reanchorAnnotation' | 'purgeDismissedAnnotations' | 'generateDraftOutput' | 'setActiveSession' | 'resolveAnnotation' | 'reopenAnnotation'> {
 	public readonly projection;
 	public readonly reanchorCalls: unknown[] = [];
+	public readonly deletedSessionIds = new Set<string>();
+	public readonly clearedSessionIds = new Set<string>();
 
 	public constructor(
 		public store: AnnotationStore,
@@ -1211,6 +1697,76 @@ class FakeAnnotationWorkspaceService implements Pick<AnnotationWorkspaceService,
 
 	public async setActiveSession(sessionId: string): Promise<AnnotationWorkspaceMutationResult> {
 		this.store.activeSessionId = sessionId;
+		return {
+			status: 'ready',
+			projection: deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, this.store),
+			storePath,
+			sessionId,
+		};
+	}
+
+	public async deleteSession(sessionId: string): Promise<AnnotationWorkspaceMutationResult> {
+		if (this.deletedSessionIds.has(sessionId)) {
+			return {
+				status: 'blocked',
+				reason: 'sessionNotFound',
+				message: 'The selected review session could not be found.',
+				storePath,
+			};
+		}
+
+		const index = this.store.sessions.findIndex((session) => session.sessionId === sessionId);
+		if (index === -1) {
+			return {
+				status: 'blocked',
+				reason: 'sessionNotFound',
+				message: 'The selected review session could not be found.',
+				storePath,
+			};
+		}
+
+		this.store.sessions.splice(index, 1);
+		if (this.store.activeSessionId === sessionId) {
+			this.store.activeSessionId = this.store.sessions.reduce<string | null>((activeId, session) => {
+				if (!activeId) {
+					return session.sessionId;
+				}
+
+				const activeSession = this.store.sessions.find((entry) => entry.sessionId === activeId);
+				return activeSession && activeSession.updatedAt >= session.updatedAt ? activeId : session.sessionId;
+			}, null);
+		}
+
+		return {
+			status: 'ready',
+			projection: deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, this.store),
+			storePath,
+			sessionId: this.store.activeSessionId ?? undefined,
+		};
+	}
+
+	public async clearSessionAnnotations(sessionId: string): Promise<AnnotationWorkspaceMutationResult> {
+		if (this.clearedSessionIds.has(sessionId)) {
+			return {
+				status: 'blocked',
+				reason: 'sessionNotFound',
+				message: 'The selected review session could not be found.',
+				storePath,
+			};
+		}
+
+		const session = this.store.sessions.find((entry) => entry.sessionId === sessionId);
+		if (!session) {
+			return {
+				status: 'blocked',
+				reason: 'sessionNotFound',
+				message: 'The selected review session could not be found.',
+				storePath,
+			};
+		}
+
+		session.annotations = [];
+		session.updatedAt = '2026-05-20T12:00:00.000Z';
 		return {
 			status: 'ready',
 			projection: deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, this.store),

@@ -3,7 +3,6 @@ import {
 	annotationContextLineMaxLength,
 	annotationFingerprintContextLineCount,
 	annotationSchemaVersion,
-	annotationSelectedTextMaxLength,
 } from './annotationModels';
 
 export const annotationStoreRelativePath = '.vscode/ai-toolkit.annotations.json';
@@ -14,7 +13,8 @@ export const annotationBackupRetentionLimit = 3;
 
 export const annotationSchemaMetadata = {
 	version: annotationSchemaVersion,
-	selectedTextMaxLength: annotationSelectedTextMaxLength,
+	selectedTextDescription: `Stored selectedText preserves the captured line count and truncates each line to ${annotationContextLineMaxLength} characters.`,
+	selectedTextLineMaxLength: annotationContextLineMaxLength,
 	contextLineMaxLength: annotationContextLineMaxLength,
 	contextLineCount: annotationFingerprintContextLineCount,
 } as const;

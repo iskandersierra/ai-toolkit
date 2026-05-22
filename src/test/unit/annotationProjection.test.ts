@@ -84,6 +84,35 @@ suite('Annotation Projection', () => {
 
 		service.dispose();
 	});
+
+		// Scenario: Given dismissed annotations in the projection, When comment threads refresh, Then only non-dismissed entries are projected because the comments surface stays derived from store state.
+		test('refresh skips dismissed annotations while projecting active and resolved entries', () => {
+			const controller = new FakeCommentController();
+			const service = new AnnotationCommentProjectionService(controller.asController());
+			const activeProjection = createProjection('e:/source/one', 'src/one.ts', 'annotation-active', 'active');
+			const resolvedProjection = createProjection('e:/source/one', 'src/two.ts', 'annotation-resolved', 'resolved');
+			const dismissedProjection = createProjection('e:/source/one', 'src/three.ts', 'annotation-dismissed', 'dismissed');
+
+			service.refresh({
+				...activeProjection,
+				annotations: [
+					activeProjection.annotations[0],
+					resolvedProjection.annotations[0],
+					dismissedProjection.annotations[0],
+				],
+				activeAnnotations: [
+					activeProjection.activeAnnotations[0],
+					resolvedProjection.activeAnnotations[0],
+					dismissedProjection.activeAnnotations[0],
+				],
+			});
+
+			assert.strictEqual(controller.createdThreads.length, 2);
+			assert.strictEqual(controller.threads[0]?.state, vscode.CommentThreadState.Unresolved);
+			assert.strictEqual(controller.threads[1]?.state, vscode.CommentThreadState.Resolved);
+
+			service.dispose();
+		});
 });
 
 function createProjection(

@@ -18,7 +18,7 @@ export type SessionQuickPickItem =
 
 export interface SessionQuickPickPresenter {
 	pickSession(items: readonly SessionQuickPickItem[]): Promise<SessionQuickPickItem | undefined>;
-	promptForNewSessionName(): Promise<string | undefined>;
+	promptForNewSessionName(suggestedName: string): Promise<string | undefined>;
 }
 
 export function createSessionQuickPickItems(
@@ -61,10 +61,11 @@ export function createVscodeSessionQuickPickPresenter(
 
 			return selected ? toSessionQuickPickItem(selected) : undefined;
 		},
-		promptForNewSessionName: async () =>
+		promptForNewSessionName: async (suggestedName) =>
 			windowApi.showInputBox({
 				title: 'AI Toolkit: Create Review Session',
 				prompt: 'Enter a review session name.',
+				value: suggestedName,
 				ignoreFocusOut: true,
 				validateInput: (value) =>
 					value.trim().length === 0 ? 'Review session name is required.' : undefined,

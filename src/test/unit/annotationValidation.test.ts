@@ -7,6 +7,7 @@ import {
 	type AnnotationSession,
 	type AnnotationStore,
 } from '../../annotations/domain/annotationModels';
+import { annotationSchemaMetadata } from '../../annotations/domain/annotationSchema';
 import {
 	AnnotationStoreValidationError,
 	parseAndValidateAnnotationStore,
@@ -60,6 +61,17 @@ suite('Annotation Validation', () => {
 		});
 
 		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
+	});
+
+	// Scenario: schema metadata documents per-line selectedText truncation instead of the stale legacy total-length contract.
+	test('publishes schema metadata that matches the runtime selectedText contract', () => {
+		assert.deepStrictEqual(annotationSchemaMetadata, {
+			version: annotationSchemaVersion,
+			selectedTextDescription: `Stored selectedText preserves the captured line count and truncates each line to ${annotationContextLineMaxLength} characters.`,
+			selectedTextLineMaxLength: annotationContextLineMaxLength,
+			contextLineMaxLength: annotationContextLineMaxLength,
+			contextLineCount: 2,
+		});
 	});
 
 	// Scenario: runtime validation rejects stores whose active session marker points outside the session registry.

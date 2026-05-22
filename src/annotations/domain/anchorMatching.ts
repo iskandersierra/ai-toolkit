@@ -19,6 +19,15 @@ interface OffsetRange {
 	range: AnnotationRange;
 }
 
+interface LocalCandidate {
+	range: AnnotationRange;
+	selectedText: string;
+	lineDistance: number;
+	characterDistance: number;
+	selectedTextSimilarity: number;
+	contextScore: number;
+}
+
 export function createAnnotationAnchor(
 	range: AnnotationRange,
 	selectedText: string,
@@ -43,7 +52,7 @@ export function findAnnotationReanchorMatch(
 		return exactMatch;
 	}
 
-	const proximityMatch = tryProximityRangeMatch(documentText, anchor);
+	const proximityMatch = tryLocalRangeMatch(documentText, anchor);
 
 	if (proximityMatch) {
 		return proximityMatch;
@@ -75,28 +84,35 @@ function tryExactRangeMatch(
 	}
 
 const PROXIMITY_LINE_RADIUS = 50;
+const PROXIMITY_CHARACTER_RADIUS = 20;
+const MIN_LOCAL_SELECTED_TEXT_SIMILARITY = 0.5;
 
-function tryProximityRangeMatch(
+function tryLocalRangeMatch(
 	documentText: string,
 	anchor: AnnotationAnchor,
 ): AnnotationReanchorMatch | undefined {
 	const lineIndex = createLineIndex(documentText);
 	const contextScoreMax = anchor.contextBeforeLines.length + anchor.contextAfterLines.length;
-	const candidates = findSelectedTextCandidates(documentText, anchor.selectedText, lineIndex)
-		.map((candidate) => ({
-			candidate,
-			distance: Math.abs(candidate.range.start.line - anchor.range.start.line),
-			contextScore: scoreContextMatch(anchor, candidate.range, lineIndex.lines),
-		}))
-		.filter(({ distance }) => distance <= PROXIMITY_LINE_RADIUS);
+	const candidates = createLocalCandidates(anchor, lineIndex.lines).filter(
+		(candidate) =>
+			candidate.selectedTextSimilarity >= MIN_LOCAL_SELECTED_TEXT_SIMILARITY || candidate.contextScore > 0,
+	);
 
 	if (candidates.length === 0) {
 		return undefined;
 	}
 
 	candidates.sort((left, right) => {
-		if (left.distance !== right.distance) {
-			return left.distance - right.distance;
+		if (left.lineDistance !== right.lineDistance) {
+			return left.lineDistance - right.lineDistance;
+		}
+
+		if (left.characterDistance !== right.characterDistance) {
+			return left.characterDistance - right.characterDistance;
+		}
+
+		if (left.selectedTextSimilarity !== right.selectedTextSimilarity) {
+			return right.selectedTextSimilarity - left.selectedTextSimilarity;
 		}
 
 		return right.contextScore - left.contextScore;
@@ -110,14 +126,16 @@ function tryProximityRangeMatch(
 
 	if (
 		secondCandidate &&
-		secondCandidate.distance === bestCandidate.distance &&
+		secondCandidate.lineDistance === bestCandidate.lineDistance &&
+		secondCandidate.characterDistance === bestCandidate.characterDistance &&
+		secondCandidate.selectedTextSimilarity === bestCandidate.selectedTextSimilarity &&
 		secondCandidate.contextScore === bestCandidate.contextScore
 	) {
 		return undefined;
 	}
 
 	return {
-		range: bestCandidate.candidate.range,
+		range: bestCandidate.range,
 		strategy: 'fingerprint',
 		contextScore: bestCandidate.contextScore,
 		contextScoreMax,
@@ -178,6 +196,200 @@ function scoreContextMatch(anchor: AnnotationAnchor, range: AnnotationRange, lin
 
 	return score;
 	}
+
+function createLocalCandidates(anchor: AnnotationAnchor, lines: readonly string[]): LocalCandidate[] {
+	const candidates: LocalCandidate[] = [];
+	const lineSpan = anchor.range.end.line - anchor.range.start.line;
+	const startLine = Math.max(0, anchor.range.start.line - PROXIMITY_LINE_RADIUS);
+	const endLine = Math.min(lines.length - 1, anchor.range.start.line + PROXIMITY_LINE_RADIUS);
+	const seenRanges = new Set<string>();
+
+	for (let candidateStartLine = startLine; candidateStartLine <= endLine; candidateStartLine += 1) {
+		const candidateEndLine = candidateStartLine + lineSpan;
+
+		if (candidateEndLine >= lines.length) {
+			continue;
+		}
+
+		const startCharacters = collectCandidateStartCharacters(anchor, candidateStartLine, lines, candidateEndLine);
+
+		for (const startCharacter of startCharacters) {
+			const range = createShiftedRange(anchor.range, candidateStartLine, startCharacter);
+			const key = serializeRange(range);
+
+			if (seenRanges.has(key)) {
+				continue;
+			}
+
+			const candidateText = getRangeText(lines, range);
+
+			if (candidateText === undefined || candidateText.length === 0) {
+				continue;
+			}
+
+			seenRanges.add(key);
+			candidates.push({
+				range,
+				selectedText: candidateText,
+				lineDistance: Math.abs(candidateStartLine - anchor.range.start.line),
+				characterDistance: Math.abs(startCharacter - anchor.range.start.character),
+				selectedTextSimilarity: scoreSelectedTextSimilarity(anchor.selectedText, candidateText),
+				contextScore: scoreContextMatch(anchor, range, lines),
+			});
+		}
+	}
+
+	return candidates;
+}
+
+function collectCandidateStartCharacters(
+	anchor: AnnotationAnchor,
+	candidateStartLine: number,
+	lines: readonly string[],
+	candidateEndLine: number,
+): number[] {
+	const startCharacters = new Set<number>();
+	const candidateLineLength = lines[candidateStartLine]?.length ?? 0;
+	const candidateEndLineLength = lines[candidateEndLine]?.length ?? 0;
+	const maxStartCharacter = getMaxStartCharacter(anchor.range, candidateLineLength, candidateEndLineLength);
+	const minStartCharacter = Math.max(0, anchor.range.start.character - PROXIMITY_CHARACTER_RADIUS);
+	const maxCharacterInRadius = Math.min(maxStartCharacter, anchor.range.start.character + PROXIMITY_CHARACTER_RADIUS);
+
+	startCharacters.add(Math.min(anchor.range.start.character, maxStartCharacter));
+
+	for (let character = minStartCharacter; character <= maxCharacterInRadius; character += 1) {
+		startCharacters.add(character);
+	}
+
+	return [...startCharacters].sort((left, right) => left - right);
+}
+
+function getMaxStartCharacter(
+	anchorRange: AnnotationRange,
+	startLineLength: number,
+	endLineLength: number,
+): number {
+	const lineSpan = anchorRange.end.line - anchorRange.start.line;
+
+	if (lineSpan === 0) {
+		return Math.max(0, startLineLength - (anchorRange.end.character - anchorRange.start.character));
+	}
+
+	if (anchorRange.start.character > startLineLength || anchorRange.end.character > endLineLength) {
+		return -1;
+	}
+
+	return startLineLength;
+}
+
+function createShiftedRange(anchorRange: AnnotationRange, startLine: number, startCharacter: number): AnnotationRange {
+	const lineSpan = anchorRange.end.line - anchorRange.start.line;
+	const characterSpan = anchorRange.end.character - anchorRange.start.character;
+
+	return {
+		start: { line: startLine, character: startCharacter },
+		end:
+			lineSpan === 0
+				? { line: startLine, character: startCharacter + characterSpan }
+				: { line: startLine + lineSpan, character: anchorRange.end.character },
+	};
+}
+
+function getRangeText(lines: readonly string[], range: AnnotationRange): string | undefined {
+	const startLine = lines[range.start.line];
+	const endLine = lines[range.end.line];
+
+	if (startLine === undefined || endLine === undefined) {
+		return undefined;
+	}
+
+	if (range.start.line === range.end.line) {
+		if (range.end.character > startLine.length) {
+			return undefined;
+		}
+
+		return normalizeSelectedText(startLine.slice(range.start.character, range.end.character));
+	}
+
+	if (range.start.character > startLine.length || range.end.character > endLine.length) {
+		return undefined;
+	}
+
+	const selectedLines: string[] = [];
+
+	for (let lineIndex = range.start.line; lineIndex <= range.end.line; lineIndex += 1) {
+		const line = lines[lineIndex];
+
+		if (line === undefined) {
+			return undefined;
+		}
+
+		if (lineIndex === range.start.line) {
+			selectedLines.push(line.slice(range.start.character));
+			continue;
+		}
+
+		if (lineIndex === range.end.line) {
+			selectedLines.push(line.slice(0, range.end.character));
+			continue;
+		}
+
+		selectedLines.push(line);
+	}
+
+	return normalizeSelectedText(selectedLines.join('\n'));
+}
+
+function scoreSelectedTextSimilarity(anchorSelectedText: string, candidateSelectedText: string): number {
+	if (anchorSelectedText === candidateSelectedText) {
+		return 1;
+	}
+
+	const maxLength = Math.max(anchorSelectedText.length, candidateSelectedText.length);
+
+	if (maxLength === 0) {
+		return 1;
+	}
+
+	const distance = computeLevenshteinDistance(anchorSelectedText, candidateSelectedText);
+	return 1 - distance / maxLength;
+}
+
+function computeLevenshteinDistance(left: string, right: string): number {
+	if (left.length === 0) {
+		return right.length;
+	}
+
+	if (right.length === 0) {
+		return left.length;
+	}
+
+	const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+	const current = new Array<number>(right.length + 1);
+
+	for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+		current[0] = leftIndex;
+
+		for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+			const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+			current[rightIndex] = Math.min(
+				current[rightIndex - 1] + 1,
+				previous[rightIndex] + 1,
+				previous[rightIndex - 1] + substitutionCost,
+			);
+		}
+
+		for (let rightIndex = 0; rightIndex <= right.length; rightIndex += 1) {
+			previous[rightIndex] = current[rightIndex];
+		}
+	}
+
+	return previous[right.length];
+}
+
+function serializeRange(range: AnnotationRange): string {
+	return `${range.start.line}:${range.start.character}-${range.end.line}:${range.end.character}`;
+}
 
 function findSelectedTextCandidates(
 	documentText: string,

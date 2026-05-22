@@ -11,6 +11,8 @@ export interface AnnotationInputService {
 	): Promise<ExistingAnnotationAction | undefined>;
 	confirmPurgeDismissed(count: number): Promise<boolean>;
 	confirmReanchor(): Promise<boolean>;
+	confirmDeleteSession?(sessionName: string, annotationCount: number): Promise<boolean>;
+	confirmClearSessionAnnotations?(sessionName: string, annotationCount: number): Promise<boolean>;
 }
 
 export function createVscodeAnnotationInputService(
@@ -66,6 +68,24 @@ export function createVscodeAnnotationInputService(
 			);
 
 			return choice === 'Reanchor';
+		},
+		confirmDeleteSession: async (sessionName, annotationCount) => {
+			const choice = await windowApi.showWarningMessage(
+				`Delete review session "${sessionName}" and remove its ${annotationCount} annotation${annotationCount === 1 ? '' : 's'}?`,
+				{ modal: true },
+				'Delete Session',
+			);
+
+			return choice === 'Delete Session';
+		},
+		confirmClearSessionAnnotations: async (sessionName, annotationCount) => {
+			const choice = await windowApi.showWarningMessage(
+				`Clear ${annotationCount} annotation${annotationCount === 1 ? '' : 's'} from review session "${sessionName}"?`,
+				{ modal: true },
+				'Clear Annotations',
+			);
+
+			return choice === 'Clear Annotations';
 		},
 	};
 }
