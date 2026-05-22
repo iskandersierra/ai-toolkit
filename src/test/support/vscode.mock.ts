@@ -102,6 +102,57 @@ class EventEmitter<T> {
 	}
 }
 
+class RelativePattern {
+	public constructor(
+		public readonly base: { uri: Uri } | Uri | string,
+		public readonly pattern: string,
+	) {}
+}
+
+class FileSystemWatcher {
+	private readonly createEmitter = new EventEmitter<Uri>();
+	private readonly changeEmitter = new EventEmitter<Uri>();
+	private readonly deleteEmitter = new EventEmitter<Uri>();
+	private disposed = false;
+
+	public constructor(public readonly pattern: RelativePattern) {}
+
+	public onDidCreate(listener: (uri: Uri) => void): Disposable {
+		return this.createEmitter.event(listener);
+	}
+
+	public onDidChange(listener: (uri: Uri) => void): Disposable {
+		return this.changeEmitter.event(listener);
+	}
+
+	public onDidDelete(listener: (uri: Uri) => void): Disposable {
+		return this.deleteEmitter.event(listener);
+	}
+
+	public fireCreate(uri: Uri): void {
+		this.createEmitter.fire(uri);
+	}
+
+	public fireChange(uri: Uri): void {
+		this.changeEmitter.fire(uri);
+	}
+
+	public fireDelete(uri: Uri): void {
+		this.deleteEmitter.fire(uri);
+	}
+
+	public dispose(): void {
+		this.disposed = true;
+		this.createEmitter.dispose();
+		this.changeEmitter.dispose();
+		this.deleteEmitter.dispose();
+	}
+
+	public get isDisposed(): boolean {
+		return this.disposed;
+	}
+}
+
 class CodeLens {
 	public constructor(
 		public readonly range: Range,
@@ -179,6 +230,7 @@ const workspaceFolders = [{
 	index: 0,
 	name: path.basename(process.cwd()),
 }];
+const createdFileSystemWatchers: FileSystemWatcher[] = [];
 
 export const CommentMode = {
 	Preview: 0,
@@ -196,6 +248,11 @@ export const CommentThreadCollapsibleState = {
 
 export const workspace = {
 	workspaceFolders,
+	createFileSystemWatcher: (pattern: RelativePattern) => {
+		const watcher = new FileSystemWatcher(pattern);
+		createdFileSystemWatchers.push(watcher);
+		return watcher;
+	},
 	fs: {
 		writeFile: async (uri: Uri, content: Uint8Array) => {
 			fileContents.set(uri.fsPath, content);
@@ -242,6 +299,10 @@ export const commands = {
 	registerCommand: () => ({ dispose() {} }),
 };
 
+export const languages = {
+	registerCodeLensProvider: () => ({ dispose() {} }),
+};
+
 export const comments = {
 	createCommentController: () => ({
 		createCommentThread: () => ({
@@ -255,6 +316,14 @@ export const comments = {
 		dispose() {},
 	}),
 };
+
+export function resetMockFileSystemWatchers(): void {
+	createdFileSystemWatchers.splice(0, createdFileSystemWatchers.length);
+}
+
+export function getMockFileSystemWatchers(): FileSystemWatcher[] {
+	return [...createdFileSystemWatchers];
+}
 
 function normalizeFsPath(fsPath: string): string {
 	return path.normalize(fsPath).replace(/\\/g, '/').toLowerCase();
@@ -293,8 +362,10 @@ function isWithin(rootPath: string, childPath: string): boolean {
 export {
 	CodeLens,
 	EventEmitter,
+	FileSystemWatcher,
 	Position,
 	Range,
+	RelativePattern,
 	Selection,
 	Uri,
 };

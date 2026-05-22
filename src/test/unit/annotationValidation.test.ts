@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import {
 	annotationContextLineMaxLength,
+	annotationFingerprintContextLineCount,
 	annotationSchemaVersion,
 	annotationSelectedTextMaxLength,
 	type AnnotationEntry,
@@ -10,7 +11,11 @@ import {
 import { annotationSchemaMetadata } from '../../annotations/domain/annotationSchema';
 import {
 	AnnotationStoreValidationError,
+	parseAnnotationStoreJson,
 	parseAndValidateAnnotationStore,
+	validateContextFingerprintLines,
+	validateMaybeEmptyAnnotationStore,
+	validateNewAnnotationSelectedText,
 	validateAnnotationStore,
 } from '../../annotations/domain/annotationValidation';
 
@@ -77,6 +82,122 @@ suite('Annotation Validation', () => {
 	// Scenario: runtime validation rejects stores whose active session marker points outside the session registry.
 	test('rejects an unknown activeSessionId reference', () => {
 		const store = createStore({ activeSessionId: 'missing-session' });
+
+		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
+	});
+
+	// Scenario: malformed persisted JSON is rejected with a validation error at the parse boundary.
+	test('rejects malformed annotation store json', () => {
+		assert.throws(
+			() => parseAnnotationStoreJson('{"schemaVersion":1'),
+			(error: unknown) => {
+				assert.ok(error instanceof AnnotationStoreValidationError);
+				assert.strictEqual(error.issues[0]?.path, '$');
+				assert.match(error.issues[0]?.message ?? '', /Unable to parse annotation store JSON:/);
+				return true;
+			},
+		);
+	});
+
+	// Scenario: selectedText validation rejects empty captures before an annotation can be persisted.
+	test('rejects empty selectedText values', () => {
+		assert.throws(
+			() => validateNewAnnotationSelectedText(''),
+			(error: unknown) => {
+				assert.ok(error instanceof AnnotationStoreValidationError);
+				assert.strictEqual(error.issues[0]?.path, '$.anchor.selectedText');
+				return true;
+			},
+		);
+	});
+
+	// Scenario: context fingerprints are rejected when they exceed the configured line-count limit.
+	test('rejects context fingerprints with too many lines', () => {
+		assert.throws(
+			() => validateContextFingerprintLines(new Array(annotationFingerprintContextLineCount + 1).fill('context'), '$.anchor.contextBeforeLines'),
+			(error: unknown) => {
+				assert.ok(error instanceof AnnotationStoreValidationError);
+				assert.strictEqual(error.issues[0]?.path, '$.anchor.contextBeforeLines');
+				return true;
+			},
+		);
+	});
+
+	// Scenario: empty or missing store content is normalized into a fresh empty store for first-run workflows.
+	test('normalizes undefined and null stores to an empty store', () => {
+		assert.deepStrictEqual(validateMaybeEmptyAnnotationStore(undefined), {
+			schemaVersion: annotationSchemaVersion,
+			activeSessionId: null,
+			sessions: [],
+		});
+		assert.deepStrictEqual(validateMaybeEmptyAnnotationStore(null), {
+			schemaVersion: annotationSchemaVersion,
+			activeSessionId: null,
+			sessions: [],
+		});
+	});
+
+	// Scenario: stores without an explicit activeSessionId are normalized to null instead of failing validation.
+	test('normalizes a missing activeSessionId to null', () => {
+		const store = createStore();
+		const { activeSessionId: _activeSessionId, ...withoutActiveSession } = store as AnnotationStore & {
+			activeSessionId?: string | null;
+		};
+
+		const parsed = validateAnnotationStore(withoutActiveSession);
+
+		assert.strictEqual(parsed.activeSessionId, null);
+	});
+
+	// Scenario: range validation rejects annotations whose start position appears after the end position.
+	test('rejects annotation ranges whose start is after the end', () => {
+		const store = createStore({
+			sessions: [
+				createSession({
+					annotations: [
+						createAnnotation({
+							anchor: {
+								...createAnnotation().anchor,
+								range: {
+									start: { line: 11, character: 0 },
+									end: { line: 10, character: 0 },
+								},
+							},
+						}),
+					],
+				}),
+			],
+		});
+
+		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
+	});
+
+	// Scenario: runtime validation rejects absolute persisted file paths to preserve workspace-relative addressing.
+	test('rejects absolute file paths', () => {
+		const store = createStore({
+			sessions: [
+				createSession({
+					annotations: [
+						createAnnotation({ filePath: '/src/extension.ts' }),
+					],
+				}),
+			],
+		});
+
+		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
+	});
+
+	// Scenario: runtime validation rejects invalid ISO timestamps on persisted annotations.
+	test('rejects invalid timestamp values', () => {
+		const store = createStore({
+			sessions: [
+				createSession({
+					annotations: [
+						createAnnotation({ updatedAt: 'not-a-timestamp' }),
+					],
+				}),
+			],
+		});
 
 		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
 	});

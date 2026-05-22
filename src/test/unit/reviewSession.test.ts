@@ -17,6 +17,29 @@ import {
 } from '../../annotations/domain/annotationModels';
 
 suite('Review Session', () => {
+	// Scenario: Given an already active review session, When ensureActiveSession runs, Then it returns that session without using the picker.
+	test('returns the existing active session without opening the picker', async () => {
+		let pickSessionCount = 0;
+		const service = new FakeSessionWorkspaceService(createStore());
+		const selectionService = new SessionSelectionService({
+			pickSession: async () => {
+				pickSessionCount += 1;
+				return undefined;
+			},
+			promptForNewSessionName: async () => undefined,
+		});
+
+		const result = await selectionService.ensureActiveSession(service);
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			sessionId: 'session-1',
+			created: false,
+			projection: deriveAnnotationWorkspaceProjection(workspaceFolderPath, service.store),
+		});
+		assert.strictEqual(pickSessionCount, 0);
+	});
+
 	// Scenario: Given zero review sessions, When ensureActiveSession runs, Then it auto-creates Review Session without opening the picker.
 	test('auto-creates the first review session when none exist', async () => {
 		let pickSessionCount = 0;
@@ -134,6 +157,148 @@ suite('Review Session', () => {
 		assert.strictEqual(capturedSuggestedName, 'Review Session 3');
 		assert.strictEqual(service.store.sessions[3]?.name, 'Review Session 3');
 	});
+
+	// Scenario: Given an invalid store snapshot, When session selection runs, Then it returns a blocked invalidStore result.
+	test('blocks session selection when the store is invalid', async () => {
+		const invalidError = new Error('invalid store');
+		const selectionService = new SessionSelectionService({
+			pickSession: async () => undefined,
+			promptForNewSessionName: async () => undefined,
+		});
+
+		const result = await selectionService.ensureActiveSession(
+			new FakeSessionWorkspaceService(createStore(), {
+				state: {
+					status: 'invalid',
+					storePath,
+					error: invalidError,
+				},
+			}),
+		);
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			reason: 'invalidStore',
+			message: 'The annotation store is invalid. Fix the store file before running annotation commands.',
+			storePath,
+			error: invalidError,
+			latestState: {
+				status: 'invalid',
+				storePath,
+				error: invalidError,
+			},
+		});
+	});
+
+	// Scenario: Given no cached state, When session selection runs, Then it initializes the workspace service before continuing.
+	test('initializes the workspace service when no cached state exists', async () => {
+		let initializeCount = 0;
+		const service = new FakeSessionWorkspaceService(createStore(), {
+			hasCachedState: false,
+			onInitialize: () => {
+				initializeCount += 1;
+			},
+		});
+		const selectionService = new SessionSelectionService({
+			pickSession: async () => ({
+				type: 'session',
+				sessionId: 'session-1',
+				label: 'Review Session',
+				detail: 'Select Review Session',
+			}),
+			promptForNewSessionName: async () => undefined,
+		});
+
+		const result = await selectionService.selectSession(service);
+
+		assert.strictEqual(result.status, 'ready');
+		assert.strictEqual(initializeCount, 1);
+	});
+
+	// Scenario: Given the picker is dismissed, When selecting a session, Then the flow exits as cancelled.
+	test('returns cancelled when the session picker is dismissed', async () => {
+		const service = new FakeSessionWorkspaceService(createStore({ activeSessionId: null }));
+		const selectionService = new SessionSelectionService({
+			pickSession: async () => undefined,
+			promptForNewSessionName: async () => undefined,
+		});
+
+		const result = await selectionService.selectSession(service);
+
+		assert.deepStrictEqual(result, { status: 'cancelled' });
+	});
+
+	// Scenario: Given the create-session path is chosen, When the name prompt is dismissed, Then the flow exits as cancelled.
+	test('returns cancelled when the new-session prompt is dismissed', async () => {
+		const service = new FakeSessionWorkspaceService(createStore({ activeSessionId: null }));
+		const selectionService = new SessionSelectionService({
+			pickSession: async () => ({
+				type: 'create',
+				label: 'Create new session...',
+				detail: 'Create and activate a new review session.',
+			}),
+			promptForNewSessionName: async () => undefined,
+		});
+
+		const result = await selectionService.selectSession(service);
+
+		assert.deepStrictEqual(result, { status: 'cancelled' });
+	});
+
+	// Scenario: Given the workspace mutation returns blocked, When creating a first session, Then the blocked result is forwarded unchanged.
+	test('forwards blocked results from automatic session creation', async () => {
+		const selectionService = new SessionSelectionService({
+			pickSession: async () => undefined,
+			promptForNewSessionName: async () => undefined,
+		});
+
+		const result = await selectionService.ensureActiveSession(
+			new FakeSessionWorkspaceService(createStore({ activeSessionId: null, sessions: [] }), {
+				createSessionResult: {
+					status: 'blocked',
+					reason: 'invalidStore',
+					message: 'The store is invalid.',
+					storePath,
+				},
+			}),
+		);
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			reason: 'invalidStore',
+			message: 'The store is invalid.',
+			storePath,
+		});
+	});
+
+	// Scenario: Given a ready mutation result without a session identifier, When a session is selected, Then the flow is blocked as sessionNotFound.
+	test('blocks ready results that omit a session identifier', async () => {
+		const service = new FakeSessionWorkspaceService(createStore({ activeSessionId: null }), {
+			setActiveSessionResult: {
+				status: 'ready',
+				projection: deriveAnnotationWorkspaceProjection(workspaceFolderPath, createStore({ activeSessionId: null })),
+				storePath,
+			},
+		});
+		const selectionService = new SessionSelectionService({
+			pickSession: async () => ({
+				type: 'session',
+				sessionId: 'session-1',
+				label: 'Review Session',
+				detail: 'Select Review Session',
+			}),
+			promptForNewSessionName: async () => undefined,
+		});
+
+		const result = await selectionService.selectSession(service);
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			reason: 'sessionNotFound',
+			message: 'The review session operation completed without a session identifier.',
+			storePath,
+		});
+	});
 });
 
 const workspaceFolderPath = 'e:/source/ai-toolkit';
@@ -160,10 +325,23 @@ function createSession(sessionId: string, name: string) {
 }
 
 class FakeSessionWorkspaceService implements AnnotationWorkspaceServiceLike {
-	public constructor(public store: AnnotationStore) {}
+	public constructor(
+		public store: AnnotationStore,
+		private readonly options: {
+			state?: AnnotationWorkspaceState;
+			hasCachedState?: boolean;
+			onInitialize?: () => void;
+			createSessionResult?: AnnotationWorkspaceMutationResult;
+			setActiveSessionResult?: AnnotationWorkspaceMutationResult;
+		} = {},
+	) {}
 
-	public getState(): AnnotationWorkspaceState {
-		return {
+	public getState(): AnnotationWorkspaceState | undefined {
+		if (this.options.hasCachedState === false) {
+			return undefined;
+		}
+
+		return this.options.state ?? {
 			status: 'ready',
 			projection: deriveAnnotationWorkspaceProjection(workspaceFolderPath, this.store),
 			storePath,
@@ -171,10 +349,21 @@ class FakeSessionWorkspaceService implements AnnotationWorkspaceServiceLike {
 	}
 
 	public async initialize(): Promise<AnnotationWorkspaceState> {
-		return this.getState();
+		this.options.onInitialize?.();
+		this.options.hasCachedState = true;
+		this.options.state = {
+			status: 'ready',
+			projection: deriveAnnotationWorkspaceProjection(workspaceFolderPath, this.store),
+			storePath,
+		};
+		return this.getState() as AnnotationWorkspaceState;
 	}
 
 	public async createSession(name: string): Promise<AnnotationWorkspaceMutationResult> {
+		if (this.options.createSessionResult) {
+			return this.options.createSessionResult;
+		}
+
 		const sessionId = `session-${this.store.sessions.length + 1}`;
 		this.store.sessions.push(createSession(sessionId, name));
 		this.store.activeSessionId = sessionId;
@@ -187,6 +376,10 @@ class FakeSessionWorkspaceService implements AnnotationWorkspaceServiceLike {
 	}
 
 	public async setActiveSession(sessionId: string): Promise<AnnotationWorkspaceMutationResult> {
+		if (this.options.setActiveSessionResult) {
+			return this.options.setActiveSessionResult;
+		}
+
 		this.store.activeSessionId = sessionId;
 		return {
 			status: 'ready',
