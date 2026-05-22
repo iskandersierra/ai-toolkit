@@ -334,6 +334,50 @@ suite('Annotation Commands', () => {
 		});
 	});
 
+	// Scenario: Given zero review sessions, When the explicit select review session command runs, Then it auto-creates and activates Review Session without opening the picker.
+	test('auto-creates the first review session for the explicit select review session command', async () => {
+		const editor = await openEditor('target()');
+		const informationMessages: string[] = [];
+		let pickSessionCount = 0;
+		let promptForSessionNameCount = 0;
+		const service = new FakeAnnotationWorkspaceService(createStore({ activeSessionId: null, sessions: [] }));
+
+		const result = await executeSelectReviewSessionCommand({
+			window: createWindowApi(editor, {
+				showInformationMessage: async (message: string) => {
+					informationMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: new SessionSelectionService({
+				pickSession: async () => {
+					pickSessionCount += 1;
+					return undefined;
+				},
+				promptForNewSessionName: async () => {
+					promptForSessionNameCount += 1;
+					return undefined;
+				},
+			}),
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.selectReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionSelected',
+			sessionId: 'session-1',
+		});
+		assert.strictEqual(service.store.sessions.length, 1);
+		assert.strictEqual(service.store.sessions[0]?.name, 'Review Session');
+		assert.strictEqual(service.store.activeSessionId, 'session-1');
+		assert.strictEqual(pickSessionCount, 0);
+		assert.strictEqual(promptForSessionNameCount, 0);
+		assert.deepStrictEqual(informationMessages, ['Created and activated the review session.']);
+	});
+
 	// Scenario: Given sessions with different updatedAt values, When maintenance picker items are created, Then they are ordered by most recent update and mark the active session.
 	test('orders maintenance picker items by updatedAt descending and marks the active session', () => {
 		const items = createSessionMaintenanceQuickPickItems(

@@ -79,6 +79,11 @@ export class SessionSelectionService {
 			return state;
 		}
 
+		if (state.projection.sessions.length === 0) {
+			const result = await service.createSession(defaultReviewSessionName);
+			return toSessionSelectionResult(result, true);
+		}
+
 		return this.selectSessionFromState(service, state);
 	}
 
