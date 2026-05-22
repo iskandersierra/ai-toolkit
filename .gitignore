@@ -11,3 +11,6 @@ node_modules
 # Ignore Understand Anything intermediate files and diff overlay
 .understand-anything/intermediate/
 .understand-anything/diff-overlay.json
+
+# Ignore Coverage reports
+coverage/

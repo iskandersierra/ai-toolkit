@@ -183,7 +183,8 @@
     "watch": "tsc -watch -p ./",
     "pretest": "pnpm run compile && pnpm run lint",
     "lint": "eslint src",
-    "test": "node ./scripts/run-vscode-test.mjs"
+    "test": "node ./scripts/run-vscode-test.mjs",
+    "test:coverage": "node ./scripts/run-vscode-test.mjs --coverage"
   },
   "devDependencies": {
     "@types/vscode": "^1.120.0",
