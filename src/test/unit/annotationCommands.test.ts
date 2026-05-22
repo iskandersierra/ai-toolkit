@@ -7,10 +7,12 @@ import {
 	executeDeleteReviewSessionCommand,
 	executeDismissAnnotationCommand,
 	executeGenerateDraftOutputCommand,
+	executePurgeDismissedAnnotationsCommand,
 	executeReanchorAnnotationCommand,
 	executeReopenAnnotationCommand,
 	executeResolveAnnotationCommand,
 	executeSelectReviewSessionCommand,
+	registerAnnotationCommands,
 	annotationCommandIds,
 } from '../../annotations/presentation/annotationCommands';
 import { SessionSelectionService } from '../../annotations/application/sessionSelectionService';
@@ -378,6 +380,77 @@ suite('Annotation Commands', () => {
 		assert.deepStrictEqual(informationMessages, ['Created and activated the review session.']);
 	});
 
+	// Scenario: Given an existing session is chosen, When the explicit select review session command runs, Then it reports activation rather than creation.
+	test('reports activation when selecting an existing review session', async () => {
+		const editor = await openEditor('target()');
+		const informationMessages: string[] = [];
+		const service = new FakeAnnotationWorkspaceService(createStore({
+			activeSessionId: null,
+			sessions: [createSession('session-1', [], 'Security pass')],
+		}));
+
+		const result = await executeSelectReviewSessionCommand({
+			window: createWindowApi(editor, {
+				showInformationMessage: async (message: string) => {
+					informationMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: new SessionSelectionService({
+				pickSession: async (items) => items[0],
+				promptForNewSessionName: async () => undefined,
+			}),
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.selectReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionSelected',
+			sessionId: 'session-1',
+		});
+		assert.deepStrictEqual(informationMessages, ['Activated the selected review session.']);
+	});
+
+	// Scenario: Given dismissed count is zero, When purge dismissed annotations runs, Then it returns ready without asking for confirmation.
+	test('returns a no-op ready result when the active session has no dismissed annotations to purge', async () => {
+		const editor = await openEditor('target()');
+		const informationMessages: string[] = [];
+		let confirmCount = 0;
+
+		const result = await executePurgeDismissedAnnotationsCommand({
+			window: createWindowApi(editor, {
+				showInformationMessage: async (message: string) => {
+					informationMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => {
+					confirmCount += 1;
+					return true;
+				},
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.purgeDismissedAnnotations,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'dismissedAnnotationsPurged',
+			purgedCount: 0,
+		});
+		assert.strictEqual(confirmCount, 0);
+		assert.deepStrictEqual(informationMessages, ['The active review session has no dismissed annotations to purge.']);
+	});
+
 	// Scenario: Given sessions with different updatedAt values, When maintenance picker items are created, Then they are ordered by most recent update and mark the active session.
 	test('orders maintenance picker items by updatedAt descending and marks the active session', () => {
 		const items = createSessionMaintenanceQuickPickItems(
@@ -667,6 +740,96 @@ suite('Annotation Commands', () => {
 			purgedCount: undefined,
 		});
 		assert.deepStrictEqual(confirmationCalls, [{ name: 'Security pass', count: 1, isActive: true }]);
+	});
+
+	// Scenario: Given delete confirmation is not injected, When delete review session runs, Then it falls back to the window modal confirmation flow.
+	test('falls back to the window delete confirmation when the input service omits delete confirmation', async () => {
+		const editor = await openEditor('target()');
+		const warningMessages: string[] = [];
+
+		const result = await executeDeleteReviewSessionCommand({
+			window: createWindowApi(editor, {
+				showWarningMessage: (async (message: string, ...items: Array<string | vscode.MessageOptions>) => {
+					warningMessages.push(message);
+					return items.find((item): item is string => typeof item === 'string' && item === 'Delete Session');
+				}) as typeof vscode.window.showWarningMessage,
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore({
+				activeSessionId: 'session-1',
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1')], 'Security pass'),
+					createSession('session-2', [createAnnotation('annotation-2')], 'Review Session 2'),
+				],
+			})),
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async (_operation, items) => items.find((item) => item.sessionId === 'session-2'),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.deleteReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionDeleted',
+			annotationId: undefined,
+			sessionId: 'session-1',
+			purgedCount: undefined,
+		});
+		assert.deepStrictEqual(warningMessages, [
+			'Delete review session "Review Session 2" and remove its 1 annotation?',
+		]);
+	});
+
+	// Scenario: Given clear confirmation is not injected, When clear review session annotations runs, Then it falls back to the window modal confirmation flow.
+	test('falls back to the window clear confirmation when the input service omits clear confirmation', async () => {
+		const editor = await openEditor('target()');
+		const warningMessages: string[] = [];
+
+		const result = await executeClearReviewSessionAnnotationsCommand({
+			window: createWindowApi(editor, {
+				showWarningMessage: (async (message: string, ...items: Array<string | vscode.MessageOptions>) => {
+					warningMessages.push(message);
+					return items.find((item): item is string => typeof item === 'string' && item === 'Clear Annotations');
+				}) as typeof vscode.window.showWarningMessage,
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore({
+				activeSessionId: 'session-1',
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1')], 'Security pass'),
+					createSession('session-2', [createAnnotation('annotation-2'), createAnnotation('annotation-3')], 'Review Session 2'),
+				],
+			})),
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async (_operation, items) => items.find((item) => item.sessionId === 'session-2'),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.clearReviewSessionAnnotations,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionAnnotationsCleared',
+			annotationId: undefined,
+			sessionId: 'session-2',
+			purgedCount: undefined,
+		});
+		assert.deepStrictEqual(warningMessages, [
+			'Clear 2 annotations from review session "Review Session 2"?',
+		]);
 	});
 
 	// Scenario: Given the active review session is deleted and another becomes active, When delete review session succeeds, Then the success message names both the deleted and new active sessions.
@@ -1055,6 +1218,100 @@ suite('Annotation Commands', () => {
 		]);
 	});
 
+	// Scenario: Given invalid-store recovery opens successfully, When the user picks Open Store, Then the store document is opened without a follow-up error.
+	test('opens the invalid store document when recovery succeeds', async () => {
+		const editor = await openEditor('target()');
+		const errorMessages: string[] = [];
+		const openedUris: string[] = [];
+		const shownDocuments: string[] = [];
+		const storeDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(storePath));
+
+		const result = await executeSelectReviewSessionCommand({
+			window: createWindowApi(editor, {
+				showErrorMessage: (async (message: string, ...items: Array<string | vscode.MessageOptions>) => {
+					errorMessages.push(message);
+					const actionItems = items.filter((item): item is string => typeof item === 'string');
+					return actionItems.includes('Open Store') ? 'Open Store' : undefined;
+				}) as typeof vscode.window.showErrorMessage,
+				showTextDocument: async (document) => {
+					shownDocuments.push(document.uri.fsPath);
+					return editor;
+				},
+			}),
+			workspace: createWorkspaceApi({
+				openTextDocument: async (uri) => {
+					if (uri instanceof vscode.Uri) {
+						openedUris.push(uri.fsPath);
+					}
+
+					return storeDocument;
+				},
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore(), {
+				state: {
+					status: 'invalid',
+					storePath,
+					error: new Error('Invalid annotation store.'),
+				},
+			}),
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		await flushAsyncWork();
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.selectReviewSession,
+			reason: 'invalidStore',
+			message: 'The annotation store is invalid. Fix the store file before running annotation commands.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(errorMessages, [
+			'The annotation store is invalid. Fix the store file before running annotation commands.',
+		]);
+		assert.deepStrictEqual(openedUris, [vscode.Uri.file(storePath).fsPath]);
+		assert.deepStrictEqual(shownDocuments, [storeDocument.uri.fsPath]);
+	});
+
+	// Scenario: Given command state is unavailable from getState, When a command runs, Then it falls back to initialize before continuing.
+	test('falls back to initialize when getState returns undefined', async () => {
+		const editor = await openEditor('target()');
+		class DeferredStateService extends FakeAnnotationWorkspaceService {
+			public override getState(): AnnotationWorkspaceState {
+				return undefined as unknown as AnnotationWorkspaceState;
+			}
+
+			public override async initialize(): Promise<AnnotationWorkspaceState> {
+				return {
+					status: 'ready',
+					projection: deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, this.store),
+					storePath,
+				};
+			}
+		}
+		const service = new DeferredStateService(createStore());
+
+		const result = await executePurgeDismissedAnnotationsCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.purgeDismissedAnnotations,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'dismissedAnnotationsPurged',
+			purgedCount: 0,
+		});
+	});
+
 		// Scenario: session selection stays successful when post-success context refresh fails.
 		test('returns a ready session-selection result when context-key refresh rejects', async () => {
 			const editor = await openEditor('target()');
@@ -1103,6 +1360,45 @@ suite('Annotation Commands', () => {
 			}),
 			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
 		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.dismissAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationDismissed',
+			annotationId: 'annotation-1',
+			sessionId: undefined,
+			purgedCount: undefined,
+		});
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'dismissed');
+	});
+
+	// Scenario: Given a clicked annotation comment thread and no active editor, When dismiss runs from the comments surface, Then it resolves the workspace from the thread URI alone.
+	test('dismisses the mapped annotation from a comment thread without an active editor', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+			}),
+		);
+		const thread = createCommentThread(editor.document.uri);
+
+		const result = await executeDismissAnnotationCommand({
+			window: {
+				activeTextEditor: undefined,
+				showErrorMessage: async () => undefined,
+				showInformationMessage: async () => undefined,
+				showWarningMessage: async () => undefined,
+				showTextDocument: async () => editor,
+			},
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			commentProjection: {
+				getAnnotationId: () => 'annotation-1',
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		}, thread);
 
 		assert.deepStrictEqual(result, {
 			status: 'ready',
@@ -1730,6 +2026,26 @@ suite('Annotation Commands', () => {
 
 		assert.ok(capturedAvailableActions !== undefined, 'Expected pickExistingAnnotationAction to be called');
 		assert.ok(!capturedAvailableActions.includes('resolve'), 'Expected resolve not to be in available actions for resolved annotation');
+	});
+
+	// Scenario: Given a command registry, When annotation commands are registered, Then every command id is wired exactly once into extension subscriptions.
+	test('registers all annotation commands with the provided command registry', () => {
+		const registeredIds: string[] = [];
+		const context = { subscriptions: [] as vscode.Disposable[] } as unknown as vscode.ExtensionContext;
+
+		registerAnnotationCommands(context, {
+			commands: {
+				registerCommand: (command, _callback) => {
+					registeredIds.push(command);
+					return { dispose: () => undefined };
+				},
+			},
+			sessionSelectionService: createSessionSelectionService(),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+		});
+
+		assert.deepStrictEqual(registeredIds, Object.values(annotationCommandIds));
+		assert.strictEqual(context.subscriptions.length, Object.values(annotationCommandIds).length);
 	});
 });
 

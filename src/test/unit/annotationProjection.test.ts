@@ -23,6 +23,42 @@ suite('Annotation Projection', () => {
 		provider.dispose();
 	});
 
+	// Scenario: Given an orphaned annotation, When CodeLens entries are produced, Then the edit action is accompanied by an orphaned warning lens.
+	test('adds an orphaned warning CodeLens for orphaned annotations', () => {
+		const provider = new AnnotationCodeLensProvider();
+		const projection = createProjection('e:/source/one', 'src/one.ts', 'annotation-one');
+
+		projection.activeAnnotations[0] = {
+			...projection.activeAnnotations[0],
+			anchorState: 'orphaned',
+		};
+		projection.annotations[0] = projection.activeAnnotations[0];
+
+		provider.refresh(projection);
+
+		const lenses = provider.provideCodeLenses(createDocument('e:/source/one/src/one.ts'));
+
+		assert.strictEqual(lenses.length, 2);
+		assert.strictEqual(lenses[0]?.command?.title, 'Edit Annotation');
+		assert.strictEqual(lenses[1]?.command?.title, '⚠ Orphaned');
+		assert.strictEqual(lenses[1]?.command?.command, '');
+
+		provider.dispose();
+	});
+
+	// Scenario: Given a document outside tracked workspace roots, When CodeLens entries are requested, Then no entries are returned.
+	test('returns no CodeLens entries for documents outside tracked workspaces', () => {
+		const provider = new AnnotationCodeLensProvider();
+
+		provider.refresh(createProjection('e:/source/one', 'src/one.ts', 'annotation-one'));
+
+		const lenses = provider.provideCodeLenses(createDocument('e:/other/place/outside.ts'));
+
+		assert.deepStrictEqual(lenses, []);
+
+		provider.dispose();
+	});
+
 	// Scenario: refreshing comment projection for one workspace only disposes that workspace's previous threads.
 	test('keeps comment threads isolated by workspace folder', () => {
 		const controller = new FakeCommentController();
@@ -83,6 +119,48 @@ suite('Annotation Projection', () => {
 		assert.strictEqual(service.getAnnotationId(thread), undefined);
 
 		service.dispose();
+	});
+
+	// Scenario: Given comment projection is configured to show all sessions, When refresh runs with the default controller path, Then inactive-session annotations are also projected.
+	test('projects non-active session comments when showOnlyActiveSession is disabled', () => {
+		const controller = new FakeCommentController();
+		const originalCreateController = vscode.comments.createCommentController;
+		const originalGetConfiguration = vscode.workspace.getConfiguration;
+		(vscode.comments as unknown as { createCommentController: typeof vscode.comments.createCommentController }).createCommentController =
+			() => controller.asController();
+		(vscode.workspace as unknown as { getConfiguration: typeof vscode.workspace.getConfiguration }).getConfiguration =
+			() => ({
+				get: <T>(_section: string, _defaultValue: T) => false as T,
+			}) as ReturnType<typeof vscode.workspace.getConfiguration>;
+
+		try {
+			const service = new AnnotationCommentProjectionService();
+			const projection = createProjection('e:/source/one', 'src/one.ts', 'annotation-active');
+			const inactiveAnnotation = {
+				...projection.annotations[0],
+				annotationId: 'annotation-inactive',
+				filePath: 'src/two.ts',
+				isActiveSession: false,
+				sessionId: 'session-2',
+				sessionName: 'Bug bash',
+			};
+
+			service.refresh({
+				...projection,
+				annotations: [projection.annotations[0], inactiveAnnotation],
+				activeAnnotations: [projection.activeAnnotations[0]],
+			});
+
+			assert.strictEqual(controller.createdThreads.length, 2);
+			assert.strictEqual(controller.threads[0]?.label, 'AI Toolkit · Security pass');
+			assert.strictEqual(controller.threads[1]?.label, 'AI Toolkit · Bug bash');
+			assert.strictEqual(service.getAnnotationId(controller.createdThreads[1] as vscode.CommentThread), 'annotation-inactive');
+
+			service.dispose();
+		} finally {
+			(vscode.comments as unknown as { createCommentController: typeof vscode.comments.createCommentController }).createCommentController = originalCreateController;
+			(vscode.workspace as unknown as { getConfiguration: typeof vscode.workspace.getConfiguration }).getConfiguration = originalGetConfiguration;
+		}
 	});
 
 		// Scenario: Given dismissed annotations in the projection, When comment threads refresh, Then only non-dismissed entries are projected because the comments surface stays derived from store state.
