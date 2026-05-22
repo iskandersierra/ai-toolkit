@@ -363,7 +363,7 @@ suite('Annotation Commands', () => {
 			],
 		}));
 		const pickedSessions: string[] = [];
-		const confirmationCalls: Array<{ name: string; count: number }> = [];
+		const confirmationCalls: Array<{ name: string; count: number; isActive: boolean }> = [];
 
 		const result = await executeDeleteReviewSessionCommand({
 			window: createWindowApi(editor),
@@ -380,8 +380,8 @@ suite('Annotation Commands', () => {
 				pickExistingAnnotationAction: async () => 'edit',
 				confirmPurgeDismissed: async () => true,
 				confirmReanchor: async () => true,
-				confirmDeleteSession: async (sessionName, annotationCount) => {
-					confirmationCalls.push({ name: sessionName, count: annotationCount });
+				confirmDeleteSession: async (sessionName, annotationCount, isActiveSession) => {
+					confirmationCalls.push({ name: sessionName, count: annotationCount, isActive: isActiveSession });
 					return true;
 				},
 			},
@@ -398,7 +398,7 @@ suite('Annotation Commands', () => {
 			purgedCount: undefined,
 		});
 		assert.deepStrictEqual(pickedSessions, ['session-1', 'session-2']);
-		assert.deepStrictEqual(confirmationCalls, [{ name: 'Review Session 2', count: 1 }]);
+		assert.deepStrictEqual(confirmationCalls, [{ name: 'Review Session 2', count: 1, isActive: false }]);
 		assert.deepStrictEqual(service.store.sessions.map((session) => session.sessionId), ['session-1']);
 	});
 
@@ -464,6 +464,7 @@ suite('Annotation Commands', () => {
 					type: 'session',
 					sessionId: 'missing-session',
 					label: 'Missing',
+					isActive: false,
 					detail: '0 annotations, 0 dismissed, updated 2026-05-20T10:00:00.000Z',
 					annotationCount: 0,
 					updatedAt: '2026-05-20T10:00:00.000Z',
@@ -488,6 +489,7 @@ suite('Annotation Commands', () => {
 					type: 'session',
 					sessionId: 'missing-session',
 					label: 'Missing',
+					isActive: false,
 					detail: '0 annotations, 0 dismissed, updated 2026-05-20T10:00:00.000Z',
 					annotationCount: 0,
 					updatedAt: '2026-05-20T10:00:00.000Z',
@@ -517,6 +519,237 @@ suite('Annotation Commands', () => {
 			message: 'The selected review session could not be found.',
 			workspaceFolder: workspaceFolder().uri.fsPath,
 		});
+	});
+
+	// Scenario: Given no review sessions, When delete or clear review session runs, Then each command returns a clear informational result instead of generic cancellation.
+	test('reports an informational no-session result for delete and clear review session commands', async () => {
+		const editor = await openEditor('target()');
+		const informationMessages: string[] = [];
+		let pickCount = 0;
+
+		const deleteResult = await executeDeleteReviewSessionCommand({
+			window: createWindowApi(editor, {
+				showInformationMessage: async (message: string) => {
+					informationMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore({ activeSessionId: null, sessions: [] })),
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async () => {
+					pickCount += 1;
+					return undefined;
+				},
+			},
+		});
+
+		const clearResult = await executeClearReviewSessionAnnotationsCommand({
+			window: createWindowApi(editor, {
+				showInformationMessage: async (message: string) => {
+					informationMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore({ activeSessionId: null, sessions: [] })),
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async () => {
+					pickCount += 1;
+					return undefined;
+				},
+			},
+		});
+
+		assert.deepStrictEqual(deleteResult, {
+			status: 'blocked',
+			commandId: annotationCommandIds.deleteReviewSession,
+			reason: 'noReviewSessions',
+			message: 'There are no review sessions to delete.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(clearResult, {
+			status: 'blocked',
+			commandId: annotationCommandIds.clearReviewSessionAnnotations,
+			reason: 'noReviewSessions',
+			message: 'There are no review sessions to clear.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(informationMessages, [
+			'There are no review sessions to delete.',
+			'There are no review sessions to clear.',
+		]);
+		assert.strictEqual(pickCount, 0);
+	});
+
+	// Scenario: Given the active review session is being deleted, When the built-in confirmation runs, Then the modal text includes the session name, annotation count, and active-session warning.
+	test('includes the active-session warning in delete confirmation messaging', async () => {
+		const editor = await openEditor('target()');
+		const confirmationCalls: Array<{ name: string; count: number; isActive: boolean }> = [];
+
+		const result = await executeDeleteReviewSessionCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore({
+				activeSessionId: 'session-1',
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1')], 'Security pass', '2026-05-20T10:00:00.000Z'),
+					createSession('session-2', [createAnnotation('annotation-2')], 'Review Session 2', '2026-05-20T12:00:00.000Z'),
+				],
+			})),
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async (_operation, items) => items.find((item) => item.sessionId === 'session-1'),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+				confirmDeleteSession: async (sessionName, annotationCount, isActiveSession) => {
+					confirmationCalls.push({ name: sessionName, count: annotationCount, isActive: isActiveSession });
+					return true;
+				},
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.deleteReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionDeleted',
+			annotationId: undefined,
+			sessionId: 'session-2',
+			purgedCount: undefined,
+		});
+		assert.deepStrictEqual(confirmationCalls, [{ name: 'Security pass', count: 1, isActive: true }]);
+	});
+
+	// Scenario: Given the active review session is deleted and another becomes active, When delete review session succeeds, Then the success message names both the deleted and new active sessions.
+	test('reports the deleted and reassigned active session names after deleting the active review session', async () => {
+		const editor = await openEditor('target()');
+		const informationMessages: string[] = [];
+
+		const result = await executeDeleteReviewSessionCommand({
+			window: createWindowApi(editor, {
+				showInformationMessage: async (message: string) => {
+					informationMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore({
+				activeSessionId: 'session-1',
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1')], 'Security pass', '2026-05-20T10:00:00.000Z'),
+					createSession('session-2', [createAnnotation('annotation-2')], 'Review Session 2', '2026-05-20T12:00:00.000Z'),
+				],
+			})),
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async (_operation, items) => items.find((item) => item.sessionId === 'session-1'),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+				confirmDeleteSession: async () => true,
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.deleteReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionDeleted',
+			annotationId: undefined,
+			sessionId: 'session-2',
+			purgedCount: undefined,
+		});
+		assert.deepStrictEqual(informationMessages, [
+			'Deleted review session "Security pass". Active review session is now "Review Session 2".',
+		]);
+	});
+
+	// Scenario: Given a populated review session, When clear review session annotations succeeds, Then the success message names the session and the number of annotations removed.
+	test('reports the cleared session name and removed annotation count after clearing annotations', async () => {
+		const editor = await openEditor('target()');
+		const informationMessages: string[] = [];
+
+		const result = await executeClearReviewSessionAnnotationsCommand({
+			window: createWindowApi(editor, {
+				showInformationMessage: async (message: string) => {
+					informationMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore({
+				activeSessionId: 'session-1',
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1')], 'Security pass'),
+					createSession('session-2', [createAnnotation('annotation-2'), createAnnotation('annotation-3')], 'Review Session 2'),
+				],
+			})),
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async (_operation, items) => items.find((item) => item.sessionId === 'session-2'),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+				confirmClearSessionAnnotations: async () => true,
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.clearReviewSessionAnnotations,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionAnnotationsCleared',
+			annotationId: undefined,
+			sessionId: 'session-2',
+			purgedCount: undefined,
+		});
+		assert.deepStrictEqual(informationMessages, [
+			'Cleared 2 annotations from review session "Review Session 2".',
+		]);
+	});
+
+	// Scenario: Given an oversized existing-annotation selection, When add-or-edit runs, Then the quick pick omits the reanchor action before the user selects an operation.
+	test('omits reanchor from existing annotation actions when the current selection exceeds the 50-line limit', async () => {
+		const editor = await openEditor(Array.from({ length: 52 }, (_, index) => `line ${index}`).join('\n'));
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(51, 6));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', editor.document.getText(), 0, 6, filePath)]),
+				],
+			}),
+		);
+		let capturedAvailableActions: ExistingAnnotationAction[] | undefined;
+
+		await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async (_annotation, availableActions) => {
+					capturedAvailableActions = availableActions;
+					return 'edit';
+				},
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.ok(capturedAvailableActions !== undefined, 'Expected pickExistingAnnotationAction to be called');
+		assert.ok(!capturedAvailableActions.includes('reanchor'));
 	});
 
 	// Scenario: draft generation returns a blocked result when the generated document cannot be opened.

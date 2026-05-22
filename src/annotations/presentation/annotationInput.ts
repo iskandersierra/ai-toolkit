@@ -11,7 +11,7 @@ export interface AnnotationInputService {
 	): Promise<ExistingAnnotationAction | undefined>;
 	confirmPurgeDismissed(count: number): Promise<boolean>;
 	confirmReanchor(): Promise<boolean>;
-	confirmDeleteSession?(sessionName: string, annotationCount: number): Promise<boolean>;
+	confirmDeleteSession?(sessionName: string, annotationCount: number, isActiveSession: boolean): Promise<boolean>;
 	confirmClearSessionAnnotations?(sessionName: string, annotationCount: number): Promise<boolean>;
 }
 
@@ -69,9 +69,9 @@ export function createVscodeAnnotationInputService(
 
 			return choice === 'Reanchor';
 		},
-		confirmDeleteSession: async (sessionName, annotationCount) => {
+		confirmDeleteSession: async (sessionName, annotationCount, isActiveSession) => {
 			const choice = await windowApi.showWarningMessage(
-				`Delete review session "${sessionName}" and remove its ${annotationCount} annotation${annotationCount === 1 ? '' : 's'}?`,
+				`${isActiveSession ? 'This is the active review session. ' : ''}Delete review session "${sessionName}" and remove its ${annotationCount} annotation${annotationCount === 1 ? '' : 's'}?`,
 				{ modal: true },
 				'Delete Session',
 			);

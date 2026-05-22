@@ -97,6 +97,43 @@ suite('Review Session', () => {
 
 		assert.strictEqual(nextName, 'Review Session 5');
 	});
+
+	// Scenario: Given the manual create-session path, When a new session is requested, Then the name prompt is prefilled with the suggested default Review Session name.
+	test('passes the suggested default session name into the manual create-session prompt', async () => {
+		let capturedSuggestedName: string | undefined;
+		const service = new FakeSessionWorkspaceService(
+			createStore({
+				activeSessionId: null,
+				sessions: [
+					createSession('session-1', 'Security pass'),
+					createSession('session-2', 'Review Session'),
+					createSession('session-3', 'Review Session 2'),
+				],
+			}),
+		);
+		const selectionService = new SessionSelectionService({
+			pickSession: async () => ({
+				type: 'create',
+				label: 'Create new session...',
+				detail: 'Create and activate a new review session.',
+			}),
+			promptForNewSessionName: async (suggestedName) => {
+				capturedSuggestedName = suggestedName;
+				return suggestedName;
+			},
+		});
+
+		const result = await selectionService.selectSession(service);
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			sessionId: 'session-4',
+			created: true,
+			projection: deriveAnnotationWorkspaceProjection(workspaceFolderPath, service.store),
+		});
+		assert.strictEqual(capturedSuggestedName, 'Review Session 3');
+		assert.strictEqual(service.store.sessions[3]?.name, 'Review Session 3');
+	});
 });
 
 const workspaceFolderPath = 'e:/source/ai-toolkit';

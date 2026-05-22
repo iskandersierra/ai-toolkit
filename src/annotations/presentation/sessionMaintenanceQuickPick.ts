@@ -7,6 +7,7 @@ export interface SessionMaintenanceQuickPickItem {
 	type: 'session';
 	sessionId: string;
 	label: string;
+	isActive: boolean;
 	description?: string;
 	detail: string;
 	annotationCount: number;
@@ -29,6 +30,7 @@ export function createSessionMaintenanceQuickPickItems(
 			type: 'session',
 			sessionId: session.sessionId,
 			label: session.name,
+			isActive: session.isActive,
 			description: session.isActive ? 'Active session' : undefined,
 			detail: `${session.annotationCount} annotations, ${session.dismissedCount} dismissed, updated ${session.updatedAt}`,
 			annotationCount: session.annotationCount,

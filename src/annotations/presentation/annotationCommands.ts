@@ -53,6 +53,7 @@ export type AnnotationCommandId = typeof annotationCommandIds[keyof typeof annot
 
 export type AnnotationCommandBlockedReason =
 	| 'noWorkspaceFolder'
+	| 'noReviewSessions'
 	| 'noEditorSelection'
 	| 'invalidSelection'
 	| 'annotationNotFound'
@@ -620,11 +621,20 @@ function listAvailableExistingAnnotationActions(
 
 	availableActions.push('dismiss');
 
-	if (allowReanchor && editor && !editor.selection.isEmpty) {
+	if (allowReanchor && editor && canOfferReanchorAction(editor)) {
 		availableActions.push('reanchor');
 	}
 
 	return availableActions;
+}
+
+function canOfferReanchorAction(editor: vscode.TextEditor): boolean {
+	if (editor.selection.isEmpty) {
+		return false;
+	}
+
+	const anchor = createAnchorFromEditorSelection(editor);
+	return validateSelection(editor.selection, anchor) === undefined;
 }
 
 async function executeAnnotationAction(
@@ -1175,6 +1185,20 @@ async function executeSessionMaintenanceCommand(
 		return reportWorkspaceBlocked(commandId, readyState, windowApi, workspaceFolder.uri.fsPath, workspaceApi);
 	}
 
+	if (readyState.projection.sessions.length === 0) {
+		const message = operation === 'delete'
+			? 'There are no review sessions to delete.'
+			: 'There are no review sessions to clear.';
+		void windowApi.showInformationMessage(message);
+		return {
+			status: 'blocked',
+			commandId,
+			reason: 'noReviewSessions',
+			message,
+			workspaceFolder: workspaceFolder.uri.fsPath,
+		};
+	}
+
 	const presenter = dependencies.sessionMaintenancePresenter ?? createVscodeSessionMaintenanceQuickPickPresenter();
 	const selected = await presenter.pickSession(
 		operation,
@@ -1192,8 +1216,8 @@ async function executeSessionMaintenanceCommand(
 	const inputService = dependencies.inputService ?? createVscodeAnnotationInputService();
 	const confirmed = operation === 'delete'
 		? await (inputService.confirmDeleteSession
-			? inputService.confirmDeleteSession(selected.label, selected.annotationCount)
-			: confirmDeleteSessionWithWindow(windowApi, selected.label, selected.annotationCount))
+			? inputService.confirmDeleteSession(selected.label, selected.annotationCount, selected.isActive)
+			: confirmDeleteSessionWithWindow(windowApi, selected.label, selected.annotationCount, selected.isActive))
 		: await (inputService.confirmClearSessionAnnotations
 			? inputService.confirmClearSessionAnnotations(selected.label, selected.annotationCount)
 			: confirmClearSessionAnnotationsWithWindow(windowApi, selected.label, selected.annotationCount));
@@ -1209,15 +1233,16 @@ async function executeSessionMaintenanceCommand(
 	const result = operation === 'delete'
 		? await service.deleteSession(selected.sessionId)
 		: await service.clearSessionAnnotations(selected.sessionId);
+	const successMessage = operation === 'delete'
+		? createDeleteSessionSuccessMessage(selected.label, selected.isActive, result)
+		: `Cleared ${selected.annotationCount} annotation${selected.annotationCount === 1 ? '' : 's'} from review session "${selected.label}".`;
 
 	return toMutationCommandResult(
 		commandId,
 		result,
 		windowApi,
 		workspaceFolder.uri.fsPath,
-		operation === 'delete'
-			? `Deleted review session "${selected.label}".`
-			: `Cleared annotations from review session "${selected.label}".`,
+		successMessage,
 		operation === 'delete' ? 'reviewSessionDeleted' : 'reviewSessionAnnotationsCleared',
 		dependencies.contextKeys,
 	);
@@ -1227,9 +1252,10 @@ async function confirmDeleteSessionWithWindow(
 	windowApi: Pick<typeof vscode.window, 'showWarningMessage'>,
 	sessionName: string,
 	annotationCount: number,
+	isActiveSession: boolean,
 ): Promise<boolean> {
 	const choice = await windowApi.showWarningMessage(
-		`Delete review session "${sessionName}" and remove its ${annotationCount} annotation${annotationCount === 1 ? '' : 's'}?`,
+		`${isActiveSession ? 'This is the active review session. ' : ''}Delete review session "${sessionName}" and remove its ${annotationCount} annotation${annotationCount === 1 ? '' : 's'}?`,
 		{ modal: true },
 		'Delete Session',
 	);
@@ -1249,4 +1275,21 @@ async function confirmClearSessionAnnotationsWithWindow(
 	);
 
 	return choice === 'Clear Annotations';
+}
+
+function createDeleteSessionSuccessMessage(
+	deletedSessionName: string,
+	wasActiveSession: boolean,
+	result: AnnotationWorkspaceMutationResult,
+): string {
+	if (result.status === 'blocked' || !wasActiveSession || !result.sessionId) {
+		return `Deleted review session "${deletedSessionName}".`;
+	}
+
+	const activeSession = result.projection.sessions.find((session) => session.sessionId === result.sessionId);
+	if (!activeSession) {
+		return `Deleted review session "${deletedSessionName}".`;
+	}
+
+	return `Deleted review session "${deletedSessionName}". Active review session is now "${activeSession.name}".`;
 }
