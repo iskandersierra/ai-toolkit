@@ -281,6 +281,40 @@ suite('Annotation Workspace Service', () => {
 		assert.strictEqual(readCount, 0);
 	});
 
+	// Scenario: Given a nearby edited match, When reanchorAnnotation succeeds, Then the persisted anchor range is replaced with the matcher result instead of the raw editor selection.
+	test('reanchorAnnotation persists the matched anchor range from the reanchor matcher', async () => {
+		const storage = new InMemoryStorageController(createStore());
+		const service = createService(storage, {
+			readFile: async () => ['before a', 'before b', 'targeted', 'after a', 'after b'].join('\n'),
+		});
+
+		const result = await service.reanchorAnnotation({
+			annotationId: 'annotation-1',
+			filePath: 'src/extension.ts',
+			anchor: createAnchor(),
+		});
+
+		assert.strictEqual(result.status, 'ready');
+		if (result.status !== 'ready') {
+			return;
+		}
+
+		assert.deepStrictEqual(result.reanchored, {
+			range: {
+				start: { line: 2, character: 0 },
+				end: { line: 2, character: 8 },
+			},
+			strategy: 'fingerprint',
+			contextScore: 4,
+			contextScoreMax: 4,
+		});
+		assert.deepStrictEqual(storage.store.sessions[0]?.annotations[0]?.anchor.range, {
+			start: { line: 2, character: 0 },
+			end: { line: 2, character: 8 },
+		});
+		assert.strictEqual(storage.store.sessions[0]?.annotations[0]?.anchorState, 'anchored');
+	});
+
 	// Scenario: Given an active annotation, When resolveAnnotation is called, Then status is 'resolved' and updatedAt is refreshed.
 	test('resolveAnnotation sets annotation status to resolved', async () => {
 		const storage = new InMemoryStorageController(

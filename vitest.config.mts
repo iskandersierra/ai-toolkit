@@ -7,6 +7,7 @@ export default defineConfig({
 		environment: 'node',
 		include: [
 			'src/test/unit/anchorMatching.test.ts',
+			'src/test/unit/annotationCommands.test.ts',
 			'src/test/unit/annotationContextKeys.test.ts',
 			'src/test/unit/annotationProjection.test.ts',
 			'src/test/unit/annotationStorageController.test.ts',
@@ -14,6 +15,7 @@ export default defineConfig({
 			'src/test/unit/annotationValidation.test.ts',
 			'src/test/unit/annotationWorkspaceService.test.ts',
 			'src/test/unit/draftOutputService.test.ts',
+			'src/test/unit/reviewSession.test.ts',
 		],
 		setupFiles: ['src/test/vitest.setup.ts'],
 		coverage: {

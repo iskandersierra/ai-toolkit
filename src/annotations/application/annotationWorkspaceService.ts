@@ -437,6 +437,12 @@ export class AnnotationWorkspaceService implements AnnotationWorkspaceServiceLik
 		try {
 			const documentText = await this.fileReader.readFile(absolutePath);
 			const reanchored = findAnnotationReanchorMatch(documentText, input.anchor);
+			const nextAnchor = reanchored
+				? {
+					...input.anchor,
+					range: reanchored.range,
+				}
+				: input.anchor;
 
 			return this.commit((store) => {
 				const nextLocated = findAnnotation(store, input.annotationId);
@@ -447,7 +453,7 @@ export class AnnotationWorkspaceService implements AnnotationWorkspaceServiceLik
 
 				const now = this.timestamp();
 				nextLocated.annotation.filePath = normalizedPath;
-				nextLocated.annotation.anchor = input.anchor;
+				nextLocated.annotation.anchor = nextAnchor;
 				nextLocated.annotation.anchorState = reanchored ? 'anchored' : 'orphaned';
 				nextLocated.annotation.updatedAt = now;
 				nextLocated.session.updatedAt = now;
