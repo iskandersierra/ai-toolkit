@@ -66,19 +66,31 @@ The anchor-reliability marker that indicates whether an annotation is still anch
 _Avoid_: Lifecycle status, hidden relocation failure
 
 **Review Session**:
-A user-defined set of annotations created for one pass, objective, or line of analysis.
-_Avoid_: Story, ad hoc batch
+A user-defined container for one pass, objective, or line of analysis, which groups annotations under one reusable review context.
+_Avoid_: Annotation session, sesión de anotaciones, story, ad hoc batch
 
 **Active Review Session**:
 The single review session that receives new annotations and drives the current editor projection.
 _Avoid_: Implicit default, mixed session target
 
 **Session Selector**:
-The explicit command-driven workflow, exposed in v1 as `AI Toolkit: Select Review Session`, used to create or switch the active review session.
+The explicit command-driven workflow, exposed in v1 as `AI Toolkit: Select Review Session`, used to inspect sessions and create or switch the active review session when the user manages sessions directly.
 _Avoid_: Hidden automatic routing, branch-derived guess
 
+**Session Resolution**:
+The prerequisite step that ensures a new annotation flow has an active review session before annotation body capture continues.
+_Avoid_: Late routing, body-first capture, implicit orphan write
+
+**Session Maintenance Command**:
+An explicit user-invoked command that changes session contents at the session level, either by deleting a review session or by clearing its annotations while preserving the session.
+_Avoid_: Per-annotation cleanup, hidden destructive action, mixed semantics
+
+**Default Review Session Name**:
+The auto-assigned human-readable name used when AI Toolkit creates a review session without requiring manual naming, starting with `Review Session` and incrementing for additional default sessions.
+_Avoid_: Opaque id, timestamp-only label, mandatory first-use naming
+
 **Quick Capture Flow**:
-The short command-driven input sequence used to create a new annotation from a code selection.
+The short command-driven input sequence used to create a new annotation from a code selection, resolving an active review session before asking for the annotation body.
 _Avoid_: Heavy form, manual store editing
 
 **Comment Thread Projection**:
@@ -142,10 +154,14 @@ _Avoid_: Full diff, semantic model
 * An **Orphaned Annotation** stays in the **Annotation Store** until the user reanchors or dismisses it
 * An **Annotation** may belong to one **Review Session**
 * Exactly one **Active Review Session** exists per user at a time
+* A new **Quick Capture Flow** resolves one **Active Review Session** before it captures an **Annotation Body**
 * A **Draft Output Command** operates on the **Active Review Session**
 * A **Draft Output Command** uses one configured **Draft Output Format**
 * A **Draft Output Command** creates one **Untitled Output Document**
 * The **Session Selector** creates or changes the **Active Review Session** explicitly
+* A **Session Maintenance Command** may clear all **Annotations** from a **Review Session** without deleting the session
+* A **Session Maintenance Command** may delete a **Review Session** together with its **Annotations**
+* A **Default Review Session Name** may be assigned automatically when a new **Review Session** is created without manual naming
 * New annotations are created through the **Quick Capture Flow**
 * Each **Annotation** is shown as one **Comment Thread Projection** in the comments UI
 * Each **Comment Thread Projection** exposes minimal **Annotation Summary Metadata**
@@ -215,6 +231,12 @@ _Avoid_: Full diff, semantic model
 > **Dev:** "What happens the moment I select code and create an annotation?"
 > **Domain expert:** "The extension opens a **Quick Capture Flow** from `AI Toolkit: Add or Edit Annotation`, keeping creation lightweight with a short input sequence instead of a full form."
 >
+> **Dev:** "What if I create an annotation before I have any session at all?"
+> **Domain expert:** "The flow first performs **Session Resolution** so the annotation has an **Active Review Session** before body capture continues, creating the first session with a **Default Review Session Name** when no session exists yet."
+>
+> **Dev:** "What is the difference between clearing and deleting a session?"
+> **Domain expert:** "A **Session Maintenance Command** can either clear annotations from a **Review Session** while keeping that session reusable, or delete the entire **Review Session** together with its annotations."
+>
 > **Dev:** "How should the annotation appear in the comments panel?"
 > **Domain expert:** "Use one **Comment Thread Projection** per annotation, keeping the main note visible and the UI lightweight."
 >
@@ -245,7 +267,9 @@ _Avoid_: Full diff, semantic model
 * "untitled output naming" was unresolved; resolved: the first version names each **Untitled Output Document** with the pattern `ai-toolkit-{sessionSlug}.{ext}`
 * "ontitle" was used for the unsaved file concept; resolved: the canonical term is **Untitled Output Document**
 * "which session is current" was unresolved; resolved: users choose the active session through an explicit **Session Selector** command rather than automatic inference
-* "v1 command set" was unresolved; resolved: the first version exposes exactly three user-facing commands, `AI Toolkit: Add or Edit Annotation`, `AI Toolkit: Select Review Session`, and `AI Toolkit: Generate Draft Output`
+* "what happens before the first session exists" was unresolved; resolved: new annotation capture performs **Session Resolution**, auto-creating the first **Review Session** with a **Default Review Session Name** when no session exists and otherwise requiring an explicit session choice before body capture
+* "delete session versus clear session" was unresolved; resolved: a **Session Maintenance Command** either deletes a **Review Session** and its annotations or clears annotations while keeping the session reusable
+* "v1 command set" was unresolved; resolved: the first version exposes capture, session selection, draft generation, annotation lifecycle actions, and explicit session maintenance commands rather than only the original three commands
 * "capture UI" was unresolved; resolved: new annotations use a lightweight **Quick Capture Flow** instead of a full creation form
 * "panel representation" was unresolved; resolved: each annotation appears as a lightweight single **Comment Thread Projection** rather than a richer card structure
 * "visible panel metadata" was unresolved; resolved: the **Annotation Summary Metadata** shown in the panel is limited to session, status, and anchor state
