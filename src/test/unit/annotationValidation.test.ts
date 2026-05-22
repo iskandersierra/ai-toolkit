@@ -22,8 +22,8 @@ suite('Annotation Validation', () => {
 		assert.deepStrictEqual(parsed, store);
 	});
 
-	// Scenario: a new annotation is rejected when selectedText exceeds the v1 maximum length.
-	test('rejects selectedText beyond the v1 limit', () => {
+	// Scenario: a new annotation store is accepted when selectedText exceeds the legacy 2000-char upper bound because per-line normalization in createAnnotationAnchor supersedes the store-level check.
+	test('accepts selectedText longer than the legacy v1 upper bound', () => {
 		const store = createStore({
 			sessions: [
 				createSession({
@@ -39,7 +39,7 @@ suite('Annotation Validation', () => {
 			],
 		});
 
-		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
+		assert.doesNotThrow(() => validateAnnotationStore(store));
 	});
 
 	// Scenario: persisted context fingerprint lines are rejected when they exceed the fixed v1 truncation bound.

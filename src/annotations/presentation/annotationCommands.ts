@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import {
-	annotationSelectedTextMaxLength,
 	type AnnotationAnchor,
 } from '../domain/annotationModels';
 import { validateNewAnnotationSelectedText } from '../domain/annotationValidation';
@@ -13,10 +12,11 @@ import type {
 import { SessionSelectionService } from '../application/sessionSelectionService';
 import type { AnnotationProjectionEntry } from '../application/projectionModel';
 import type { AnnotationContextKeyController } from '../bootstrap/annotationContextKeys';
-import { createVscodeAnnotationInputService, type AnnotationInputService } from './annotationInput';
+import type { AnnotationCommentProjectionService } from './annotationCommentProjectionService';
+import { createVscodeAnnotationInputService, type AnnotationInputService, type ExistingAnnotationAction } from './annotationInput';
 import {
 	createAnchorFromEditorSelection,
-	findAnnotationForEditorSelection,
+	resolveAnnotationTarget,
 	toWorkspaceRelativeFilePath,
 } from './annotationTargeting';
 import {
@@ -36,6 +36,8 @@ export const annotationCommandIds = {
 	purgeDismissedAnnotations: 'ai-toolkit.purgeDismissedAnnotations',
 	reanchorAnnotation: 'ai-toolkit.reanchorAnnotation',
 	dismissAnnotation: 'ai-toolkit.dismissAnnotation',
+	resolveAnnotation: 'ai-toolkit.resolveAnnotation',
+	reopenAnnotation: 'ai-toolkit.reopenAnnotation',
 } as const;
 
 export type AnnotationCommandId = typeof annotationCommandIds[keyof typeof annotationCommandIds];
@@ -58,6 +60,8 @@ export type AnnotationCommandResult =
 			| 'annotationCreated'
 			| 'annotationUpdated'
 			| 'annotationDismissed'
+			| 'annotationResolved'
+			| 'annotationReopened'
 			| 'annotationReanchored'
 			| 'reviewSessionSelected'
 			| 'dismissedAnnotationsPurged'
@@ -90,11 +94,15 @@ export interface AnnotationCommandDependencies {
 	sessionSelectionService: SessionSelectionService;
 	getWorkspaceService(workspaceFolder: vscode.WorkspaceFolder): Promise<AnnotationWorkspaceServiceLike>;
 	contextKeys?: AnnotationContextKeyController;
+	commentProjection?: Pick<AnnotationCommentProjectionService, 'getAnnotationId'>;
 }
 
-type AnnotationCommandArguments = {
-	annotationId?: string;
-};
+type AnnotationCommandArguments =
+	| {
+		annotationId?: string;
+	}
+	| vscode.CommentThread
+	| vscode.Comment;
 
 export function registerAnnotationCommands(
 	context: vscode.ExtensionContext,
@@ -120,6 +128,12 @@ export function registerAnnotationCommands(
 		),
 		commands.registerCommand(annotationCommandIds.dismissAnnotation, (args?: AnnotationCommandArguments) =>
 			executeDismissAnnotationCommand(dependencies, args),
+		),
+		commands.registerCommand(annotationCommandIds.resolveAnnotation, (args?: AnnotationCommandArguments) =>
+			executeResolveAnnotationCommand(dependencies, args),
+		),
+		commands.registerCommand(annotationCommandIds.reopenAnnotation, (args?: AnnotationCommandArguments) =>
+			executeReopenAnnotationCommand(dependencies, args),
 		),
 	);
 }
@@ -156,12 +170,34 @@ export async function executeAddOrEditAnnotationCommand(
 		);
 	}
 
-	const target = args?.annotationId
-		? readyState.projection.annotations.find((annotation) => annotation.annotationId === args.annotationId)
-		: findAnnotationForEditorSelection(readyState.projection.annotations, relativePath, editor.selection);
+	const explicitAnnotationId = resolveCommandArgumentAnnotationId(args, dependencies.commentProjection);
 
-	if (target) {
-		return executeExistingAnnotationAction(dependencies, workspaceFolder, editor, target);
+	if (explicitAnnotationId) {
+		const target = readyState.projection.annotations.find(
+			(annotation) => annotation.annotationId === explicitAnnotationId,
+		);
+		if (target) {
+			return executeExistingAnnotationAction(dependencies, workspaceFolder, editor, target);
+		}
+	} else {
+		const targetResult = resolveAnnotationTarget(
+			readyState.projection.annotations,
+			relativePath,
+			editor.selection,
+		);
+		if (targetResult.kind === 'found') {
+			return executeExistingAnnotationAction(dependencies, workspaceFolder, editor, targetResult.annotation);
+		}
+		if (targetResult.kind === 'conflict') {
+			void windowApi.showWarningMessage('The selection overlaps multiple annotations. Narrow the selection to a single annotation.');
+			return {
+				status: 'blocked',
+				commandId: annotationCommandIds.addOrEditAnnotation,
+				reason: 'invalidSelection',
+				message: 'The selection overlaps multiple annotations. Narrow the selection to a single annotation.',
+				workspaceFolder: workspaceFolder.uri.fsPath,
+			};
+		}
 	}
 
 	if (editor.selection.isEmpty) {
@@ -171,6 +207,20 @@ export async function executeAddOrEditAnnotationCommand(
 			commandId: annotationCommandIds.addOrEditAnnotation,
 			reason: 'noEditorSelection',
 			message: 'Select code or place the cursor on an existing annotated range.',
+			workspaceFolder: workspaceFolder.uri.fsPath,
+		};
+	}
+
+	const anchor = createAnchorFromEditorSelection(editor);
+	const validation = validateSelection(anchor);
+
+	if (validation) {
+		void windowApi.showErrorMessage(validation);
+		return {
+			status: 'blocked',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			reason: 'invalidSelection',
+			message: validation,
 			workspaceFolder: workspaceFolder.uri.fsPath,
 		};
 	}
@@ -196,20 +246,6 @@ export async function executeAddOrEditAnnotationCommand(
 
 	if (!body) {
 		return { status: 'cancelled', commandId: annotationCommandIds.addOrEditAnnotation, workspaceFolder: workspaceFolder.uri.fsPath };
-	}
-
-	const anchor = createAnchorFromEditorSelection(editor);
-	const validation = validateSelection(anchor);
-
-	if (validation) {
-		void windowApi.showErrorMessage(validation);
-		return {
-			status: 'blocked',
-			commandId: annotationCommandIds.addOrEditAnnotation,
-			reason: 'invalidSelection',
-			message: validation,
-			workspaceFolder: workspaceFolder.uri.fsPath,
-		};
 	}
 
 	const result = await service.createAnnotation({ body, filePath: relativePath, anchor });
@@ -366,6 +402,52 @@ export async function executeDismissAnnotationCommand(
 	);
 }
 
+export async function executeResolveAnnotationCommand(
+	dependencies: AnnotationCommandDependencies,
+	args?: AnnotationCommandArguments,
+): Promise<AnnotationCommandResult> {
+	const windowApi = dependencies.window ?? vscode.window;
+	const resolved = await resolveAnnotationCommandTarget(dependencies, annotationCommandIds.resolveAnnotation, args);
+
+	if ('commandId' in resolved) {
+		return resolved;
+	}
+
+	const result = await resolved.service.resolveAnnotation(resolved.annotation.annotationId);
+	return toMutationCommandResult(
+		annotationCommandIds.resolveAnnotation,
+		result,
+		windowApi,
+		resolved.workspaceFolder.uri.fsPath,
+		'Annotation resolved.',
+		'annotationResolved',
+		dependencies.contextKeys,
+	);
+}
+
+export async function executeReopenAnnotationCommand(
+	dependencies: AnnotationCommandDependencies,
+	args?: AnnotationCommandArguments,
+): Promise<AnnotationCommandResult> {
+	const windowApi = dependencies.window ?? vscode.window;
+	const resolved = await resolveAnnotationCommandTarget(dependencies, annotationCommandIds.reopenAnnotation, args);
+
+	if ('commandId' in resolved) {
+		return resolved;
+	}
+
+	const result = await resolved.service.reopenAnnotation(resolved.annotation.annotationId);
+	return toMutationCommandResult(
+		annotationCommandIds.reopenAnnotation,
+		result,
+		windowApi,
+		resolved.workspaceFolder.uri.fsPath,
+		'Annotation reopened.',
+		'annotationReopened',
+		dependencies.contextKeys,
+	);
+}
+
 export async function executeReanchorAnnotationCommand(
 	dependencies: AnnotationCommandDependencies,
 	args?: AnnotationCommandArguments,
@@ -375,6 +457,16 @@ export async function executeReanchorAnnotationCommand(
 
 	if ('commandId' in resolved) {
 		return resolved;
+	}
+
+	if (!resolved.editor || !resolved.filePath) {
+		return reportBlocked(
+			annotationCommandIds.reanchorAnnotation,
+			resolved.workspaceFolder.uri.fsPath,
+			'noEditorSelection',
+			'Select the new anchor range before reanchoring the annotation.',
+			windowApi,
+		);
 	}
 
 	if (resolved.editor.selection.isEmpty) {
@@ -499,7 +591,18 @@ async function executeExistingAnnotationAction(
 	const windowApi = dependencies.window ?? vscode.window;
 	const inputService = dependencies.inputService ?? createVscodeAnnotationInputService();
 	const service = await dependencies.getWorkspaceService(workspaceFolder);
-	const action = await inputService.pickExistingAnnotationAction(annotation);
+	const availableActions: ExistingAnnotationAction[] = ['edit'];
+	if (annotation.status === 'active') {
+		availableActions.push('resolve');
+	}
+	if (annotation.status === 'resolved') {
+		availableActions.push('reopen');
+	}
+	availableActions.push('dismiss');
+	if (!editor.selection.isEmpty) {
+		availableActions.push('reanchor');
+	}
+	const action = await inputService.pickExistingAnnotationAction(annotation, availableActions);
 
 	if (!action) {
 		return {
@@ -579,6 +682,32 @@ async function executeExistingAnnotationAction(
 		);
 	}
 
+	if (action === 'resolve') {
+		const result = await service.resolveAnnotation(annotation.annotationId);
+		return toMutationCommandResult(
+			annotationCommandIds.addOrEditAnnotation,
+			result,
+			windowApi,
+			workspaceFolder.uri.fsPath,
+			'Annotation resolved.',
+			'annotationResolved',
+			dependencies.contextKeys,
+		);
+	}
+
+	if (action === 'reopen') {
+		const result = await service.reopenAnnotation(annotation.annotationId);
+		return toMutationCommandResult(
+			annotationCommandIds.addOrEditAnnotation,
+			result,
+			windowApi,
+			workspaceFolder.uri.fsPath,
+			'Annotation reopened.',
+			'annotationReopened',
+			dependencies.contextKeys,
+		);
+	}
+
 	const body = await inputService.promptForAnnotationBody(annotation.body);
 
 	if (!body) {
@@ -610,27 +739,26 @@ async function resolveAnnotationCommandTarget(
 		resolved: true;
 		service: AnnotationWorkspaceServiceLike;
 		workspaceFolder: vscode.WorkspaceFolder;
-		editor: vscode.TextEditor;
 		annotation: AnnotationProjectionEntry;
-		filePath: string;
+		editor?: vscode.TextEditor;
+		filePath?: string;
 	}
 	| AnnotationCommandResult
 > {
 	const windowApi = dependencies.window ?? vscode.window;
 	const workspaceApi = dependencies.workspace ?? vscode.workspace;
 	const editor = windowApi.activeTextEditor;
-	const workspaceFolder = resolveEditorWorkspaceFolder(editor);
+	const thread = extractCommentThread(args);
+	const workspaceFolder = resolveEditorWorkspaceFolder(editor) ?? resolveThreadWorkspaceFolder(thread);
 
-	if (!workspaceFolder || !editor) {
+	if (!workspaceFolder) {
 		return blockWithoutWorkspace(windowApi, commandId);
 	}
 
 	const service = await dependencies.getWorkspaceService(workspaceFolder);
-	const relativePath = toWorkspaceRelativeFilePath(workspaceFolder, editor.document.uri);
-
-	if (!relativePath) {
-		return blockWithoutWorkspace(windowApi, commandId);
-	}
+	const relativePath = editor
+		? toWorkspaceRelativeFilePath(workspaceFolder, editor.document.uri)
+		: undefined;
 
 	const readyState = await ensureReadyState(service);
 
@@ -638,9 +766,32 @@ async function resolveAnnotationCommandTarget(
 		return reportWorkspaceBlocked(commandId, readyState, windowApi, workspaceFolder.uri.fsPath, workspaceApi);
 	}
 
-	const annotation = args?.annotationId
-		? readyState.projection.annotations.find((entry) => entry.annotationId === args.annotationId)
-		: findAnnotationForEditorSelection(readyState.projection.annotations, relativePath, editor.selection);
+	const annotationId = resolveCommandArgumentAnnotationId(args, dependencies.commentProjection);
+	let annotation = annotationId
+		? readyState.projection.annotations.find((entry) => entry.annotationId === annotationId)
+		: undefined;
+
+	if (annotation?.status === 'dismissed') {
+		annotation = undefined;
+	}
+
+	if (!annotation && editor && relativePath) {
+		const targetResult = resolveAnnotationTarget(readyState.projection.annotations, relativePath, editor.selection);
+
+		if (targetResult.kind === 'conflict') {
+			return reportBlocked(
+				commandId,
+				workspaceFolder.uri.fsPath,
+				'invalidSelection',
+				'The selection overlaps multiple annotations. Narrow the selection to a single annotation.',
+				windowApi,
+			);
+		}
+
+		if (targetResult.kind === 'found' && targetResult.annotation.status !== 'dismissed') {
+			annotation = targetResult.annotation;
+		}
+	}
 
 	if (!annotation) {
 		return reportBlocked(
@@ -660,6 +811,55 @@ async function resolveAnnotationCommandTarget(
 		annotation,
 		filePath: relativePath,
 	};
+}
+
+function resolveCommandArgumentAnnotationId(
+	args: AnnotationCommandArguments | undefined,
+	commentProjection?: Pick<AnnotationCommentProjectionService, 'getAnnotationId'>,
+): string | undefined {
+	if (isAnnotationCommandArgument(args) && typeof args.annotationId === 'string') {
+		return args.annotationId;
+	}
+
+	const thread = extractCommentThread(args);
+	return thread ? commentProjection?.getAnnotationId(thread) : undefined;
+}
+
+function extractCommentThread(args: AnnotationCommandArguments | undefined): vscode.CommentThread | undefined {
+	if (isCommentThread(args)) {
+		return args;
+	}
+
+	if (isCommentWithThread(args)) {
+		return args.thread;
+	}
+
+	return undefined;
+}
+
+function isAnnotationCommandArgument(
+	args: AnnotationCommandArguments | undefined,
+): args is { annotationId?: string } {
+	return Boolean(args) && typeof args === 'object' && 'annotationId' in args;
+}
+
+function isCommentThread(args: AnnotationCommandArguments | undefined): args is vscode.CommentThread {
+	return Boolean(args) && typeof args === 'object' && 'uri' in args && 'range' in args && 'comments' in args;
+}
+
+function isCommentWithThread(
+	args: AnnotationCommandArguments | undefined,
+): args is vscode.Comment & { thread: vscode.CommentThread } {
+	if (!args || typeof args !== 'object' || !('thread' in args)) {
+		return false;
+	}
+
+	const candidate = args as { thread?: unknown };
+	return isCommentThread(candidate.thread as AnnotationCommandArguments | undefined);
+}
+
+function resolveThreadWorkspaceFolder(thread: vscode.CommentThread | undefined): vscode.WorkspaceFolder | undefined {
+	return thread ? vscode.workspace.getWorkspaceFolder(thread.uri) : undefined;
 }
 
 async function ensureReadyState(
@@ -730,7 +930,7 @@ function validateSelection(anchor: AnnotationAnchor): string | undefined {
 		validateNewAnnotationSelectedText(anchor.selectedText);
 		return undefined;
 	} catch {
-		return `Selected text must be at most ${annotationSelectedTextMaxLength} characters.`;
+		return 'Select at least one character before creating or reanchoring an annotation.';
 	}
 }
 

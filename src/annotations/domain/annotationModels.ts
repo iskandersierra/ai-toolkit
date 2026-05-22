@@ -78,3 +78,10 @@ export function normalizeAnnotationContextLines(lines: readonly string[]): strin
 		.slice(-annotationFingerprintContextLineCount)
 		.map((line) => truncateAnnotationContextLine(line));
 }
+
+export function normalizeSelectedText(text: string): string {
+	return text
+		.split(/\r?\n/)
+		.map((line) => truncateAnnotationContextLine(line))
+		.join('\n');
+}

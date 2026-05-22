@@ -41,18 +41,62 @@ suite('Annotation Projection', () => {
 		assert.strictEqual(controller.threads[1]?.disposed, true);
 		assert.strictEqual(controller.threads[2]?.disposed, true);
 	});
+
+	// Scenario: Given a resolved annotation, When refresh is called, Then the created thread has state CommentThreadState.Resolved.
+	test('refresh sets thread state to Resolved for a resolved annotation', () => {
+		const controller = new FakeCommentController();
+		const service = new AnnotationCommentProjectionService(controller.asController());
+
+		service.refresh(createProjection('e:/source/one', 'src/one.ts', 'annotation-one', 'resolved'));
+
+		assert.strictEqual(controller.threads[0]?.state, vscode.CommentThreadState.Resolved);
+
+		service.dispose();
+	});
+
+	// Scenario: Given an active annotation, When refresh is called, Then the created thread has state CommentThreadState.Unresolved.
+	test('refresh sets thread state to Unresolved for an active annotation', () => {
+		const controller = new FakeCommentController();
+		const service = new AnnotationCommentProjectionService(controller.asController());
+
+		service.refresh(createProjection('e:/source/one', 'src/one.ts', 'annotation-one', 'active'));
+
+		assert.strictEqual(controller.threads[0]?.state, vscode.CommentThreadState.Unresolved);
+
+		service.dispose();
+	});
+
+	// Scenario: Given a thread created by refresh, When getAnnotationId is called, Then it returns the annotationId; after thread disposal via re-refresh it returns undefined.
+	test('getAnnotationId returns the annotationId for a live thread and undefined after disposal', () => {
+		const controller = new FakeCommentController();
+		const service = new AnnotationCommentProjectionService(controller.asController());
+
+		service.refresh(createProjection('e:/source/one', 'src/one.ts', 'annotation-one'));
+
+		const thread = controller.createdThreads[0];
+		assert.ok(thread !== undefined, 'Expected a thread to be created');
+		assert.strictEqual(service.getAnnotationId(thread), 'annotation-one');
+
+		// Refreshing the same workspace disposes the old thread and clears the map.
+		service.refresh(createProjection('e:/source/one', 'src/one.ts', 'annotation-one-next'));
+
+		assert.strictEqual(service.getAnnotationId(thread), undefined);
+
+		service.dispose();
+	});
 });
 
 function createProjection(
 	workspaceFolderPath: string,
 	filePath: string,
 	annotationId: string,
+	status: 'active' | 'resolved' | 'dismissed' = 'active',
 ): AnnotationWorkspaceProjection {
 	const annotation = {
 		annotationId,
 		sessionId: 'session-1',
 		sessionName: 'Security pass',
-		status: 'active' as const,
+		status,
 		anchorState: 'anchored' as const,
 		body: `Body for ${annotationId}`,
 		filePath,
@@ -88,6 +132,7 @@ function createDocument(fsPath: string): vscode.TextDocument {
 
 class FakeCommentController {
 	public readonly threads: FakeCommentThread[] = [];
+	public readonly createdThreads: vscode.CommentThread[] = [];
 	private disposed = false;
 
 	public asController(): vscode.CommentController {
@@ -100,8 +145,10 @@ class FakeCommentController {
 				comments: readonly vscode.Comment[],
 			) => {
 				const thread = new FakeCommentThread(uri, range, comments);
+				const threadObj = thread.asThread();
 				this.threads.push(thread);
-				return thread.asThread();
+				controller.createdThreads.push(threadObj);
+				return threadObj;
 			},
 			dispose: () => {
 				controller.disposed = true;
@@ -116,6 +163,7 @@ class FakeCommentThread {
 	public contextValue: string | undefined;
 	public disposed = false;
 	public label: string | undefined;
+	public state: vscode.CommentThreadState | undefined;
 
 	public constructor(
 		public readonly uri: vscode.Uri,
@@ -154,6 +202,12 @@ class FakeCommentThread {
 			},
 			set label(value) {
 				thread.label = value;
+			},
+			get state() {
+				return thread.state;
+			},
+			set state(value) {
+				thread.state = value;
 			},
 			dispose: () => {
 				thread.disposed = true;

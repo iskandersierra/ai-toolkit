@@ -1,5 +1,6 @@
 import {
 	normalizeAnnotationContextLines,
+	normalizeSelectedText,
 	type AnnotationAnchor,
 	type AnnotationPosition,
 	type AnnotationRange,
@@ -26,7 +27,7 @@ export function createAnnotationAnchor(
 ): AnnotationAnchor {
 	return {
 		range,
-		selectedText,
+		selectedText: normalizeSelectedText(selectedText),
 		contextBeforeLines: normalizeAnnotationContextLines(contextBeforeLines),
 		contextAfterLines: normalizeAnnotationContextLines(contextAfterLines),
 	};
@@ -40,6 +41,12 @@ export function findAnnotationReanchorMatch(
 
 	if (exactMatch) {
 		return exactMatch;
+	}
+
+	const proximityMatch = tryProximityRangeMatch(documentText, anchor);
+
+	if (proximityMatch) {
+		return proximityMatch;
 	}
 
 	return tryFingerprintRangeMatch(documentText, anchor);
@@ -64,6 +71,56 @@ function tryExactRangeMatch(
 		strategy: 'exact',
 		contextScore: anchor.contextBeforeLines.length + anchor.contextAfterLines.length,
 		contextScoreMax: anchor.contextBeforeLines.length + anchor.contextAfterLines.length,
+	};
+	}
+
+const PROXIMITY_LINE_RADIUS = 50;
+
+function tryProximityRangeMatch(
+	documentText: string,
+	anchor: AnnotationAnchor,
+): AnnotationReanchorMatch | undefined {
+	const lineIndex = createLineIndex(documentText);
+	const contextScoreMax = anchor.contextBeforeLines.length + anchor.contextAfterLines.length;
+	const candidates = findSelectedTextCandidates(documentText, anchor.selectedText, lineIndex)
+		.map((candidate) => ({
+			candidate,
+			distance: Math.abs(candidate.range.start.line - anchor.range.start.line),
+			contextScore: scoreContextMatch(anchor, candidate.range, lineIndex.lines),
+		}))
+		.filter(({ distance }) => distance <= PROXIMITY_LINE_RADIUS);
+
+	if (candidates.length === 0) {
+		return undefined;
+	}
+
+	candidates.sort((left, right) => {
+		if (left.distance !== right.distance) {
+			return left.distance - right.distance;
+		}
+
+		return right.contextScore - left.contextScore;
+	});
+
+	const [bestCandidate, secondCandidate] = candidates;
+
+	if (!bestCandidate) {
+		return undefined;
+	}
+
+	if (
+		secondCandidate &&
+		secondCandidate.distance === bestCandidate.distance &&
+		secondCandidate.contextScore === bestCandidate.contextScore
+	) {
+		return undefined;
+	}
+
+	return {
+		range: bestCandidate.candidate.range,
+		strategy: 'fingerprint',
+		contextScore: bestCandidate.contextScore,
+		contextScoreMax,
 	};
 	}
 

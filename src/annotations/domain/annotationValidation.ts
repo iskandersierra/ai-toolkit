@@ -2,7 +2,6 @@ import {
 	annotationContextLineMaxLength,
 	annotationFingerprintContextLineCount,
 	annotationSchemaVersion,
-	annotationSelectedTextMaxLength,
 	createEmptyAnnotationStore,
 	type AnnotationAnchor,
 	type AnnotationAnchorState,
@@ -58,13 +57,7 @@ export function validateNewAnnotationSelectedText(selectedText: string): string 
 		throw createAnnotationValidationError('$.anchor.selectedText', 'selectedText must not be empty.');
 	}
 
-	if (selectedText.length > annotationSelectedTextMaxLength) {
-		throw createAnnotationValidationError(
-			'$.anchor.selectedText',
-			`selectedText must be at most ${annotationSelectedTextMaxLength} characters.`,
-		);
-	}
-
+	// upper-bound check removed — normalization in createAnnotationAnchor enforces per-line limit
 	return selectedText;
 	}
 

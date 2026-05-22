@@ -45,6 +45,16 @@
         "command": "ai-toolkit.dismissAnnotation",
         "title": "AI Toolkit: Dismiss Annotation",
         "category": "AI Toolkit"
+      },
+      {
+        "command": "ai-toolkit.resolveAnnotation",
+        "title": "AI Toolkit: Resolve Annotation",
+        "category": "AI Toolkit"
+      },
+      {
+        "command": "ai-toolkit.reopenAnnotation",
+        "title": "AI Toolkit: Reopen Annotation",
+        "category": "AI Toolkit"
       }
     ],
     "menus": {
@@ -68,6 +78,14 @@
         {
           "command": "ai-toolkit.dismissAnnotation",
           "when": "aiToolkit.annotation.canManage"
+        },
+        {
+          "command": "ai-toolkit.resolveAnnotation",
+          "when": "aiToolkit.annotation.canManage"
+        },
+        {
+          "command": "ai-toolkit.reopenAnnotation",
+          "when": "aiToolkit.annotation.canManage"
         }
       ],
       "editor/context": [
@@ -85,23 +103,50 @@
           "command": "ai-toolkit.dismissAnnotation",
           "group": "navigation@12",
           "when": "editorTextFocus && aiToolkit.annotation.canManage"
+        },
+        {
+          "command": "ai-toolkit.resolveAnnotation",
+          "group": "navigation@13",
+          "when": "editorTextFocus && aiToolkit.annotation.canManage"
+        },
+        {
+          "command": "ai-toolkit.reopenAnnotation",
+          "group": "navigation@14",
+          "when": "editorTextFocus && aiToolkit.annotation.canManage"
+        }
+      ],
+      "comments/commentThread/context": [
+        {
+          "command": "ai-toolkit.resolveAnnotation",
+          "group": "annotation@1",
+          "when": "commentController == ai-toolkit-annotations"
+        },
+        {
+          "command": "ai-toolkit.reopenAnnotation",
+          "group": "annotation@1",
+          "when": "commentController == ai-toolkit-annotations"
+        },
+        {
+          "command": "ai-toolkit.dismissAnnotation",
+          "group": "annotation@2",
+          "when": "commentController == ai-toolkit-annotations"
         }
       ]
     },
     "keybindings": [
       {
         "command": "ai-toolkit.addOrEditAnnotation",
-        "key": "ctrl+alt+a a",
+        "key": "ctrl+shift+a a",
         "when": "editorTextFocus && (editorHasSelection || aiToolkit.annotation.canManage)"
       },
       {
         "command": "ai-toolkit.selectReviewSession",
-        "key": "ctrl+alt+a s",
+        "key": "ctrl+shift+a s",
         "when": "workspaceFolderCount > 0"
       },
       {
         "command": "ai-toolkit.generateDraftOutput",
-        "key": "ctrl+alt+a d",
+        "key": "ctrl+shift+a d",
         "when": "workspaceFolderCount > 0 && aiToolkit.annotation.hasActiveSession"
       }
     ],

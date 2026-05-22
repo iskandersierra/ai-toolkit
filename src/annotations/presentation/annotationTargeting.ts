@@ -57,6 +57,49 @@ export function findAnnotationForEditorSelection(
 	});
 }
 
+export type AnnotationTargetingResult =
+	| { kind: 'found'; annotation: AnnotationProjectionEntry }
+	| { kind: 'conflict' }
+	| { kind: 'none' };
+
+function rangesOverlap(
+	a: { start: { line: number; character: number }; end: { line: number; character: number } },
+	b: { start: { line: number; character: number }; end: { line: number; character: number } },
+): boolean {
+	if (a.end.line < b.start.line || b.end.line < a.start.line) {
+		return false;
+	}
+	if (a.end.line === b.start.line && a.end.character <= b.start.character) {
+		return false;
+	}
+	if (b.end.line === a.start.line && b.end.character <= a.start.character) {
+		return false;
+	}
+	return true;
+}
+
+export function resolveAnnotationTarget(
+	annotations: readonly AnnotationProjectionEntry[],
+	filePath: string,
+	selection: vscode.Selection,
+): AnnotationTargetingResult {
+	if (selection.isEmpty) {
+		const found = findAnnotationForEditorSelection(annotations, filePath, selection);
+		return found ? { kind: 'found', annotation: found } : { kind: 'none' };
+	}
+	const normalizedRange = selectionToRange(selection);
+	const matches = annotations.filter(
+		(a) => a.filePath === filePath && rangesOverlap(a.range, normalizedRange),
+	);
+	if (matches.length === 0) {
+		return { kind: 'none' };
+	}
+	if (matches.length === 1) {
+		return { kind: 'found', annotation: matches[0] };
+	}
+	return { kind: 'conflict' };
+}
+
 function collectContextBeforeLines(
 	document: vscode.TextDocument,
 	startLine: number,

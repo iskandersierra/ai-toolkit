@@ -103,8 +103,8 @@ suite('Anchor Matching', () => {
 		});
 	});
 
-	// Scenario: reanchoring leaves the annotation orphaned when fingerprint matching is ambiguous.
-	test('returns no match when the fingerprint is ambiguous', () => {
+	// Scenario: Given two identical texts at distances 1 and 4 from the stored line, When reanchoring, Then proximity picks the closer occurrence.
+	test('proximity picks the closer of two identical candidates when distances differ', () => {
 		const anchor = createAnnotationAnchor(
 			{
 				start: { line: 0, character: 0 },
@@ -115,6 +115,115 @@ suite('Anchor Matching', () => {
 			['after'],
 		);
 		const documentText = ['before', 'target()', 'after', 'before', 'target()', 'after'].join('\n');
+
+		const match = findAnnotationReanchorMatch(documentText, anchor);
+
+		assert.deepStrictEqual(match, {
+			range: {
+				start: { line: 1, character: 0 },
+				end: { line: 1, character: 8 },
+			},
+			strategy: 'fingerprint',
+			contextScore: 2,
+			contextScoreMax: 2,
+		});
+	});
+
+	// Scenario: Given selectedText is a single line of 300 chars, When createAnnotationAnchor is called, Then selectedText is truncated to 200 chars.
+	test('createAnnotationAnchor truncates a single-line selectedText to 200 characters', () => {
+		const longText = 'a'.repeat(300);
+		const anchor = createAnnotationAnchor(
+			{ start: { line: 0, character: 0 }, end: { line: 0, character: 300 } },
+			longText,
+			[],
+			[],
+		);
+
+		assert.strictEqual(anchor.selectedText, 'a'.repeat(200));
+	});
+
+	// Scenario: Given selectedText spans two CRLF lines each of 300 chars, When createAnnotationAnchor is called, Then each line is truncated to 200 chars and joined with LF.
+	test('createAnnotationAnchor truncates each line of a multiline selectedText to 200 characters', () => {
+		const longLine = 'b'.repeat(300);
+		const multilineText = `${longLine}\r\n${longLine}`;
+		const anchor = createAnnotationAnchor(
+			{ start: { line: 0, character: 0 }, end: { line: 1, character: 300 } },
+			multilineText,
+			[],
+			[],
+		);
+
+		const expectedLine = 'b'.repeat(200);
+		assert.strictEqual(anchor.selectedText, `${expectedLine}\n${expectedLine}`);
+	});
+
+	// Scenario: Given selectedText moved to line 5 (within 50 lines) with changed surrounding context, When reanchoring, Then proximity returns the match without requiring full context agreement.
+	test('findAnnotationReanchorMatch returns proximity match when text has moved within 50 lines', () => {
+		const anchor = createAnnotationAnchor(
+			{ start: { line: 0, character: 0 }, end: { line: 0, character: 8 } },
+			'target()',
+			['old_before'],
+			['old_after'],
+		);
+		const documentText = ['x', 'x', 'x', 'x', 'new_before', 'target()', 'new_after'].join('\n');
+
+		const match = findAnnotationReanchorMatch(documentText, anchor);
+
+		assert.deepStrictEqual(match, {
+			range: {
+				start: { line: 5, character: 0 },
+				end: { line: 5, character: 8 },
+			},
+			strategy: 'fingerprint',
+			contextScore: 0,
+			contextScoreMax: 2,
+		});
+	});
+
+	// Scenario: Given selectedText moved to line 55 (beyond the 50-line proximity radius) with matching context, When reanchoring, Then proximity yields no match and fingerprint succeeds.
+	test('findAnnotationReanchorMatch falls through proximity to fingerprint when no candidates within radius', () => {
+		const anchor = createAnnotationAnchor(
+			{ start: { line: 0, character: 0 }, end: { line: 0, character: 8 } },
+			'target()',
+			['before'],
+			['after'],
+		);
+		const docLines = [...Array.from({ length: 54 }, (_, i) => `line_${i}`), 'before', 'target()', 'after'];
+		const documentText = docLines.join('\n');
+
+		const match = findAnnotationReanchorMatch(documentText, anchor);
+
+		assert.deepStrictEqual(match, {
+			range: {
+				start: { line: 55, character: 0 },
+				end: { line: 55, character: 8 },
+			},
+			strategy: 'fingerprint',
+			contextScore: 2,
+			contextScoreMax: 2,
+		});
+	});
+
+	// Scenario: Given two identical texts equidistant from the stored line with equal context scores, When reanchoring, Then proximity rejects the tie and the annotation is orphaned.
+	test('findAnnotationReanchorMatch rejects proximity tie when two candidates are equidistant with equal context score', () => {
+		const anchor = createAnnotationAnchor(
+			{ start: { line: 5, character: 0 }, end: { line: 5, character: 8 } },
+			'target()',
+			['old_before'],
+			['old_after'],
+		);
+		const docLines = [
+			'filler',
+			'filler',
+			'new_ctx',
+			'target()',
+			'new_ctx',
+			'filler',
+			'new_ctx',
+			'target()',
+			'new_ctx',
+		];
+		const documentText = docLines.join('\n');
 
 		const match = findAnnotationReanchorMatch(documentText, anchor);
 

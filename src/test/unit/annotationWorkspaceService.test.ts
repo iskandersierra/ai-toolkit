@@ -181,6 +181,168 @@ suite('Annotation Workspace Service', () => {
 		assert.strictEqual(result.reason, 'fileMissing');
 		assert.strictEqual(readCount, 0);
 	});
+
+	// Scenario: Given an active annotation, When resolveAnnotation is called, Then status is 'resolved' and updatedAt is refreshed.
+	test('resolveAnnotation sets annotation status to resolved', async () => {
+		const storage = new InMemoryStorageController(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'active')])],
+			}),
+		);
+		const service = createService(storage);
+
+		const result = await service.resolveAnnotation('annotation-1');
+
+		assert.strictEqual(result.status, 'ready');
+		if (result.status !== 'ready') {
+			return;
+		}
+
+		assert.strictEqual(storage.store.sessions[0]?.annotations[0]?.status, 'resolved');
+		assert.strictEqual(storage.store.sessions[0]?.annotations[0]?.updatedAt, '2026-05-20T12:00:00.000Z');
+	});
+
+	// Scenario: Given a resolved annotation, When resolveAnnotation is called, Then it blocks the invalid lifecycle transition.
+	test('resolveAnnotation blocks already resolved annotations', async () => {
+		const storage = new InMemoryStorageController(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'resolved')])],
+			}),
+		);
+		const service = createService(storage);
+
+		const result = await service.resolveAnnotation('annotation-1');
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			reason: 'invalidAnnotationStatus',
+			message: 'Only active annotations can be resolved.',
+			storePath: storage.getStorePath(),
+			error: undefined,
+			latestState: undefined,
+		});
+		assert.strictEqual(storage.store.sessions[0]?.annotations[0]?.status, 'resolved');
+	});
+
+	// Scenario: Given a dismissed annotation, When resolveAnnotation is called, Then it blocks the invalid lifecycle transition.
+	test('resolveAnnotation blocks dismissed annotations', async () => {
+		const storage = new InMemoryStorageController(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'dismissed')])],
+			}),
+		);
+		const service = createService(storage);
+
+		const result = await service.resolveAnnotation('annotation-1');
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			reason: 'invalidAnnotationStatus',
+			message: 'Only active annotations can be resolved.',
+			storePath: storage.getStorePath(),
+			error: undefined,
+			latestState: undefined,
+		});
+		assert.strictEqual(storage.store.sessions[0]?.annotations[0]?.status, 'dismissed');
+	});
+
+	// Scenario: Given a store with no matching annotation, When resolveAnnotation is called with an unknown ID, Then it returns blocked with annotationNotFound.
+	test('resolveAnnotation returns blocked when annotation is not found', async () => {
+		const storage = new InMemoryStorageController(createStore());
+		const service = createService(storage);
+
+		const result = await service.resolveAnnotation('nonexistent-id');
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			reason: 'annotationNotFound',
+			message: 'The selected annotation could not be found.',
+			storePath: storage.getStorePath(),
+			error: undefined,
+			latestState: undefined,
+		});
+	});
+
+	// Scenario: Given a resolved annotation, When reopenAnnotation is called, Then status is 'active' and updatedAt is refreshed.
+	test('reopenAnnotation sets annotation status to active', async () => {
+		const storage = new InMemoryStorageController(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'resolved')])],
+			}),
+		);
+		const service = createService(storage);
+
+		const result = await service.reopenAnnotation('annotation-1');
+
+		assert.strictEqual(result.status, 'ready');
+		if (result.status !== 'ready') {
+			return;
+		}
+
+		assert.strictEqual(storage.store.sessions[0]?.annotations[0]?.status, 'active');
+		assert.strictEqual(storage.store.sessions[0]?.annotations[0]?.updatedAt, '2026-05-20T12:00:00.000Z');
+	});
+
+	// Scenario: Given an active annotation, When reopenAnnotation is called, Then it blocks the invalid lifecycle transition.
+	test('reopenAnnotation blocks already active annotations', async () => {
+		const storage = new InMemoryStorageController(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'active')])],
+			}),
+		);
+		const service = createService(storage);
+
+		const result = await service.reopenAnnotation('annotation-1');
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			reason: 'invalidAnnotationStatus',
+			message: 'Only resolved annotations can be reopened.',
+			storePath: storage.getStorePath(),
+			error: undefined,
+			latestState: undefined,
+		});
+		assert.strictEqual(storage.store.sessions[0]?.annotations[0]?.status, 'active');
+	});
+
+	// Scenario: Given a dismissed annotation, When reopenAnnotation is called, Then it blocks the invalid lifecycle transition.
+	test('reopenAnnotation blocks dismissed annotations', async () => {
+		const storage = new InMemoryStorageController(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'dismissed')])],
+			}),
+		);
+		const service = createService(storage);
+
+		const result = await service.reopenAnnotation('annotation-1');
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			reason: 'invalidAnnotationStatus',
+			message: 'Only resolved annotations can be reopened.',
+			storePath: storage.getStorePath(),
+			error: undefined,
+			latestState: undefined,
+		});
+		assert.strictEqual(storage.store.sessions[0]?.annotations[0]?.status, 'dismissed');
+	});
+
+	// Scenario: Given a store with no matching annotation, When reopenAnnotation is called with an unknown ID, Then it returns blocked with annotationNotFound.
+	test('reopenAnnotation returns blocked when annotation is not found', async () => {
+		const storage = new InMemoryStorageController(createStore());
+		const service = createService(storage);
+
+		const result = await service.reopenAnnotation('nonexistent-id');
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			reason: 'annotationNotFound',
+			message: 'The selected annotation could not be found.',
+			storePath: storage.getStorePath(),
+			error: undefined,
+			latestState: undefined,
+		});
+	});
 });
 
 function createService(
@@ -229,7 +391,7 @@ function createSession(sessionId: string, annotations = [createAnnotation('annot
 	};
 }
 
-function createAnnotation(annotationId: string, status: 'active' | 'dismissed') {
+function createAnnotation(annotationId: string, status: 'active' | 'dismissed' | 'resolved') {
 	return {
 		annotationId,
 		status,

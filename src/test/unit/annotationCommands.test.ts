@@ -6,11 +6,13 @@ import {
 	executeDismissAnnotationCommand,
 	executeGenerateDraftOutputCommand,
 	executeReanchorAnnotationCommand,
+	executeReopenAnnotationCommand,
+	executeResolveAnnotationCommand,
 	executeSelectReviewSessionCommand,
 	annotationCommandIds,
 } from '../../annotations/presentation/annotationCommands';
 import { SessionSelectionService } from '../../annotations/application/sessionSelectionService';
-import type { AnnotationInputService } from '../../annotations/presentation/annotationInput';
+import type { AnnotationInputService, ExistingAnnotationAction } from '../../annotations/presentation/annotationInput';
 import type {
 	AnnotationWorkspaceBlockedResult,
 	AnnotationWorkspaceMutationResult,
@@ -79,6 +81,37 @@ suite('Annotation Commands', () => {
 		});
 		assert.strictEqual(service.store.activeSessionId, 'session-1');
 		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.body, 'Validate this call path.');
+	});
+
+	// Scenario: Given an empty selection with no annotation target, When add-or-edit runs, Then it blocks before prompting for the annotation body.
+	test('blocks empty untargeted selections before prompting for the annotation body', async () => {
+		const editor = await openEditor('target()');
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0));
+		let promptCount = 0;
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => {
+					promptCount += 1;
+					return 'should not be used';
+				},
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			reason: 'noEditorSelection',
+			message: 'Select code or place the cursor on an existing annotated range.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.strictEqual(promptCount, 0);
 	});
 
 	// Scenario: annotation actions fail clearly when the current editor selection does not resolve to a workspace folder.
@@ -196,23 +229,17 @@ suite('Annotation Commands', () => {
 		assert.deepStrictEqual(errorMessages, ['Unable to open the generated draft output document.']);
 	});
 
-	// Scenario: add-or-edit reports invalid selections distinctly instead of treating them as store failures.
-	test('blocks add-or-edit with an invalid selection reason when the selected text exceeds the limit', async () => {
+	// Scenario: Given selectedText longer than the legacy 2000-char limit, When add-or-edit runs, Then per-line normalization truncates it and the annotation is created.
+	test('accepts oversized single-line selected text in add-or-edit after per-line normalization', async () => {
 		const oversizedSelectionText = 'a'.repeat(annotationSelectedTextMaxLength + 1);
 		const editor = await openEditor(oversizedSelectionText);
 		editor.selection = new vscode.Selection(
 			new vscode.Position(0, 0),
 			new vscode.Position(0, oversizedSelectionText.length),
 		);
-		const errorMessages: string[] = [];
 
 		const result = await executeAddOrEditAnnotationCommand({
-			window: createWindowApi(editor, {
-				showErrorMessage: async (message: string) => {
-					errorMessages.push(message);
-					return undefined;
-				},
-			}),
+			window: createWindowApi(editor),
 			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
 			sessionSelectionService: createSessionSelectionService(),
 			inputService: {
@@ -224,17 +251,18 @@ suite('Annotation Commands', () => {
 		});
 
 		assert.deepStrictEqual(result, {
-			status: 'blocked',
+			status: 'ready',
 			commandId: annotationCommandIds.addOrEditAnnotation,
-			reason: 'invalidSelection',
-			message: `Selected text must be at most ${annotationSelectedTextMaxLength} characters.`,
 			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationCreated',
+			annotationId: 'annotation-new',
+			sessionId: undefined,
+			purgedCount: undefined,
 		});
-		assert.deepStrictEqual(errorMessages, [`Selected text must be at most ${annotationSelectedTextMaxLength} characters.`]);
 	});
 
-	// Scenario: existing-annotation reanchor validates the replacement selection before mutating workspace state.
-	test('blocks add-or-edit existing-annotation reanchor when the new selection is invalid', async () => {
+	// Scenario: Given selectedText longer than the legacy limit, When existing-annotation reanchor runs, Then per-line normalization truncates it and the annotation is reanchored.
+	test('accepts oversized single-line selected text for existing-annotation reanchor after per-line normalization', async () => {
 		const oversizedSelectionText = 'a'.repeat(annotationSelectedTextMaxLength + 1);
 		const editor = await openEditor(oversizedSelectionText);
 		const filePath = toRelativeEditorPath(editor);
@@ -242,7 +270,6 @@ suite('Annotation Commands', () => {
 			new vscode.Position(0, 0),
 			new vscode.Position(0, oversizedSelectionText.length),
 		);
-		const errorMessages: string[] = [];
 		const service = new FakeAnnotationWorkspaceService(
 			createStore({
 				sessions: [
@@ -252,12 +279,7 @@ suite('Annotation Commands', () => {
 		);
 
 		const result = await executeAddOrEditAnnotationCommand({
-			window: createWindowApi(editor, {
-				showErrorMessage: async (message: string) => {
-					errorMessages.push(message);
-					return undefined;
-				},
-			}),
+			window: createWindowApi(editor),
 			getWorkspaceService: async () => service,
 			sessionSelectionService: createSessionSelectionService(),
 			inputService: {
@@ -269,18 +291,18 @@ suite('Annotation Commands', () => {
 		});
 
 		assert.deepStrictEqual(result, {
-			status: 'blocked',
+			status: 'ready',
 			commandId: annotationCommandIds.addOrEditAnnotation,
-			reason: 'invalidSelection',
-			message: `Selected text must be at most ${annotationSelectedTextMaxLength} characters.`,
 			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationReanchored',
+			annotationId: 'annotation-1',
+			sessionId: undefined,
+			purgedCount: undefined,
 		});
-		assert.deepStrictEqual(errorMessages, [`Selected text must be at most ${annotationSelectedTextMaxLength} characters.`]);
-		assert.strictEqual(service.reanchorCalls.length, 0);
 	});
 
-	// Scenario: direct reanchor commands report invalid replacement selections without reusing store-failure semantics.
-	test('blocks direct reanchor with an invalid selection reason when the selected text exceeds the limit', async () => {
+	// Scenario: Given selectedText longer than the legacy limit, When direct reanchor runs, Then per-line normalization truncates it and the annotation is reanchored.
+	test('accepts oversized single-line selected text in direct reanchor after per-line normalization', async () => {
 		const oversizedSelectionText = 'a'.repeat(annotationSelectedTextMaxLength + 1);
 		const editor = await openEditor(oversizedSelectionText);
 		const filePath = toRelativeEditorPath(editor);
@@ -288,7 +310,6 @@ suite('Annotation Commands', () => {
 			new vscode.Position(0, 0),
 			new vscode.Position(0, oversizedSelectionText.length),
 		);
-		const errorMessages: string[] = [];
 		const service = new FakeAnnotationWorkspaceService(
 			createStore({
 				sessions: [
@@ -298,12 +319,7 @@ suite('Annotation Commands', () => {
 		);
 
 		const result = await executeReanchorAnnotationCommand({
-			window: createWindowApi(editor, {
-				showErrorMessage: async (message: string) => {
-					errorMessages.push(message);
-					return undefined;
-				},
-			}),
+			window: createWindowApi(editor),
 			getWorkspaceService: async () => service,
 			sessionSelectionService: createSessionSelectionService(),
 			inputService: {
@@ -315,13 +331,14 @@ suite('Annotation Commands', () => {
 		});
 
 		assert.deepStrictEqual(result, {
-			status: 'blocked',
+			status: 'ready',
 			commandId: annotationCommandIds.reanchorAnnotation,
-			reason: 'invalidSelection',
-			message: `Selected text must be at most ${annotationSelectedTextMaxLength} characters.`,
 			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationReanchored',
+			annotationId: 'annotation-1',
+			sessionId: undefined,
+			purgedCount: undefined,
 		});
-		assert.deepStrictEqual(errorMessages, [`Selected text must be at most ${annotationSelectedTextMaxLength} characters.`]);
 	});
 
 	// Scenario: invalid-store recovery handles Open Store document failures without creating an unhandled rejection.
@@ -428,6 +445,75 @@ suite('Annotation Commands', () => {
 		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'dismissed');
 	});
 
+		// Scenario: Given a clicked annotation comment thread, When dismiss runs from the comments surface, Then the mapped annotation is dismissed without relying on the active editor selection.
+		test('dismisses the mapped annotation when invoked from a comment thread', async () => {
+			const editor = await openEditor('target()');
+			const filePath = toRelativeEditorPath(editor);
+			editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0));
+			const service = new FakeAnnotationWorkspaceService(
+				createStore({
+					sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+				}),
+			);
+			const thread = createCommentThread(editor.document.uri);
+
+			const result = await executeDismissAnnotationCommand({
+				window: createWindowApi(editor),
+				getWorkspaceService: async () => service,
+				sessionSelectionService: createSessionSelectionService(),
+				commentProjection: {
+					getAnnotationId: (candidate) => candidate === thread ? 'annotation-1' : undefined,
+				},
+				contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+			}, thread);
+
+			assert.deepStrictEqual(result, {
+				status: 'ready',
+				commandId: annotationCommandIds.dismissAnnotation,
+				workspaceFolder: workspaceFolder().uri.fsPath,
+				operation: 'annotationDismissed',
+				annotationId: 'annotation-1',
+				sessionId: undefined,
+				purgedCount: undefined,
+			});
+			assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'dismissed');
+		});
+
+		// Scenario: Given a clicked comment with an attached thread, When dismiss runs from the comments surface, Then the mapped annotation is dismissed through the comment's thread.
+		test('dismisses the mapped annotation when invoked from a comment object', async () => {
+			const editor = await openEditor('target()');
+			const filePath = toRelativeEditorPath(editor);
+			editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0));
+			const service = new FakeAnnotationWorkspaceService(
+				createStore({
+					sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+				}),
+			);
+			const thread = createCommentThread(editor.document.uri);
+			const comment = createComment(thread);
+
+			const result = await executeDismissAnnotationCommand({
+				window: createWindowApi(editor),
+				getWorkspaceService: async () => service,
+				sessionSelectionService: createSessionSelectionService(),
+				commentProjection: {
+					getAnnotationId: (candidate) => candidate === thread ? 'annotation-1' : undefined,
+				},
+				contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+			}, comment as unknown as Parameters<typeof executeDismissAnnotationCommand>[1]);
+
+			assert.deepStrictEqual(result, {
+				status: 'ready',
+				commandId: annotationCommandIds.dismissAnnotation,
+				workspaceFolder: workspaceFolder().uri.fsPath,
+				operation: 'annotationDismissed',
+				annotationId: 'annotation-1',
+				sessionId: undefined,
+				purgedCount: undefined,
+			});
+			assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'dismissed');
+		});
+
 	// Scenario: successful mutations stay successful when post-success context refresh fails.
 	test('returns a ready dismiss result when context-key refresh rejects', async () => {
 		const editor = await openEditor('target()');
@@ -461,6 +547,433 @@ suite('Annotation Commands', () => {
 			purgedCount: undefined,
 		});
 		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'dismissed');
+	});
+
+	// Scenario: Given executeAddOrEditAnnotationCommand where the selection overlaps two annotations, When the command runs, Then it shows a warning and returns blocked with invalidSelection reason.
+	test('returns blocked with invalidSelection when selection conflicts with multiple annotations', async () => {
+		const editor = await openEditor('export function activate()');
+		const filePath = toRelativeEditorPath(editor);
+		// Selection spans (0,0)-(0,15), overlapping annotation-1 (0,0)-(0,11) and annotation-2 (0,7)-(0,19).
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 15));
+
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [
+					createSession('session-1', [
+						createAnnotation('annotation-1', 'export funct', 0, 11, filePath),
+						createAnnotation('annotation-2', 'function activ', 7, 19, filePath),
+					]),
+				],
+			}),
+		);
+		const warningMessages: string[] = [];
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor, {
+				showWarningMessage: (async (message: string) => {
+					warningMessages.push(message);
+					return undefined;
+				}) as typeof vscode.window.showWarningMessage,
+			}),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.strictEqual(result.status, 'blocked');
+		assert.strictEqual((result as { reason: string }).reason, 'invalidSelection');
+		assert.ok(warningMessages.length > 0, 'Expected a warning message to be shown');
+	});
+
+	// Scenario: Given a selection that partially overlaps one annotation, When a direct dismiss command runs, Then it resolves that annotation and dismisses it.
+	test('dismisses an annotation for a single partial-overlap selection', async () => {
+		const editor = await openEditor('export function activate()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 15));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', 'export function activate', 0, 22, filePath)]),
+				],
+			}),
+		);
+
+		const result = await executeDismissAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.dismissAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationDismissed',
+			annotationId: 'annotation-1',
+			sessionId: undefined,
+			purgedCount: undefined,
+		});
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'dismissed');
+	});
+
+	// Scenario: Given executeExistingAnnotationAction with an empty cursor selection, When the command runs, Then reanchor is not included in the available actions passed to pickExistingAnnotationAction.
+	test('executeExistingAnnotationAction with empty selection does not offer reanchor', async () => {
+		const editor = await openEditor('export function activate()');
+		const filePath = toRelativeEditorPath(editor);
+		// Empty cursor at (0, 5) — inside annotation range (0,0)-(0,22).
+		editor.selection = new vscode.Selection(new vscode.Position(0, 5), new vscode.Position(0, 5));
+
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', 'export function activate', 0, 22, filePath)]),
+				],
+			}),
+		);
+		let capturedAvailableActions: ExistingAnnotationAction[] | undefined;
+		const inputService: AnnotationInputService = {
+			promptForAnnotationBody: async () => 'body',
+			pickExistingAnnotationAction: async (_annotation, availableActions) => {
+				capturedAvailableActions = availableActions;
+				return 'edit';
+			},
+			confirmPurgeDismissed: async () => true,
+			confirmReanchor: async () => true,
+		};
+
+		await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService,
+		});
+
+		assert.ok(capturedAvailableActions !== undefined, 'Expected pickExistingAnnotationAction to be called');
+		assert.ok(
+			!capturedAvailableActions.includes('reanchor'),
+			'Expected reanchor not to be in available actions for empty selection',
+		);
+	});
+
+	// Scenario: Given an active annotation and resolve selected in quick-pick, When executeAddOrEditAnnotationCommand runs, Then resolveAnnotation is called and annotationResolved is returned.
+	test('resolve action in quick-pick calls resolveAnnotation and returns annotationResolved', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+			}),
+		);
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'resolve',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationResolved',
+			annotationId: 'annotation-1',
+			sessionId: undefined,
+			purgedCount: undefined,
+		});
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'resolved');
+	});
+
+	// Scenario: Given an active annotation selected in the editor, When the direct resolve command runs, Then it resolves the annotation.
+	test('resolves the annotation at the current editor selection', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+			}),
+		);
+
+		const result = await executeResolveAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.resolveAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationResolved',
+			annotationId: 'annotation-1',
+			sessionId: undefined,
+			purgedCount: undefined,
+		});
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'resolved');
+	});
+
+	// Scenario: Given a resolved annotation selected in the editor, When the direct reopen command runs, Then it reopens the annotation.
+	test('reopens the annotation at the current editor selection', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath, 'resolved')])],
+			}),
+		);
+
+		const result = await executeReopenAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.reopenAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationReopened',
+			annotationId: 'annotation-1',
+			sessionId: undefined,
+			purgedCount: undefined,
+		});
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'active');
+	});
+
+	// Scenario: Given a clicked annotation comment thread, When direct resolve runs from the comments surface, Then the mapped annotation is resolved.
+	test('resolves the mapped annotation when invoked from a comment thread', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+			}),
+		);
+		const thread = createCommentThread(editor.document.uri);
+
+		const result = await executeResolveAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			commentProjection: {
+				getAnnotationId: (candidate: vscode.CommentThread) => candidate === thread ? 'annotation-1' : undefined,
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		}, thread);
+
+		assert.strictEqual(result.status, 'ready');
+		assert.strictEqual((result as { operation: string }).operation, 'annotationResolved');
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'resolved');
+	});
+
+	// Scenario: Given a clicked resolved annotation comment, When direct reopen runs from the comments surface, Then the mapped annotation is reopened.
+	test('reopens the mapped annotation when invoked from a comment object', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath, 'resolved')])],
+			}),
+		);
+		const thread = createCommentThread(editor.document.uri);
+		const comment = createComment(thread);
+
+		const result = await executeReopenAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			commentProjection: {
+				getAnnotationId: (candidate: vscode.CommentThread) => candidate === thread ? 'annotation-1' : undefined,
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		}, comment as unknown as Parameters<typeof executeReopenAnnotationCommand>[1]);
+
+		assert.strictEqual(result.status, 'ready');
+		assert.strictEqual((result as { operation: string }).operation, 'annotationReopened');
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'active');
+	});
+
+	// Scenario: Given a resolved annotation selected in the editor, When direct resolve runs, Then it blocks without changing status.
+	test('direct resolve blocks already resolved annotations', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath, 'resolved')])],
+			}),
+		);
+
+		const result = await executeResolveAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.strictEqual(result.status, 'blocked');
+		assert.strictEqual((result as { reason: string }).reason, 'invalidAnnotationStatus');
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'resolved');
+	});
+
+	// Scenario: Given an active annotation selected in the editor, When direct reopen runs, Then it blocks without changing status.
+	test('direct reopen blocks already active annotations', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+			}),
+		);
+
+		const result = await executeReopenAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.strictEqual(result.status, 'blocked');
+		assert.strictEqual((result as { reason: string }).reason, 'invalidAnnotationStatus');
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'active');
+	});
+
+	// Scenario: Given a dismissed annotation selected in the editor, When direct resolve runs, Then direct management treats it as unavailable.
+	test('direct resolve does not target dismissed annotations from editor selection', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath, 'dismissed')])],
+			}),
+		);
+
+		const result = await executeResolveAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.strictEqual(result.status, 'blocked');
+		assert.strictEqual((result as { reason: string }).reason, 'annotationNotFound');
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'dismissed');
+	});
+
+	// Scenario: Given a resolved annotation and reopen selected in quick-pick, When executeAddOrEditAnnotationCommand runs, Then reopenAnnotation is called and annotationReopened is returned.
+	test('reopen action in quick-pick calls reopenAnnotation and returns annotationReopened', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath, 'resolved')])],
+			}),
+		);
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'reopen',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'annotationReopened',
+			annotationId: 'annotation-1',
+			sessionId: undefined,
+			purgedCount: undefined,
+		});
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'active');
+	});
+
+	// Scenario: Given an active annotation, When executeAddOrEditAnnotationCommand runs, Then reopen is not in the available actions.
+	test('active annotation does not offer reopen in available actions', async () => {
+		const editor = await openEditor('export function activate()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 22));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', 'export function activate', 0, 22, filePath)]),
+				],
+			}),
+		);
+		let capturedAvailableActions: ExistingAnnotationAction[] | undefined;
+		const inputService: AnnotationInputService = {
+			promptForAnnotationBody: async () => 'body',
+			pickExistingAnnotationAction: async (_annotation, availableActions) => {
+				capturedAvailableActions = availableActions;
+				return 'edit';
+			},
+			confirmPurgeDismissed: async () => true,
+			confirmReanchor: async () => true,
+		};
+
+		await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService,
+		});
+
+		assert.ok(capturedAvailableActions !== undefined, 'Expected pickExistingAnnotationAction to be called');
+		assert.ok(!capturedAvailableActions.includes('reopen'), 'Expected reopen not to be in available actions for active annotation');
+	});
+
+	// Scenario: Given a resolved annotation, When executeAddOrEditAnnotationCommand runs, Then resolve is not in the available actions.
+	test('resolved annotation does not offer resolve in available actions', async () => {
+		const editor = await openEditor('export function activate()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 22));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [
+					createSession('session-1', [createAnnotation('annotation-1', 'export function activate', 0, 22, filePath, 'resolved')]),
+				],
+			}),
+		);
+		let capturedAvailableActions: ExistingAnnotationAction[] | undefined;
+		const inputService: AnnotationInputService = {
+			promptForAnnotationBody: async () => 'body',
+			pickExistingAnnotationAction: async (_annotation, availableActions) => {
+				capturedAvailableActions = availableActions;
+				return 'edit';
+			},
+			confirmPurgeDismissed: async () => true,
+			confirmReanchor: async () => true,
+		};
+
+		await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService,
+		});
+
+		assert.ok(capturedAvailableActions !== undefined, 'Expected pickExistingAnnotationAction to be called');
+		assert.ok(!capturedAvailableActions.includes('resolve'), 'Expected resolve not to be in available actions for resolved annotation');
 	});
 });
 
@@ -527,6 +1040,26 @@ function toRelativeEditorPath(editor: vscode.TextEditor): string {
 	return path.relative(workspaceFolder().uri.fsPath, editor.document.uri.fsPath).replace(/\\/g, '/');
 }
 
+function createCommentThread(uri: vscode.Uri): vscode.CommentThread {
+	return {
+		uri,
+		range: new vscode.Range(0, 0, 0, 8),
+		canReply: false,
+		collapsibleState: vscode.CommentThreadCollapsibleState.Expanded,
+		comments: [],
+		dispose: () => undefined,
+	} as unknown as vscode.CommentThread;
+}
+
+function createComment(thread: vscode.CommentThread): vscode.Comment & { thread: vscode.CommentThread } {
+	return {
+		body: 'Validate this call path.',
+		author: { name: 'Security pass' },
+		mode: vscode.CommentMode.Preview,
+		thread,
+	} as vscode.Comment & { thread: vscode.CommentThread };
+}
+
 function createStore(overrides: Partial<AnnotationStore> = {}): AnnotationStore {
 	return {
 		schemaVersion: annotationSchemaVersion,
@@ -553,10 +1086,11 @@ function createAnnotation(
 	startCharacter = 0,
 	endCharacter = 22,
 	filePath = 'src/extension.ts',
+	status: 'active' | 'resolved' | 'dismissed' = 'active',
 ) {
 	return {
 		annotationId,
-		status: 'active' as const,
+		status,
 		anchorState: 'anchored' as const,
 		body: 'Validate this call path.',
 		filePath,
@@ -574,7 +1108,7 @@ function createAnnotation(
 	};
 }
 
-class FakeAnnotationWorkspaceService implements Pick<AnnotationWorkspaceService, 'getState' | 'initialize' | 'createAnnotation' | 'updateAnnotation' | 'dismissAnnotation' | 'reanchorAnnotation' | 'purgeDismissedAnnotations' | 'generateDraftOutput' | 'setActiveSession'> {
+class FakeAnnotationWorkspaceService implements Pick<AnnotationWorkspaceService, 'getState' | 'initialize' | 'createAnnotation' | 'updateAnnotation' | 'dismissAnnotation' | 'reanchorAnnotation' | 'purgeDismissedAnnotations' | 'generateDraftOutput' | 'setActiveSession' | 'resolveAnnotation' | 'reopenAnnotation'> {
 	public readonly projection;
 	public readonly reanchorCalls: unknown[] = [];
 
@@ -682,6 +1216,50 @@ class FakeAnnotationWorkspaceService implements Pick<AnnotationWorkspaceService,
 			projection: deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, this.store),
 			storePath,
 			sessionId,
+		};
+	}
+
+	public async resolveAnnotation(annotationId: string): Promise<AnnotationWorkspaceMutationResult> {
+		const annotation = this.store.sessions[0]?.annotations.find((entry) => entry.annotationId === annotationId);
+		if (annotation?.status !== 'active') {
+			return {
+				status: 'blocked',
+				reason: 'invalidAnnotationStatus',
+				message: 'Only active annotations can be resolved.',
+				storePath,
+			};
+		}
+		if (annotation) {
+			annotation.status = 'resolved';
+		}
+		const projection = deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, this.store);
+		return {
+			status: 'ready',
+			projection,
+			storePath,
+			annotation: projection.annotations.find((entry) => entry.annotationId === annotationId),
+		};
+	}
+
+	public async reopenAnnotation(annotationId: string): Promise<AnnotationWorkspaceMutationResult> {
+		const annotation = this.store.sessions[0]?.annotations.find((entry) => entry.annotationId === annotationId);
+		if (annotation?.status !== 'resolved') {
+			return {
+				status: 'blocked',
+				reason: 'invalidAnnotationStatus',
+				message: 'Only resolved annotations can be reopened.',
+				storePath,
+			};
+		}
+		if (annotation) {
+			annotation.status = 'active';
+		}
+		const projection = deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, this.store);
+		return {
+			status: 'ready',
+			projection,
+			storePath,
+			annotation: projection.annotations.find((entry) => entry.annotationId === annotationId),
 		};
 	}
 }

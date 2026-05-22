@@ -1,11 +1,14 @@
 import * as vscode from 'vscode';
 import type { AnnotationProjectionEntry } from '../application/projectionModel';
 
-export type ExistingAnnotationAction = 'edit' | 'dismiss' | 'reanchor';
+export type ExistingAnnotationAction = 'edit' | 'dismiss' | 'reanchor' | 'resolve' | 'reopen';
 
 export interface AnnotationInputService {
 	promptForAnnotationBody(initialValue?: string): Promise<string | undefined>;
-	pickExistingAnnotationAction(annotation: AnnotationProjectionEntry): Promise<ExistingAnnotationAction | undefined>;
+	pickExistingAnnotationAction(
+		annotation: AnnotationProjectionEntry,
+		availableActions: ExistingAnnotationAction[],
+	): Promise<ExistingAnnotationAction | undefined>;
 	confirmPurgeDismissed(count: number): Promise<boolean>;
 	confirmReanchor(): Promise<boolean>;
 }
@@ -23,23 +26,20 @@ export function createVscodeAnnotationInputService(
 				validateInput: (value) =>
 					value.trim().length === 0 ? 'Annotation body is required.' : undefined,
 			}),
-		pickExistingAnnotationAction: async (annotation) => {
+		pickExistingAnnotationAction: async (annotation, availableActions) => {
+			const labelMap: Record<ExistingAnnotationAction, string> = {
+				edit: 'Edit annotation body',
+				resolve: 'Resolve annotation',
+				reopen: 'Reopen annotation',
+				dismiss: 'Dismiss annotation',
+				reanchor: 'Reanchor annotation',
+			};
 			const selection = await windowApi.showQuickPick(
-				[
-					{
-						label: 'Edit annotation body',
-						description: annotation.status === 'dismissed' ? 'Currently dismissed' : undefined,
-						action: 'edit' as const,
-					},
-					{
-						label: 'Dismiss annotation',
-						action: 'dismiss' as const,
-					},
-					{
-						label: 'Reanchor annotation',
-						action: 'reanchor' as const,
-					},
-				],
+				availableActions.map((action) => ({
+					label: labelMap[action],
+					description: action === 'edit' && annotation.status === 'dismissed' ? 'Currently dismissed' : undefined,
+					action,
+				})),
 				{
 					title: 'AI Toolkit: Add or Edit Annotation',
 					placeHolder: 'Choose how to manage the selected annotation.',

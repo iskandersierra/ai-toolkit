@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { AnnotationWorkspaceServiceLike } from '../application/annotationWorkspaceService';
-import { findAnnotationForEditorSelection, toWorkspaceRelativeFilePath } from '../presentation/annotationTargeting';
+import { resolveAnnotationTarget, toWorkspaceRelativeFilePath } from '../presentation/annotationTargeting';
 import { findWorkspaceFolderForEditor } from '../util/workspaceFolders';
 
 export const annotationContextKeyIds = {
@@ -76,8 +76,12 @@ export function registerAnnotationContextKeys(
 			return;
 		}
 
-		const target = findAnnotationForEditorSelection(state.projection.annotations, filePath, editor.selection);
-		await applyContextState(refreshToken, Boolean(target), Boolean(state.projection.activeSessionId));
+		const target = resolveAnnotationTarget(state.projection.annotations, filePath, editor.selection);
+		await applyContextState(
+			refreshToken,
+			target.kind === 'found',
+			Boolean(state.projection.activeSessionId),
+		);
 	};
 
 	const safeRefresh = async () => {

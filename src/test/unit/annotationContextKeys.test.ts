@@ -137,6 +137,37 @@ suite('Annotation Context Keys', () => {
 		assert.strictEqual(activeEditorDisposable.disposeCount, 1);
 		assert.strictEqual(selectionDisposable.disposeCount, 1);
 	});
+
+	// Scenario: Given a selection that partially overlaps one annotation, When context keys refresh, Then canManage stays enabled for that unique target.
+	test('sets canManage when the selection partially overlaps a single annotation', async () => {
+		const commandCalls: Array<{ key: string; value: boolean }> = [];
+		const context = createExtensionContext();
+		const windowApi = createWindowApi(createEditor(undefined, new vscode.Selection(
+			new vscode.Position(0, 1),
+			new vscode.Position(0, 6),
+		)));
+
+		const controller = registerAnnotationContextKeys(context, {
+			window: windowApi,
+			commands: {
+				executeCommand: (async <T = unknown>(_command: string, key: string, value: boolean) => {
+					commandCalls.push({ key, value });
+					return undefined as T;
+				}) as typeof vscode.commands.executeCommand,
+			},
+			getWorkspaceService: async () => createWorkspaceService(createReadyState()),
+		});
+
+		await flushAsyncWork();
+		commandCalls.length = 0;
+
+		await controller.refresh();
+
+		assert.deepStrictEqual(commandCalls, [
+			{ key: annotationContextKeyIds.canManage, value: true },
+			{ key: annotationContextKeyIds.hasActiveSession, value: true },
+		]);
+	});
 });
 
 function createExtensionContext(): vscode.ExtensionContext {
@@ -153,12 +184,15 @@ function createWindowApi(activeTextEditor: vscode.TextEditor | undefined) {
 	};
 }
 
-function createEditor(filePath = 'e:/source/ai-toolkit/src/extension.ts'): vscode.TextEditor {
+function createEditor(
+	filePath = 'e:/source/ai-toolkit/src/extension.ts',
+	selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8)),
+): vscode.TextEditor {
 	return {
 		document: {
 			uri: vscode.Uri.file(filePath),
 		},
-		selection: new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8)),
+		selection,
 	} as vscode.TextEditor;
 }
 
@@ -182,6 +216,12 @@ function createWorkspaceService(
 			throw new Error('Not implemented in test');
 		},
 		dismissAnnotation: async () => {
+			throw new Error('Not implemented in test');
+		},
+		resolveAnnotation: async () => {
+			throw new Error('Not implemented in test');
+		},
+		reopenAnnotation: async () => {
 			throw new Error('Not implemented in test');
 		},
 		purgeDismissedAnnotations: async () => {

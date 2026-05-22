@@ -30,6 +30,7 @@ export function registerAnnotationFeature(context: vscode.ExtensionContext): voi
 		sessionSelectionService,
 		inputService: createVscodeAnnotationInputService(),
 		contextKeys,
+		commentProjection,
 	});
 
 	context.subscriptions.push(

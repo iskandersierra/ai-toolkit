@@ -69,6 +69,7 @@ export type AnnotationWorkspaceBlockedReason =
 	| 'noActiveSession'
 	| 'sessionNotFound'
 	| 'annotationNotFound'
+	| 'invalidAnnotationStatus'
 	| 'storeConflict'
 	| 'fileMissing';
 
@@ -103,6 +104,8 @@ export interface AnnotationWorkspaceServiceLike {
 	createAnnotation(input: CreateAnnotationInput): Promise<AnnotationWorkspaceMutationResult>;
 	updateAnnotation(input: UpdateAnnotationInput): Promise<AnnotationWorkspaceMutationResult>;
 	dismissAnnotation(annotationId: string): Promise<AnnotationWorkspaceMutationResult>;
+	resolveAnnotation(annotationId: string): Promise<AnnotationWorkspaceMutationResult>;
+	reopenAnnotation(annotationId: string): Promise<AnnotationWorkspaceMutationResult>;
 	purgeDismissedAnnotations(): Promise<AnnotationWorkspaceMutationResult>;
 	reanchorAnnotation(input: ReanchorAnnotationInput): Promise<AnnotationWorkspaceMutationResult>;
 	generateDraftOutput(): Promise<AnnotationWorkspaceMutationResult>;
@@ -298,6 +301,48 @@ export class AnnotationWorkspaceService implements AnnotationWorkspaceServiceLik
 
 			const now = this.timestamp();
 			located.annotation.status = 'dismissed';
+			located.annotation.updatedAt = now;
+			located.session.updatedAt = now;
+
+			return { store, annotationId };
+		});
+	}
+
+	public async resolveAnnotation(annotationId: string): Promise<AnnotationWorkspaceMutationResult> {
+		return this.commit((store) => {
+			const located = findAnnotation(store, annotationId);
+
+			if (!located) {
+				return this.blocked('annotationNotFound', 'The selected annotation could not be found.');
+			}
+
+			if (located.annotation.status !== 'active') {
+				return this.blocked('invalidAnnotationStatus', 'Only active annotations can be resolved.');
+			}
+
+			const now = this.timestamp();
+			located.annotation.status = 'resolved';
+			located.annotation.updatedAt = now;
+			located.session.updatedAt = now;
+
+			return { store, annotationId };
+		});
+	}
+
+	public async reopenAnnotation(annotationId: string): Promise<AnnotationWorkspaceMutationResult> {
+		return this.commit((store) => {
+			const located = findAnnotation(store, annotationId);
+
+			if (!located) {
+				return this.blocked('annotationNotFound', 'The selected annotation could not be found.');
+			}
+
+			if (located.annotation.status !== 'resolved') {
+				return this.blocked('invalidAnnotationStatus', 'Only resolved annotations can be reopened.');
+			}
+
+			const now = this.timestamp();
+			located.annotation.status = 'active';
 			located.annotation.updatedAt = now;
 			located.session.updatedAt = now;
 
