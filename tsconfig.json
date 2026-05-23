@@ -18,6 +18,7 @@
 		"src/**/*"
 	],
 	"exclude": [
+		"src/test/**/*",
 		"src/test/vitest.setup.ts",
 		"src/test/support/vscode.mock.ts"
 	]
