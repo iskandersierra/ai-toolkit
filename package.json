@@ -217,11 +217,14 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
-    "compile": "tsc -p ./",
+    "compile": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true })\" && tsc -p ./",
+    "compile:test:vscode": "tsc -p ./tsconfig.vscode-test.json",
     "watch": "tsc -watch -p ./",
     "pretest": "pnpm run compile && pnpm run lint",
     "lint": "eslint src",
-    "test": "node ./scripts/run-vscode-test.mjs",
+    "test": "pnpm run test:unit && pnpm run test:vscode",
+    "test:unit": "vitest run",
+    "test:vscode": "pnpm run compile:test:vscode && node ./scripts/run-vscode-test.mjs",
     "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
