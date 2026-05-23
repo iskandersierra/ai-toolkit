@@ -24,6 +24,10 @@ class Uri {
 		return new Uri(id, 'untitled');
 	}
 
+	public static from(components: { scheme: string; path?: string }): Uri {
+		return new Uri(components.path ?? '', components.scheme);
+	}
+
 	public toString(): string {
 		return this.scheme === 'file' ? this.fsPath : `${this.scheme}:${this.fsPath}`;
 	}
@@ -218,10 +222,16 @@ class TextDocument {
 
 class TextEditor {
 	public selection: Selection;
+	public insertedText = '';
 
 	public constructor(public readonly document: TextDocument) {
 		const origin = new Position(0, 0);
 		this.selection = new Selection(origin, origin);
+	}
+
+	public edit(callback: (eb: { insert(position: Position, text: string): void }) => void): Promise<boolean> {
+		callback({ insert: (_pos: Position, text: string) => { this.insertedText += text; } });
+		return Promise.resolve(true);
 	}
 }
 
@@ -231,6 +241,10 @@ const workspaceFolders = [{
 	name: path.basename(process.cwd()),
 }];
 const createdFileSystemWatchers: FileSystemWatcher[] = [];
+
+export class MarkdownString {
+	public constructor(public readonly value: string = '') {}
+}
 
 export const CommentMode = {
 	Preview: 0,

@@ -624,6 +624,62 @@ suite('Annotation Commands', () => {
 		});
 	});
 
+	// Scenario: Given an active review session with slug "security-pass", When draft output generates in markdown format,
+	// Then the opened document has scheme "untitled" and path "ai-toolkit-security-pass.md".
+	test('opens a named untitled document with the session slug and extension', async () => {
+		const editor = await openEditor('target()');
+		let openedUri: vscode.Uri | undefined;
+
+		const result = await executeGenerateDraftOutputCommand({
+			window: createWindowApi(editor),
+			workspace: createWorkspaceApi({
+				openTextDocument: (async (input: vscode.Uri | { content: string; language?: string }) => {
+					if (input instanceof vscode.Uri) {
+						openedUri = input;
+					}
+					return vscode.workspace.openTextDocument(input as Parameters<typeof vscode.workspace.openTextDocument>[0]);
+				}) as typeof vscode.workspace.openTextDocument,
+			}),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.generateDraftOutput,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'draftOutputGenerated',
+		});
+		assert.ok(openedUri, 'Expected openTextDocument to be called with a Uri');
+		assert.strictEqual(openedUri.scheme, 'untitled');
+		assert.ok(openedUri.fsPath.includes('ai-toolkit-security-pass'), `Expected path to include session slug; got: ${openedUri.fsPath}`);
+		assert.ok(openedUri.fsPath.endsWith('.md'), `Expected path to end with .md; got: ${openedUri.fsPath}`);
+	});
+
+	// Scenario: Given an active review session with annotations, When draft output generates,
+	// Then the generated content containing the session name and annotation body is inserted into the document.
+	test('inserts draft content with session name and annotation body into the opened document', async () => {
+		const editor = await openEditor('target()');
+		let draftEditor: vscode.TextEditor | undefined;
+
+		await executeGenerateDraftOutputCommand({
+			window: createWindowApi(editor, {
+				showTextDocument: (async (doc: vscode.TextDocument) => {
+					draftEditor = await vscode.window.showTextDocument(doc);
+					return draftEditor;
+				}) as typeof vscode.window.showTextDocument,
+			}),
+			workspace: createWorkspaceApi(),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.ok(draftEditor, 'Expected showTextDocument to be called with the draft document');
+		const insertedText = (draftEditor as unknown as { insertedText: string }).insertedText;
+		assert.ok(insertedText.includes('# Draft Output: Security pass'), `Expected session name in draft content; got: ${insertedText}`);
+		assert.ok(insertedText.includes('Validate this call path.'), `Expected annotation body in draft content; got: ${insertedText}`);
+	});
+
 	// Scenario: Given sessions with different updatedAt values, When maintenance picker items are created, Then they are ordered by most recent update and mark the active session.
 	test('orders maintenance picker items by updatedAt descending and marks the active session', () => {
 		const items = createSessionMaintenanceQuickPickItems(

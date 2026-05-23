@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import * as fs from 'node:fs';
 import * as vscode from 'vscode';
 import type {
 	AnnotationProjectionEntry,
@@ -10,12 +11,17 @@ export class AnnotationCommentProjectionService implements vscode.Disposable {
 	private readonly controller: vscode.CommentController;
 	private readonly threadsByWorkspace = new Map<string, vscode.CommentThread[]>();
 	private readonly threadAnnotationIds = new Map<vscode.CommentThread, string>();
+	private readonly checkFileExists: (absolutePath: string) => boolean;
 
-	constructor(controller?: vscode.CommentController) {
+	constructor(
+		controller?: vscode.CommentController,
+		fileExists?: (absolutePath: string) => boolean,
+	) {
 		this.controller = controller ?? vscode.comments.createCommentController(
 			'ai-toolkit-annotations',
 			'AI Toolkit',
 		);
+		this.checkFileExists = fileExists ?? ((p) => fs.existsSync(p));
 	}
 
 	public refresh(projection: AnnotationWorkspaceProjection): void {
@@ -28,7 +34,12 @@ export class AnnotationCommentProjectionService implements vscode.Disposable {
 			? projection.activeAnnotations
 			: projection.annotations;
 
-		const visibleEntries = entries.filter((entry) => entry.status !== 'dismissed');
+		const visibleEntries = entries
+			.filter((entry) => entry.status !== 'dismissed')
+			.filter((entry) =>
+				entry.anchorState !== 'orphaned' ||
+				this.checkFileExists(path.join(projection.workspaceFolderPath, entry.filePath)),
+			);
 
 		for (const entry of visibleEntries) {
 			this.createThread(entry, projection.workspaceFolderPath);
@@ -67,7 +78,7 @@ export class AnnotationCommentProjectionService implements vscode.Disposable {
 		thread.contextValue = contextValue;
 
 		const comment: vscode.Comment = {
-			body: entry.body,
+			body: new vscode.MarkdownString(`_${entry.status} · ${entry.anchorState}_\n\n${entry.body}`),
 			author: { name: entry.sessionName },
 			mode: vscode.CommentMode.Preview,
 			contextValue,

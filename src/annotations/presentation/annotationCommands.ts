@@ -551,9 +551,15 @@ export async function executeGenerateDraftOutputCommand(
 		.get<DraftOutputFormat>('draftOutputFormat', 'markdown');
 	const { content, languageId } = generateDraftContent(result.projection, format);
 
+	const activeSession = result.projection.sessions.find((s) => s.isActive);
+	const sessionSlug = activeSession?.sessionSlug ?? 'draft';
+	const ext = languageId === 'markdown' ? 'md' : languageId;
+	const uri = vscode.Uri.from({ scheme: 'untitled', path: `ai-toolkit-${sessionSlug}.${ext}` });
+
 	try {
-		const doc = await workspaceApi.openTextDocument({ content, language: languageId });
-		await windowApi.showTextDocument(doc);
+		const doc = await workspaceApi.openTextDocument(uri);
+		const editor = await windowApi.showTextDocument(doc);
+		await editor.edit((eb) => eb.insert(new vscode.Position(0, 0), content));
 	} catch {
 		const message = 'Unable to open the generated draft output document.';
 		void windowApi.showErrorMessage(message);

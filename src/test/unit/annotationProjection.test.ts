@@ -225,6 +225,91 @@ suite('Annotation Projection', () => {
 
 			service.dispose();
 		});
+
+	// Scenario: Given an orphaned annotation whose source file does not exist,
+	// When refresh runs with a fileExists check returning false,
+	// Then no comment thread is created for that annotation.
+	test('does not project orphaned annotation when source file does not exist', () => {
+		const controller = new FakeCommentController();
+		const service = new AnnotationCommentProjectionService(
+			controller.asController(),
+			() => false,
+		);
+		const projection = createProjection('e:/source/one', 'src/gone.ts', 'annotation-orphaned');
+		projection.annotations[0] = {
+			...projection.annotations[0],
+			anchorState: 'orphaned',
+		};
+		projection.activeAnnotations[0] = projection.annotations[0];
+
+		service.refresh(projection);
+
+		assert.strictEqual(controller.createdThreads.length, 0);
+
+		service.dispose();
+	});
+
+	// Scenario: Given an orphaned annotation whose source file exists,
+	// When refresh runs with a fileExists check returning true,
+	// Then the annotation is projected as a comment thread.
+	test('projects orphaned annotation when source file exists', () => {
+		const controller = new FakeCommentController();
+		const service = new AnnotationCommentProjectionService(
+			controller.asController(),
+			() => true,
+		);
+		const projection = createProjection('e:/source/one', 'src/present.ts', 'annotation-orphaned');
+		projection.annotations[0] = {
+			...projection.annotations[0],
+			anchorState: 'orphaned',
+		};
+		projection.activeAnnotations[0] = projection.annotations[0];
+
+		service.refresh(projection);
+
+		assert.strictEqual(controller.createdThreads.length, 1);
+
+		service.dispose();
+	});
+
+	// Scenario: Given an anchored annotation, When fileExists always returns false,
+	// Then the annotation is still projected (file existence is only checked for orphaned).
+	test('always projects anchored annotation even when fileExists returns false', () => {
+		const controller = new FakeCommentController();
+		const service = new AnnotationCommentProjectionService(
+			controller.asController(),
+			() => false,
+		);
+		const projection = createProjection('e:/source/one', 'src/present.ts', 'annotation-anchored');
+
+		service.refresh(projection);
+
+		assert.strictEqual(controller.createdThreads.length, 1);
+
+		service.dispose();
+	});
+
+	// Scenario: Given an active anchored annotation with body text,
+	// When refresh projects the annotation as a comment thread,
+	// Then the comment body value starts with "_active · anchored_" followed by a blank line and the body text.
+	test('projects comment body with compact status and anchor state header', () => {
+		const controller = new FakeCommentController();
+		const service = new AnnotationCommentProjectionService(controller.asController());
+
+		service.refresh(createProjection('e:/source/one', 'src/one.ts', 'annotation-one', 'active'));
+
+		const thread = controller.threads[0];
+		const comment = thread?.comments[0] as vscode.Comment | undefined;
+		const body = comment?.body;
+		const bodyValue = body instanceof vscode.MarkdownString
+			? body.value
+			: typeof body === 'string' ? body : '';
+
+		assert.ok(bodyValue.startsWith('_active · anchored_'), `Expected body to start with compact header; got: ${bodyValue}`);
+		assert.ok(bodyValue.includes('Body for annotation-one'), `Expected body to contain annotation body; got: ${bodyValue}`);
+
+		service.dispose();
+	});
 });
 
 function createProjection(
