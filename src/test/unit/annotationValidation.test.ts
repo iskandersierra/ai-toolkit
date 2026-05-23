@@ -3,7 +3,6 @@ import {
 	annotationContextLineMaxLength,
 	annotationFingerprintContextLineCount,
 	annotationSchemaVersion,
-	annotationSelectedTextMaxLength,
 	type AnnotationEntry,
 	type AnnotationSession,
 	type AnnotationStore,
@@ -28,8 +27,8 @@ suite('Annotation Validation', () => {
 		assert.deepStrictEqual(parsed, store);
 	});
 
-	// Scenario: a new annotation store is accepted when a selectedLines fragment exceeds the legacy 2000-char upper bound because per-line normalization in createAnnotationAnchor supersedes the store-level check.
-	test('accepts selectedLines fragments longer than the legacy v1 upper bound', () => {
+	// Scenario: a persisted store is rejected when a selectedLines fragment exceeds the per-line 200-char contract.
+	test('rejects selectedLines fragments longer than the per-line truncation limit', () => {
 		const store = createStore({
 			sessions: [
 				createSession({
@@ -37,7 +36,7 @@ suite('Annotation Validation', () => {
 						createAnnotation({
 							anchor: {
 								...createAnnotation().anchor,
-								selectedLines: ['x'.repeat(annotationSelectedTextMaxLength + 1)],
+								selectedLines: ['x'.repeat(annotationContextLineMaxLength + 1)],
 							},
 						}),
 					],
@@ -45,7 +44,14 @@ suite('Annotation Validation', () => {
 			],
 		});
 
-		assert.doesNotThrow(() => validateAnnotationStore(store));
+		assert.throws(
+			() => validateAnnotationStore(store),
+			(error: unknown) => {
+				assert.ok(error instanceof AnnotationStoreValidationError);
+				assert.strictEqual(error.issues[0]?.path, '$.anchor.selectedLines[0]');
+				return true;
+			},
+		);
 	});
 
 	// Scenario: persisted context fingerprint lines are rejected when they exceed the fixed v1 truncation bound.

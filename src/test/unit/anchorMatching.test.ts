@@ -156,7 +156,7 @@ suite('Anchor Matching', () => {
 		assert.deepStrictEqual(anchor.selectedLines, [expectedLine, expectedLine]);
 	});
 
-	// Scenario: Given selectedText moved to line 5 (within 50 lines) with changed surrounding context, When reanchoring, Then proximity returns the match without requiring full context agreement.
+	// Scenario: Given selectedLines moved to line 5 (within 50 lines) with changed surrounding context, When reanchoring, Then proximity returns the match without requiring full context agreement.
 	test('findAnnotationReanchorMatch returns proximity match when text has moved within 50 lines', () => {
 		const anchor = createAnnotationAnchor(
 			{ start: { line: 0, character: 0 }, end: { line: 0, character: 8 } },
@@ -225,7 +225,7 @@ suite('Anchor Matching', () => {
 		});
 	});
 
-	// Scenario: Given selectedText moved to line 55 (beyond the 50-line proximity radius) with matching context, When reanchoring, Then proximity yields no match and fingerprint succeeds.
+	// Scenario: Given selectedLines moved to line 55 (beyond the 50-line proximity radius) with matching context, When reanchoring, Then proximity yields no match and fingerprint succeeds.
 	test('findAnnotationReanchorMatch falls through proximity to fingerprint when no candidates within radius', () => {
 		const anchor = createAnnotationAnchor(
 			{ start: { line: 0, character: 0 }, end: { line: 0, character: 8 } },

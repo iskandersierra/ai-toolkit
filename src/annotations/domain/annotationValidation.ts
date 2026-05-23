@@ -64,7 +64,16 @@ export function validateNewAnnotationSelectedLines(selectedLines: readonly strin
 		);
 	}
 
-	return [...selectedLines];
+	return selectedLines.map((line, index) => {
+		if (line.length > annotationContextLineMaxLength) {
+			throw createAnnotationValidationError(
+				`$.anchor.selectedLines[${index}]`,
+				`selectedLines fragments must be at most ${annotationContextLineMaxLength} characters.`,
+			);
+		}
+
+		return line;
+	});
 }
 
 export function validateContextFingerprintLines(lines: readonly string[], path: string): string[] {

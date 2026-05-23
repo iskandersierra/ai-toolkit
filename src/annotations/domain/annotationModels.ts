@@ -1,5 +1,5 @@
 export const annotationSchemaVersion = 1;
-export const annotationSelectedTextMaxLength = 2000;
+export const annotationSelectionTextMaxLength = 2000;
 export const annotationContextLineMaxLength = 200;
 export const annotationFingerprintContextLineCount = 2;
 
@@ -83,7 +83,7 @@ export function normalizeAnnotationSelectedLines(lines: readonly string[]): stri
 	return lines.map((line) => truncateAnnotationContextLine(line));
 }
 
-export function createCanonicalAnnotationSelectedText(lines: readonly string[]): string {
+export function createCanonicalAnnotationSelectionText(lines: readonly string[]): string {
 	return normalizeAnnotationSelectedLines(lines).join('\n');
 }
 
@@ -136,7 +136,7 @@ export function createAnnotationRangeSelectedLines(
 }
 
 export function createAnnotationSearchText(range: AnnotationRange, lines: readonly string[]): string {
-	const canonicalText = createCanonicalAnnotationSelectedText(lines);
+	const canonicalText = createCanonicalAnnotationSelectionText(lines);
 
 	return range.end.character === 0 && range.end.line > range.start.line
 		? `${canonicalText}\n`

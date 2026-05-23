@@ -1,7 +1,7 @@
 import {
 	createAnnotationRangeSelectedLines,
 	createAnnotationSearchText,
-	createCanonicalAnnotationSelectedText,
+	createCanonicalAnnotationSelectionText,
 	normalizeAnnotationContextLines,
 	normalizeAnnotationSelectedLines,
 	type AnnotationAnchor,
@@ -90,8 +90,8 @@ function tryExactRangeMatch(
 
 	if (
 		selectedLines === undefined ||
-		createCanonicalAnnotationSelectedText(selectedLines) !==
-			createCanonicalAnnotationSelectedText(anchor.selectedLines)
+		createCanonicalAnnotationSelectionText(selectedLines) !==
+			createCanonicalAnnotationSelectionText(anchor.selectedLines)
 	) {
 		return undefined;
 	}
@@ -168,7 +168,7 @@ function tryFingerprintRangeMatch(
 	anchor: AnnotationAnchor,
 ): AnnotationReanchorMatch | undefined {
 	const lineIndex = createLineIndex(documentText);
-	const candidates = findSelectedTextCandidates(documentText, anchor, lineIndex).map((candidate) => ({
+	const candidates = findSelectedLineCandidates(documentText, anchor, lineIndex).map((candidate) => ({
 		candidate,
 		contextScore: scoreContextMatch(anchor, candidate.range, lineIndex.lines),
 	}));
@@ -254,7 +254,7 @@ function createLocalCandidates(anchor: AnnotationAnchor, lines: readonly string[
 				selectedLines: candidateText,
 				lineDistance: Math.abs(candidateStartLine - anchor.range.start.line),
 				characterDistance: Math.abs(startCharacter - anchor.range.start.character),
-				selectedLineSimilarity: scoreSelectedTextSimilarity(anchor.selectedLines, candidateText),
+				selectedLineSimilarity: scoreSelectedLineSimilarity(anchor.selectedLines, candidateText),
 				contextScore: scoreContextMatch(anchor, range, lines),
 			});
 		}
@@ -321,21 +321,21 @@ function getRangeText(lines: readonly string[], range: AnnotationRange): string[
 }
 
 
-function scoreSelectedTextSimilarity(anchorSelectedLines: readonly string[], candidateSelectedLines: readonly string[]): number {
-	const anchorSelectedText = createCanonicalAnnotationSelectedText(anchorSelectedLines);
-	const candidateSelectedText = createCanonicalAnnotationSelectedText(candidateSelectedLines);
+function scoreSelectedLineSimilarity(anchorSelectedLines: readonly string[], candidateSelectedLines: readonly string[]): number {
+	const anchorSelectionText = createCanonicalAnnotationSelectionText(anchorSelectedLines);
+	const candidateSelectionText = createCanonicalAnnotationSelectionText(candidateSelectedLines);
 
-	if (anchorSelectedText === candidateSelectedText) {
+	if (anchorSelectionText === candidateSelectionText) {
 		return 1;
 	}
 
-	const maxLength = Math.max(anchorSelectedText.length, candidateSelectedText.length);
+	const maxLength = Math.max(anchorSelectionText.length, candidateSelectionText.length);
 
 	if (maxLength === 0) {
 		return 1;
 	}
 
-	const distance = computeLevenshteinDistance(anchorSelectedText, candidateSelectedText);
+	const distance = computeLevenshteinDistance(anchorSelectionText, candidateSelectionText);
 	return 1 - distance / maxLength;
 }
 
@@ -375,40 +375,40 @@ function serializeRange(range: AnnotationRange): string {
 	return `${range.start.line}:${range.start.character}-${range.end.line}:${range.end.character}`;
 }
 
-function findSelectedTextCandidates(
+function findSelectedLineCandidates(
 	documentText: string,
 	anchor: AnnotationAnchor,
 	lineIndex: ReturnType<typeof createLineIndex>,
 ): OffsetRange[] {
 	const candidates: OffsetRange[] = [];
-	const selectedText = createAnnotationSearchText(anchor.range, anchor.selectedLines);
+	const selectionText = createAnnotationSearchText(anchor.range, anchor.selectedLines);
 	let searchStart = 0;
 
 	while (searchStart <= documentText.length) {
-		const foundAt = documentText.indexOf(selectedText, searchStart);
+		const foundAt = documentText.indexOf(selectionText, searchStart);
 
 		if (foundAt < 0) {
 			break;
 		}
 
-		const range = offsetsToRange(foundAt, foundAt + selectedText.length, lineIndex.lineStarts);
+		const range = offsetsToRange(foundAt, foundAt + selectionText.length, lineIndex.lineStarts);
 		const candidateSelectedLines = createAnnotationRangeSelectedLines(range, lineIndex.lines);
 
 		if (
 			candidateSelectedLines === undefined ||
-			createCanonicalAnnotationSelectedText(candidateSelectedLines) !==
-				createCanonicalAnnotationSelectedText(anchor.selectedLines)
+			createCanonicalAnnotationSelectionText(candidateSelectedLines) !==
+				createCanonicalAnnotationSelectionText(anchor.selectedLines)
 		) {
-			searchStart = foundAt + Math.max(selectedText.length, 1);
+			searchStart = foundAt + Math.max(selectionText.length, 1);
 			continue;
 		}
 
 		candidates.push({
 			startOffset: foundAt,
-			endOffset: foundAt + selectedText.length,
+			endOffset: foundAt + selectionText.length,
 			range,
 		});
-		searchStart = foundAt + Math.max(selectedText.length, 1);
+		searchStart = foundAt + Math.max(selectionText.length, 1);
 	}
 
 	return candidates;
