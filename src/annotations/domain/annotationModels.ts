@@ -1,5 +1,4 @@
 export const annotationSchemaVersion = 1;
-export const annotationSelectionTextMaxLength = 2000;
 export const annotationContextLineMaxLength = 200;
 export const annotationFingerprintContextLineCount = 2;
 

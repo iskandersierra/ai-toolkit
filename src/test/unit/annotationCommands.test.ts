@@ -27,13 +27,14 @@ import { deriveAnnotationWorkspaceProjection } from '../../annotations/applicati
 import { createAnnotationAnchor } from '../../annotations/domain/anchorMatching';
 import { createSessionMaintenanceQuickPickItems } from '../../annotations/presentation/sessionMaintenanceQuickPick';
 import {
-	annotationSelectionTextMaxLength,
+	annotationContextLineMaxLength,
 	annotationSchemaVersion,
 	type AnnotationStore,
 } from '../../annotations/domain/annotationModels';
 
 const createdFixtureUris: vscode.Uri[] = [];
 let fixtureCounter = 0;
+const oversizedSingleLineSelectionLength = annotationContextLineMaxLength * 11;
 
 suite('Annotation Commands', () => {
 	suiteTeardown(async () => {
@@ -1149,9 +1150,9 @@ suite('Annotation Commands', () => {
 		assert.deepStrictEqual(errorMessages, ['Unable to open the generated draft output document.']);
 	});
 
-	// Scenario: Given selection text longer than the legacy 2000-char limit, When add-or-edit runs, Then per-line normalization truncates it and the annotation is created.
-	test('accepts oversized single-line selected text in add-or-edit after per-line normalization', async () => {
-		const oversizedSelectionText = 'a'.repeat(annotationSelectionTextMaxLength + 1);
+	// Scenario: Given an oversized single-line selection, When add-or-edit runs, Then per-line normalization truncates it and the annotation is created.
+	test('accepts oversized single-line selections in add-or-edit after per-line normalization', async () => {
+		const oversizedSelectionText = 'a'.repeat(oversizedSingleLineSelectionLength);
 		const editor = await openEditor(oversizedSelectionText);
 		editor.selection = new vscode.Selection(
 			new vscode.Position(0, 0),
@@ -1181,9 +1182,9 @@ suite('Annotation Commands', () => {
 		});
 	});
 
-	// Scenario: Given selection text longer than the legacy limit, When existing-annotation reanchor runs, Then per-line normalization truncates it and the annotation is reanchored.
-	test('accepts oversized single-line selected text for existing-annotation reanchor after per-line normalization', async () => {
-		const oversizedSelectionText = 'a'.repeat(annotationSelectionTextMaxLength + 1);
+	// Scenario: Given an oversized single-line selection, When existing-annotation reanchor runs, Then per-line normalization truncates it and the annotation is reanchored.
+	test('accepts oversized single-line selections for existing-annotation reanchor after per-line normalization', async () => {
+		const oversizedSelectionText = 'a'.repeat(oversizedSingleLineSelectionLength);
 		const editor = await openEditor(oversizedSelectionText);
 		const filePath = toRelativeEditorPath(editor);
 		editor.selection = new vscode.Selection(
@@ -1221,9 +1222,9 @@ suite('Annotation Commands', () => {
 		});
 	});
 
-	// Scenario: Given selection text longer than the legacy limit, When direct reanchor runs, Then per-line normalization truncates it and the annotation is reanchored.
-	test('accepts oversized single-line selected text in direct reanchor after per-line normalization', async () => {
-		const oversizedSelectionText = 'a'.repeat(annotationSelectionTextMaxLength + 1);
+	// Scenario: Given an oversized single-line selection, When direct reanchor runs, Then per-line normalization truncates it and the annotation is reanchored.
+	test('accepts oversized single-line selections in direct reanchor after per-line normalization', async () => {
+		const oversizedSelectionText = 'a'.repeat(oversizedSingleLineSelectionLength);
 		const editor = await openEditor(oversizedSelectionText);
 		const filePath = toRelativeEditorPath(editor);
 		editor.selection = new vscode.Selection(

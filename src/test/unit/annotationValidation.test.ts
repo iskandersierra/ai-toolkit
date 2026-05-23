@@ -1,4 +1,6 @@
 import * as assert from 'assert';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import {
 	annotationContextLineMaxLength,
 	annotationFingerprintContextLineCount,
@@ -82,6 +84,28 @@ suite('Annotation Validation', () => {
 			selectedLineMaxLength: annotationContextLineMaxLength,
 			contextLineMaxLength: annotationContextLineMaxLength,
 			contextLineCount: 2,
+		});
+	});
+
+	// Scenario: the persisted JSON schema rejects blank-only selectedLines arrays the same way runtime validation does.
+	test('schema requires selectedLines arrays to contain at least one non-empty fragment', () => {
+		const schema = JSON.parse(
+			fs.readFileSync(path.join(process.cwd(), 'schemas', 'ai-toolkit.annotations.schema.json'), 'utf8'),
+		) as {
+			$defs?: {
+				anchor?: {
+					properties?: {
+						selectedLines?: {
+							contains?: unknown;
+						};
+					};
+				};
+			};
+		};
+
+		assert.deepStrictEqual(schema.$defs?.anchor?.properties?.selectedLines?.contains, {
+			type: 'string',
+			minLength: 1,
 		});
 	});
 
@@ -258,7 +282,7 @@ function createStore(overrides: Partial<AnnotationStore> = {}): AnnotationStore 
 		sessions: [createSession()],
 		...overrides,
 	};
-	}
+}
 
 function createSession(overrides: Partial<AnnotationSession> = {}): AnnotationSession {
 	return {
