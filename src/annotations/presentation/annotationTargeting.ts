@@ -1,7 +1,10 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { createAnnotationAnchor } from '../domain/anchorMatching';
-import { createAnnotationRangeSelectedLines } from '../domain/annotationModels';
+import {
+	createAnnotationRangeSelectedLines,
+	getAnnotationRangeEffectiveEndLine,
+} from '../domain/annotationModels';
 import type { AnnotationProjectionEntry } from '../application/projectionModel';
 
 export function toWorkspaceRelativeFilePath(
@@ -27,11 +30,16 @@ function isAbsolutePathResult(filePath: string): boolean {
 
 export function createAnchorFromEditorSelection(editor: vscode.TextEditor) {
 	const selection = normalizeSelection(editor.selection);
+	const range = selectionToRange(selection);
 	const contextBeforeLines = collectContextBeforeLines(editor.document, selection.start.line, 2);
-	const contextAfterLines = collectContextAfterLines(editor.document, selection.end.line, 2);
+	const contextAfterLines = collectContextAfterLines(
+		editor.document,
+		getAnnotationRangeEffectiveEndLine(range),
+		2,
+	);
 
 	return createAnnotationAnchor(
-		selectionToRange(selection),
+		range,
 		collectSelectedLines(editor.document, selection),
 		contextBeforeLines,
 		contextAfterLines,

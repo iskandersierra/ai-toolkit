@@ -86,6 +86,12 @@ export function createCanonicalAnnotationSelectionText(lines: readonly string[])
 	return normalizeAnnotationSelectedLines(lines).join('\n');
 }
 
+export function getAnnotationRangeEffectiveEndLine(range: AnnotationRange): number {
+	return range.end.character === 0 && range.end.line > range.start.line
+		? range.end.line - 1
+		: range.end.line;
+}
+
 export function createAnnotationRangeSelectedLines(
 	range: AnnotationRange,
 	lines: readonly string[],
@@ -107,8 +113,8 @@ export function createAnnotationRangeSelectedLines(
 	const startCharacter = Math.min(range.start.character, startLine.length);
 	const endCharacter = Math.min(range.end.character, endLine.length);
 
-	const omitsTrailingEmptyLine = range.end.character === 0 && range.end.line > range.start.line;
-	const effectiveEndLine = omitsTrailingEmptyLine ? range.end.line - 1 : range.end.line;
+	const effectiveEndLine = getAnnotationRangeEffectiveEndLine(range);
+	const omitsTrailingEmptyLine = effectiveEndLine !== range.end.line;
 	const selectedLines: string[] = [];
 
 	for (let lineIndex = range.start.line; lineIndex <= effectiveEndLine; lineIndex += 1) {
@@ -137,7 +143,7 @@ export function createAnnotationRangeSelectedLines(
 export function createAnnotationSearchText(range: AnnotationRange, lines: readonly string[]): string {
 	const canonicalText = createCanonicalAnnotationSelectionText(lines);
 
-	return range.end.character === 0 && range.end.line > range.start.line
+	return getAnnotationRangeEffectiveEndLine(range) !== range.end.line
 		? `${canonicalText}\n`
 		: canonicalText;
 }

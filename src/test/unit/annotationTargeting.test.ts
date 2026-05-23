@@ -1,6 +1,10 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { toWorkspaceRelativeFilePath, resolveAnnotationTarget } from '../../annotations/presentation/annotationTargeting';
+import {
+	createAnchorFromEditorSelection,
+	toWorkspaceRelativeFilePath,
+	resolveAnnotationTarget,
+} from '../../annotations/presentation/annotationTargeting';
 import type { AnnotationProjectionEntry } from '../../annotations/application/projectionModel';
 
 suite('Annotation Targeting', () => {
@@ -23,6 +27,22 @@ suite('Annotation Targeting', () => {
 		);
 
 		assert.strictEqual(relativePath, undefined);
+	});
+
+	// Scenario: Given a multi-line selection ending at column 0, When an anchor is captured, Then contextAfterLines starts with the first unselected line.
+	test('captures post-selection context from the effective end line for trailing-column-0 selections', async () => {
+		const document = await vscode.workspace.openTextDocument({
+			content: ['before', 'target()', 'after a', 'after b'].join('\n'),
+			language: 'typescript',
+		});
+		const editor = await vscode.window.showTextDocument(document);
+		editor.selection = new vscode.Selection(new vscode.Position(1, 0), new vscode.Position(2, 0));
+
+		const anchor = createAnchorFromEditorSelection(editor);
+
+		assert.deepStrictEqual(anchor.selectedLines, ['target()']);
+		assert.deepStrictEqual(anchor.contextAfterLines, ['after a', 'after b']);
+		await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
 	});
 });
 

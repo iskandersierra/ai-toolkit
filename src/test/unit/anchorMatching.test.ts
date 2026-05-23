@@ -286,4 +286,24 @@ suite('Anchor Matching', () => {
 
 		assert.deepStrictEqual(anchor.selectedLines, ['target()']);
 	});
+
+	// Scenario: Given a trailing-column-0 selection with unique immediate post-context, When exact matching fails after nearby edits, Then fingerprint reanchor retains the first unselected line in post-context scoring.
+	test('findAnnotationReanchorMatch scores post-context from the effective end line for trailing-column-0 selections', () => {
+		const anchor = createAnnotationAnchor(
+			{ start: { line: 1, character: 0 }, end: { line: 2, character: 0 } },
+			['target()'],
+			['before'],
+			['after a', 'after b'],
+		);
+		const documentText = ['prefix', 'before', 'target()', 'after a', 'after b', 'suffix'].join('\n');
+
+		const match = findAnnotationReanchorMatch(documentText, anchor);
+
+		assert.deepStrictEqual(match, {
+			range: { start: { line: 2, character: 0 }, end: { line: 3, character: 0 } },
+			strategy: 'fingerprint',
+			contextScore: 3,
+			contextScoreMax: 3,
+		});
+	});
 });

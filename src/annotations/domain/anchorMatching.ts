@@ -2,6 +2,7 @@ import {
 	createAnnotationRangeSelectedLines,
 	createAnnotationSearchText,
 	createCanonicalAnnotationSelectionText,
+	getAnnotationRangeEffectiveEndLine,
 	normalizeAnnotationContextLines,
 	normalizeAnnotationSelectedLines,
 	type AnnotationAnchor,
@@ -207,7 +208,7 @@ function scoreContextMatch(anchor: AnnotationAnchor, range: AnnotationRange, lin
 		}
 	}
 
-	const afterStart = range.end.line + 1;
+	const afterStart = getAnnotationRangeEffectiveEndLine(range) + 1;
 
 	for (let index = 0; index < anchor.contextAfterLines.length; index += 1) {
 		if (lines[afterStart + index] === anchor.contextAfterLines[index]) {
