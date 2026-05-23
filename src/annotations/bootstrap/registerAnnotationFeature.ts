@@ -42,7 +42,7 @@ export function registerAnnotationFeature(context: vscode.ExtensionContext): voi
 	);
 }
 
-class AnnotationWorkspaceServiceRegistry implements vscode.Disposable {
+export class AnnotationWorkspaceServiceRegistry implements vscode.Disposable {
 	private readonly services = new Map<string, AnnotationWorkspaceService>();
 	private readonly subscriptions: vscode.Disposable[] = [];
 

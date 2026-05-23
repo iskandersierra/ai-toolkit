@@ -202,6 +202,27 @@ suite('Register Annotation Feature', () => {
 		assert.strictEqual(codeLensProvider?.dispose.calls.length, 1);
 		assert.strictEqual(registerCodeLensProviderDisposable.dispose.calls.length, 1);
 	});
+
+	// Scenario: Given the registry is used without projection collaborators, When workspace state changes, Then it subscribes only the context-key refresh path.
+	test('registers only the context-key listener when no projection collaborators are supplied', async () => {
+		const { AnnotationWorkspaceServiceRegistry } = await import('../../annotations/bootstrap/registerAnnotationFeature');
+		const registry = new AnnotationWorkspaceServiceRegistry();
+		const workspaceFolder = createWorkspaceFolder('e:/source/ai-toolkit');
+		const contextKeys = {
+			refresh: createSpy<[], Promise<void>>(async () => undefined),
+		};
+
+		const service = await registry.getWorkspaceService(workspaceFolder, contextKeys);
+		assert.strictEqual(service.listenerCount, 1);
+
+		service.state = { status: 'ready', projection: { workspaceFolderPath: 'e:/source/ai-toolkit', annotations: [] } };
+		service.emitDidChangeState();
+		await flushAsyncWork();
+
+		assert.strictEqual(contextKeys.refresh.calls.length, 1);
+		registry.dispose();
+		assert.strictEqual(service.disposeMock.calls.length, 1);
+	});
 });
 
 class FakeAnnotationWorkspaceService {

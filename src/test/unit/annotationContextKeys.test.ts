@@ -168,6 +168,291 @@ suite('Annotation Context Keys', () => {
 			{ key: annotationContextKeyIds.hasActiveSession, value: true },
 		]);
 	});
+
+	// Scenario: Given no active editor, When context keys refresh, Then both keys fall back to false.
+	test('sets safe defaults when no editor is active', async () => {
+		const commandCalls: Array<{ key: string; value: boolean }> = [];
+		const context = createExtensionContext();
+
+		const controller = registerAnnotationContextKeys(context, {
+			window: createWindowApi(undefined),
+			commands: {
+				executeCommand: (async <T = unknown>(_command: string, key: string, value: boolean) => {
+					commandCalls.push({ key, value });
+					return undefined as T;
+				}) as typeof vscode.commands.executeCommand,
+			},
+			getWorkspaceService: async () => createWorkspaceService(createReadyState()),
+		});
+
+		await flushAsyncWork();
+		commandCalls.length = 0;
+
+		await controller.refresh();
+
+		assert.deepStrictEqual(commandCalls, [
+			{ key: annotationContextKeyIds.canManage, value: false },
+			{ key: annotationContextKeyIds.hasActiveSession, value: false },
+		]);
+	});
+
+	// Scenario: Given an untitled editor outside the workspace, When context keys refresh, Then both keys fall back to false.
+	test('sets safe defaults when the editor file is not workspace-relative', async () => {
+		const commandCalls: Array<{ key: string; value: boolean }> = [];
+		const context = createExtensionContext();
+		const document = {
+			uri: vscode.Uri.untitled('annotation-context-keys'),
+		} as vscode.TextDocument;
+		const editor = {
+			document,
+			selection: new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0)),
+		} as vscode.TextEditor;
+
+		const controller = registerAnnotationContextKeys(context, {
+			window: createWindowApi(editor),
+			commands: {
+				executeCommand: (async <T = unknown>(_command: string, key: string, value: boolean) => {
+					commandCalls.push({ key, value });
+					return undefined as T;
+				}) as typeof vscode.commands.executeCommand,
+			},
+			getWorkspaceService: async () => createWorkspaceService(createReadyState()),
+		});
+
+		await flushAsyncWork();
+		commandCalls.length = 0;
+
+		await controller.refresh();
+
+		assert.deepStrictEqual(commandCalls, [
+			{ key: annotationContextKeyIds.canManage, value: false },
+			{ key: annotationContextKeyIds.hasActiveSession, value: false },
+		]);
+	});
+
+	// Scenario: Given a non-ready workspace state, When context keys refresh, Then both keys fall back to false.
+	test('sets safe defaults when the workspace service is not ready', async () => {
+		const commandCalls: Array<{ key: string; value: boolean }> = [];
+		const context = createExtensionContext();
+		const windowApi = createWindowApi(createEditor());
+
+		const controller = registerAnnotationContextKeys(context, {
+			window: windowApi,
+			commands: {
+				executeCommand: (async <T = unknown>(_command: string, key: string, value: boolean) => {
+					commandCalls.push({ key, value });
+					return undefined as T;
+				}) as typeof vscode.commands.executeCommand,
+			},
+			getWorkspaceService: async () => createWorkspaceService({
+				status: 'invalid',
+				storePath: 'e:/source/ai-toolkit/.vscode/ai-toolkit.annotations.json',
+				error: new Error('invalid store'),
+			} as ReturnType<typeof createWorkspaceService> extends AnnotationWorkspaceServiceLike ? never : never),
+		});
+
+		await flushAsyncWork();
+		commandCalls.length = 0;
+
+		await controller.refresh();
+
+		assert.deepStrictEqual(commandCalls, [
+			{ key: annotationContextKeyIds.canManage, value: false },
+			{ key: annotationContextKeyIds.hasActiveSession, value: false },
+		]);
+	});
+
+	// Scenario: Given cached state is missing and initialize returns a non-ready result, When context keys refresh, Then both keys fall back to false.
+	test('sets safe defaults when initialize returns a non-ready state', async () => {
+		const commandCalls: Array<{ key: string; value: boolean }> = [];
+		const context = createExtensionContext();
+		const windowApi = createWindowApi(createEditor());
+
+		const controller = registerAnnotationContextKeys(context, {
+			window: windowApi,
+			commands: {
+				executeCommand: (async <T = unknown>(_command: string, key: string, value: boolean) => {
+					commandCalls.push({ key, value });
+					return undefined as T;
+				}) as typeof vscode.commands.executeCommand,
+			},
+			getWorkspaceService: async () => ({
+				...createWorkspaceService(createReadyState()),
+				getState: () => undefined,
+				initialize: async () => ({
+					status: 'invalid',
+					storePath: 'e:/source/ai-toolkit/.vscode/ai-toolkit.annotations.json',
+					error: new Error('invalid store'),
+				}),
+			}),
+		});
+
+		await flushAsyncWork();
+		commandCalls.length = 0;
+
+		await controller.refresh();
+
+		assert.deepStrictEqual(commandCalls, [
+			{ key: annotationContextKeyIds.canManage, value: false },
+			{ key: annotationContextKeyIds.hasActiveSession, value: false },
+		]);
+	});
+
+	// Scenario: Given cached state is missing and initialize returns ready state, When context keys refresh, Then the initialized projection drives the context keys.
+	test('uses initialized ready state when no cached state exists', async () => {
+		const commandCalls: Array<{ key: string; value: boolean }> = [];
+		const context = createExtensionContext();
+		const windowApi = createWindowApi(createEditor());
+
+		const controller = registerAnnotationContextKeys(context, {
+			window: windowApi,
+			commands: {
+				executeCommand: (async <T = unknown>(_command: string, key: string, value: boolean) => {
+					commandCalls.push({ key, value });
+					return undefined as T;
+				}) as typeof vscode.commands.executeCommand,
+			},
+			getWorkspaceService: async () => ({
+				...createWorkspaceService(createReadyState()),
+				getState: () => undefined,
+				initialize: async () => createReadyState(),
+			}),
+		});
+
+		await flushAsyncWork();
+		commandCalls.length = 0;
+
+		await controller.refresh();
+
+		assert.deepStrictEqual(commandCalls, [
+			{ key: annotationContextKeyIds.canManage, value: true },
+			{ key: annotationContextKeyIds.hasActiveSession, value: true },
+		]);
+	});
+
+	// Scenario: Given ready state has no matching annotation and no active session, When context keys refresh, Then both keys are updated from the ready projection rather than safe defaults.
+	test('uses ready state values when no annotation target or active session exists', async () => {
+		const commandCalls: Array<{ key: string; value: boolean }> = [];
+		const context = createExtensionContext();
+		const windowApi = createWindowApi(createEditor());
+
+		const controller = registerAnnotationContextKeys(context, {
+			window: windowApi,
+			commands: {
+				executeCommand: (async <T = unknown>(_command: string, key: string, value: boolean) => {
+					commandCalls.push({ key, value });
+					return undefined as T;
+				}) as typeof vscode.commands.executeCommand,
+			},
+			getWorkspaceService: async () => createWorkspaceService(createReadyState({ activeSessionId: null, annotations: [] })),
+		});
+
+		await flushAsyncWork();
+		commandCalls.length = 0;
+
+		await controller.refresh();
+
+		assert.deepStrictEqual(commandCalls, [
+			{ key: annotationContextKeyIds.canManage, value: false },
+			{ key: annotationContextKeyIds.hasActiveSession, value: false },
+		]);
+	});
+
+	// Scenario: Given a newer refresh starts during applyContextState, When the older refresh resumes, Then it skips the stale hasActiveSession update.
+	test('skips the stale hasActiveSession write when applyContextState is superseded', async () => {
+		const commandCalls: Array<{ key: string; value: boolean }> = [];
+		const context = createExtensionContext();
+		const primaryEditor = createEditor();
+		const staleEditor = createEditor('e:/source/ai-toolkit/src/other.ts');
+		const windowApi: AnnotationContextKeyDependencies['window'] = {
+			activeTextEditor: undefined,
+			onDidChangeActiveTextEditor: () => ({ dispose() {} }),
+			onDidChangeTextEditorSelection: () => ({ dispose() {} }),
+		};
+		let controller!: ReturnType<typeof registerAnnotationContextKeys>;
+		let triggeredNestedRefresh = false;
+
+		controller = registerAnnotationContextKeys(context, {
+			window: windowApi,
+			commands: {
+				executeCommand: (async <T = unknown>(_command: string, key: string, value: boolean) => {
+					commandCalls.push({ key, value });
+
+					if (!triggeredNestedRefresh && key === annotationContextKeyIds.canManage && value) {
+						triggeredNestedRefresh = true;
+						windowApi.activeTextEditor = staleEditor;
+						await controller.refresh();
+					}
+
+					return undefined as T;
+				}) as typeof vscode.commands.executeCommand,
+			},
+			getWorkspaceService: async () => {
+				if (windowApi.activeTextEditor === staleEditor) {
+					return createWorkspaceService(createReadyState({ activeSessionId: null, annotations: [] }));
+				}
+
+				return createWorkspaceService(createReadyState());
+			},
+		});
+
+		await flushAsyncWork();
+		commandCalls.length = 0;
+		windowApi.activeTextEditor = primaryEditor;
+
+		await controller.refresh();
+
+		assert.deepStrictEqual(commandCalls, [
+			{ key: annotationContextKeyIds.canManage, value: true },
+			{ key: annotationContextKeyIds.canManage, value: false },
+			{ key: annotationContextKeyIds.hasActiveSession, value: false },
+		]);
+	});
+
+	// Scenario: Given a newer refresh starts during setSafeDefaults, When the older refresh resumes, Then it skips the stale hasActiveSession false write.
+	test('skips the stale safe-default hasActiveSession write when superseded', async () => {
+		const commandCalls: Array<{ key: string; value: boolean }> = [];
+		const context = createExtensionContext();
+		const primaryEditor = createEditor();
+		const windowApi: AnnotationContextKeyDependencies['window'] = {
+			activeTextEditor: undefined,
+			onDidChangeActiveTextEditor: () => ({ dispose() {} }),
+			onDidChangeTextEditorSelection: () => ({ dispose() {} }),
+		};
+		let controller!: ReturnType<typeof registerAnnotationContextKeys>;
+		let triggeredNestedRefresh = false;
+
+		controller = registerAnnotationContextKeys(context, {
+			window: windowApi,
+			commands: {
+				executeCommand: (async <T = unknown>(_command: string, key: string, value: boolean) => {
+					commandCalls.push({ key, value });
+
+					if (!triggeredNestedRefresh && key === annotationContextKeyIds.canManage && value === false) {
+						triggeredNestedRefresh = true;
+						windowApi.activeTextEditor = primaryEditor;
+						await controller.refresh();
+					}
+
+					return undefined as T;
+				}) as typeof vscode.commands.executeCommand,
+			},
+			getWorkspaceService: async () => createWorkspaceService(createReadyState()),
+		});
+
+		await flushAsyncWork();
+		commandCalls.length = 0;
+		triggeredNestedRefresh = false;
+		windowApi.activeTextEditor = undefined;
+
+		await controller.refresh();
+
+		assert.deepStrictEqual(commandCalls, [
+			{ key: annotationContextKeyIds.canManage, value: false },
+			{ key: annotationContextKeyIds.canManage, value: true },
+			{ key: annotationContextKeyIds.hasActiveSession, value: true },
+		]);
+	});
 });
 
 function createExtensionContext(): vscode.ExtensionContext {
@@ -197,7 +482,7 @@ function createEditor(
 }
 
 function createWorkspaceService(
-	state: ReturnType<typeof createReadyState>,
+	state: ReturnType<typeof createReadyState> | { status: 'invalid'; storePath: string; error: Error },
 	workspacePath = 'e:/source/ai-toolkit',
 ): AnnotationWorkspaceServiceLike {
 	return {

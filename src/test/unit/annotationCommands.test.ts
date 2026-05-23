@@ -578,6 +578,52 @@ suite('Annotation Commands', () => {
 		assert.deepStrictEqual(informationMessages, ['The active review session has no dismissed annotations to purge.']);
 	});
 
+	// Scenario: Given no active review session, When draft output generation runs, Then it blocks with the shared no-active-session message.
+	test('blocks draft output generation when no active review session is selected', async () => {
+		const editor = await openEditor('target()');
+
+		const result = await executeGenerateDraftOutputCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore({ activeSessionId: null })),
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.generateDraftOutput,
+			reason: 'noActiveSession',
+			message: 'Select a review session before generating draft output.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+	});
+
+	// Scenario: Given draft generation reports a blocked workspace result, When the command runs, Then it forwards that blocked result.
+	test('surfaces blocked draft output workspace results', async () => {
+		const editor = await openEditor('target()');
+
+		const result = await executeGenerateDraftOutputCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => ({
+				...new FakeAnnotationWorkspaceService(createStore()),
+				generateDraftOutput: async () => ({
+					status: 'blocked',
+					reason: 'invalidStore',
+					message: 'The annotation store is invalid. Fix the store file before running annotation commands.',
+					storePath,
+				}),
+			}),
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.generateDraftOutput,
+			reason: 'invalidStore',
+			message: 'The annotation store is invalid. Fix the store file before running annotation commands.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+	});
+
 	// Scenario: Given sessions with different updatedAt values, When maintenance picker items are created, Then they are ordered by most recent update and mark the active session.
 	test('orders maintenance picker items by updatedAt descending and marks the active session', () => {
 		const items = createSessionMaintenanceQuickPickItems(
@@ -1084,6 +1130,99 @@ suite('Annotation Commands', () => {
 
 		assert.ok(capturedAvailableActions !== undefined, 'Expected pickExistingAnnotationAction to be called');
 		assert.ok(!capturedAvailableActions.includes('reanchor'));
+	});
+
+	// Scenario: Given the existing-annotation action picker is dismissed, When add-or-edit targets an existing annotation, Then it returns cancelled.
+	test('returns cancelled when the existing-annotation action picker is dismissed', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+			}),
+		);
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => undefined,
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'cancelled',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+	});
+
+	// Scenario: Given an existing annotation is forced through reanchor with an empty selection, When add-or-edit runs, Then it blocks with the shared selection message.
+	test('blocks existing-annotation reanchor when the current selection is empty', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 2), new vscode.Position(0, 2));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+			}),
+		);
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'reanchor',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			reason: 'noEditorSelection',
+			message: 'Select the new anchor range before reanchoring the annotation.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+	});
+
+	// Scenario: Given an existing annotation reanchor confirmation is declined, When add-or-edit runs, Then it returns cancelled without mutating the anchor.
+	test('returns cancelled when existing-annotation reanchor confirmation is declined', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath)])],
+			}),
+		);
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'reanchor',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => false,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'cancelled',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.strictEqual(service.reanchorCalls.length, 0);
 	});
 
 	// Scenario: draft generation returns a blocked result when the generated document cannot be opened.
@@ -2239,6 +2378,255 @@ suite('Annotation Commands', () => {
 		assert.deepStrictEqual(registeredIds, Object.values(annotationCommandIds));
 		assert.strictEqual(context.subscriptions.length, Object.values(annotationCommandIds).length);
 	});
+
+	// Scenario: Given the maintenance picker is dismissed, When delete or clear review session commands run, Then each command returns cancelled.
+	test('returns cancelled when maintenance session selection is dismissed', async () => {
+		const editor = await openEditor('target()');
+		let pickCount = 0;
+
+		const deleteResult = await executeDeleteReviewSessionCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async () => {
+					pickCount += 1;
+					return undefined;
+				},
+			},
+		});
+
+		const clearResult = await executeClearReviewSessionAnnotationsCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async () => {
+					pickCount += 1;
+					return undefined;
+				},
+			},
+		});
+
+		assert.deepStrictEqual(deleteResult, {
+			status: 'cancelled',
+			commandId: annotationCommandIds.deleteReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(clearResult, {
+			status: 'cancelled',
+			commandId: annotationCommandIds.clearReviewSessionAnnotations,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.strictEqual(pickCount, 2);
+	});
+
+	// Scenario: Given destructive maintenance confirmation is declined, When delete or clear review session commands run, Then each command returns cancelled without mutating sessions.
+	test('returns cancelled when maintenance confirmation is declined', async () => {
+		const editor = await openEditor('target()');
+		const deleteService = new FakeAnnotationWorkspaceService(createStore({
+			activeSessionId: 'session-1',
+			sessions: [
+				createSession('session-1', [createAnnotation('annotation-1')], 'Security pass'),
+				createSession('session-2', [createAnnotation('annotation-2')], 'Review Session 2'),
+			],
+		}));
+		const clearService = new FakeAnnotationWorkspaceService(createStore({
+			activeSessionId: 'session-1',
+			sessions: [
+				createSession('session-1', [createAnnotation('annotation-1')], 'Security pass'),
+				createSession('session-2', [createAnnotation('annotation-2')], 'Review Session 2'),
+			],
+		}));
+
+		const deleteResult = await executeDeleteReviewSessionCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => deleteService,
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async (_operation, items) => items.find((item) => item.sessionId === 'session-2'),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+				confirmDeleteSession: async () => false,
+			},
+		});
+
+		const clearResult = await executeClearReviewSessionAnnotationsCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => clearService,
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async (_operation, items) => items.find((item) => item.sessionId === 'session-2'),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+				confirmClearSessionAnnotations: async () => false,
+			},
+		});
+
+		assert.deepStrictEqual(deleteResult, {
+			status: 'cancelled',
+			commandId: annotationCommandIds.deleteReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(clearResult, {
+			status: 'cancelled',
+			commandId: annotationCommandIds.clearReviewSessionAnnotations,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(deleteService.store.sessions.map((session) => session.sessionId), ['session-1', 'session-2']);
+		assert.deepStrictEqual(clearService.store.sessions[1]?.annotations.map((annotation) => annotation.annotationId), ['annotation-2']);
+	});
+
+	// Scenario: Given no workspace can be resolved, When delete or clear review session commands run, Then each command blocks with the shared workspace message.
+	test('blocks maintenance commands when no workspace folder can be resolved', async () => {
+		const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
+		(vscode.workspace as { workspaceFolders?: readonly vscode.WorkspaceFolder[] }).workspaceFolders = undefined;
+
+		try {
+			const deleteResult = await executeDeleteReviewSessionCommand({
+				window: {
+					activeTextEditor: undefined,
+					showErrorMessage: async () => undefined,
+					showInformationMessage: async () => undefined,
+					showWarningMessage: async () => undefined,
+					showTextDocument: (async () => {
+						throw new Error('showTextDocument should not be called');
+					}) as typeof vscode.window.showTextDocument,
+				},
+				getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+				sessionSelectionService: createSessionSelectionService(),
+			});
+
+			const clearResult = await executeClearReviewSessionAnnotationsCommand({
+				window: {
+					activeTextEditor: undefined,
+					showErrorMessage: async () => undefined,
+					showInformationMessage: async () => undefined,
+					showWarningMessage: async () => undefined,
+					showTextDocument: (async () => {
+						throw new Error('showTextDocument should not be called');
+					}) as typeof vscode.window.showTextDocument,
+				},
+				getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
+				sessionSelectionService: createSessionSelectionService(),
+			});
+
+			assert.deepStrictEqual(deleteResult, {
+				status: 'blocked',
+				commandId: annotationCommandIds.deleteReviewSession,
+				reason: 'noWorkspaceFolder',
+				message: 'AI Toolkit annotations require a saved file inside a workspace folder.',
+			});
+			assert.deepStrictEqual(clearResult, {
+				status: 'blocked',
+				commandId: annotationCommandIds.clearReviewSessionAnnotations,
+				reason: 'noWorkspaceFolder',
+				message: 'AI Toolkit annotations require a saved file inside a workspace folder.',
+			});
+		} finally {
+			(vscode.workspace as { workspaceFolders?: readonly vscode.WorkspaceFolder[] }).workspaceFolders = originalWorkspaceFolders;
+		}
+	});
+
+	// Scenario: Given the maintenance commands encounter an invalid store, When delete or clear review session commands run, Then each command returns the invalid-store blocked result.
+	test('blocks maintenance commands when the annotation store is invalid', async () => {
+		const editor = await openEditor('target()');
+		const invalidState = {
+			status: 'invalid',
+			storePath,
+			error: new Error('Invalid annotation store.'),
+		} as AnnotationWorkspaceState;
+
+		const deleteResult = await executeDeleteReviewSessionCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore(), { state: invalidState }),
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		const clearResult = await executeClearReviewSessionAnnotationsCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore(), { state: invalidState }),
+			sessionSelectionService: createSessionSelectionService(),
+		});
+
+		assert.deepStrictEqual(deleteResult, {
+			status: 'blocked',
+			commandId: annotationCommandIds.deleteReviewSession,
+			reason: 'invalidStore',
+			message: 'The annotation store is invalid. Fix the store file before running annotation commands.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(clearResult, {
+			status: 'blocked',
+			commandId: annotationCommandIds.clearReviewSessionAnnotations,
+			reason: 'invalidStore',
+			message: 'The annotation store is invalid. Fix the store file before running annotation commands.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+	});
+
+	// Scenario: Given deleting the active review session yields no matching replacement session, When delete succeeds, Then it falls back to the generic success message.
+	test('falls back to the generic delete success message when the reported active session is missing', async () => {
+		const editor = await openEditor('target()');
+		const informationMessages: string[] = [];
+		const service = new FakeAnnotationWorkspaceService(createStore({
+			activeSessionId: 'session-1',
+			sessions: [
+				createSession('session-1', [createAnnotation('annotation-1')], 'Security pass'),
+				createSession('session-2', [createAnnotation('annotation-2')], 'Review Session 2'),
+			],
+		}));
+		service.overrideDeleteResult = async () => ({
+			status: 'ready',
+			projection: deriveAnnotationWorkspaceProjection(workspaceFolder().uri.fsPath, {
+				...service.store,
+				activeSessionId: 'missing-session',
+				sessions: [createSession('session-2', [createAnnotation('annotation-2')], 'Review Session 2')],
+			}),
+			storePath,
+			sessionId: 'missing-session',
+		});
+
+		const result = await executeDeleteReviewSessionCommand({
+			window: createWindowApi(editor, {
+				showInformationMessage: async (message: string) => {
+					informationMessages.push(message);
+					return undefined;
+				},
+			}),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			sessionMaintenancePresenter: {
+				pickSession: async (_operation, items) => items.find((item) => item.sessionId === 'session-1'),
+			},
+			inputService: {
+				promptForAnnotationBody: async () => 'body',
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+				confirmDeleteSession: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.deleteReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionDeleted',
+			annotationId: undefined,
+			sessionId: 'missing-session',
+			purgedCount: undefined,
+		});
+		assert.deepStrictEqual(informationMessages, ['Deleted review session "Security pass".']);
+	});
 });
 
 const storePath = 'e:/source/ai-toolkit/.vscode/ai-toolkit.annotations.json';
@@ -2382,6 +2770,7 @@ class FakeAnnotationWorkspaceService implements Pick<AnnotationWorkspaceService,
 	public readonly reanchorCalls: unknown[] = [];
 	public readonly deletedSessionIds = new Set<string>();
 	public readonly clearedSessionIds = new Set<string>();
+	public overrideDeleteResult?: (sessionId: string) => Promise<AnnotationWorkspaceMutationResult>;
 
 	public constructor(
 		public store: AnnotationStore,
@@ -2491,6 +2880,10 @@ class FakeAnnotationWorkspaceService implements Pick<AnnotationWorkspaceService,
 	}
 
 	public async deleteSession(sessionId: string): Promise<AnnotationWorkspaceMutationResult> {
+		if (this.overrideDeleteResult) {
+			return this.overrideDeleteResult(sessionId);
+		}
+
 		if (this.deletedSessionIds.has(sessionId)) {
 			return {
 				status: 'blocked',
