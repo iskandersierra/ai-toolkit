@@ -184,6 +184,71 @@ suite('Annotation Commands', () => {
 		assert.strictEqual(promptCount, 0);
 	});
 
+	// Scenario: Given annotation capture is cancelled at the body prompt, When add-or-edit runs, Then it returns cancelled without mutating the store.
+	test('returns cancelled when the add-or-edit body prompt is dismissed', async () => {
+		const editor = await openEditor('target()');
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({ sessions: [createSession('session-1', [])] }),
+		);
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => undefined,
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'cancelled',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.deepStrictEqual(service.store.sessions[0]?.annotations, []);
+	});
+
+	// Scenario: Given the annotation store is invalid, When add-or-edit runs, Then it returns the invalid-store blocked result before prompting.
+	test('reports invalid store for add-or-edit before prompting for annotation input', async () => {
+		const editor = await openEditor('target()');
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 8));
+		let promptCount = 0;
+
+		const result = await executeAddOrEditAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore(), {
+				state: {
+					status: 'invalid',
+					storePath,
+					error: new Error('Invalid annotation store.'),
+				},
+			}),
+			sessionSelectionService: createSessionSelectionService(),
+			inputService: {
+				promptForAnnotationBody: async () => {
+					promptCount += 1;
+					return 'should not be used';
+				},
+				pickExistingAnnotationAction: async () => 'edit',
+				confirmPurgeDismissed: async () => true,
+				confirmReanchor: async () => true,
+			},
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.addOrEditAnnotation,
+			reason: 'invalidStore',
+			message: 'The annotation store is invalid. Fix the store file before running annotation commands.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.strictEqual(promptCount, 0);
+	});
+
 	// Scenario: Given a forward selection spanning more than 50 lines, When add-or-edit runs, Then it blocks before prompting for the annotation body.
 	test('blocks oversized forward selections before prompting for the annotation body', async () => {
 		const editor = await openEditor(Array.from({ length: 52 }, (_, index) => `line ${index}`).join('\n'));
@@ -412,6 +477,67 @@ suite('Annotation Commands', () => {
 			sessionId: 'session-1',
 		});
 		assert.deepStrictEqual(informationMessages, ['Activated the selected review session.']);
+	});
+
+	// Scenario: Given the review-session picker is dismissed, When the explicit select command runs, Then it returns a cancelled result.
+	test('returns cancelled when selecting a review session is dismissed', async () => {
+		const editor = await openEditor('target()');
+
+		const result = await executeSelectReviewSessionCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore({
+				activeSessionId: null,
+				sessions: [createSession('session-1', [], 'Security pass')],
+			})),
+			sessionSelectionService: new SessionSelectionService({
+				pickSession: async () => undefined,
+				promptForNewSessionName: async () => undefined,
+			}),
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'cancelled',
+			commandId: annotationCommandIds.selectReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+	});
+
+	// Scenario: Given no active editor and a single workspace folder, When the palette review-session command runs, Then it resolves the workspace from the palette fallback.
+	test('select review session resolves the workspace from the palette fallback when no editor is active', async () => {
+		let capturedWorkspaceFolder: vscode.WorkspaceFolder | undefined;
+
+		const result = await executeSelectReviewSessionCommand({
+			window: {
+				activeTextEditor: undefined,
+				showErrorMessage: async () => undefined,
+				showInformationMessage: async () => undefined,
+				showWarningMessage: async () => undefined,
+				showTextDocument: (async () => {
+					throw new Error('showTextDocument should not be called in this test');
+				}) as typeof vscode.window.showTextDocument,
+			},
+			getWorkspaceService: async (folder) => {
+				capturedWorkspaceFolder = folder;
+				return new FakeAnnotationWorkspaceService(createStore({
+					activeSessionId: null,
+					sessions: [createSession('session-1', [], 'Security pass')],
+				}));
+			},
+			sessionSelectionService: new SessionSelectionService({
+				pickSession: async (items) => items[0],
+				promptForNewSessionName: async () => undefined,
+			}),
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		});
+
+		assert.deepStrictEqual(result, {
+			status: 'ready',
+			commandId: annotationCommandIds.selectReviewSession,
+			workspaceFolder: workspaceFolder().uri.fsPath,
+			operation: 'reviewSessionSelected',
+			sessionId: 'session-1',
+		});
+		assert.strictEqual(capturedWorkspaceFolder?.uri.fsPath, workspaceFolder().uri.fsPath);
 	});
 
 	// Scenario: Given dismissed count is zero, When purge dismissed annotations runs, Then it returns ready without asking for confirmation.
