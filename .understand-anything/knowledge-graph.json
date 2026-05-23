@@ -13,9 +13,9 @@
       "TypeScript",
       "VS Code Test"
     ],
-    "description": "VS Code extension providing AI-oriented tools, starting with a code annotation workflow that persists notes attached to code ranges for agent consumption and VS Code comments projection.",
-    "analyzedAt": "2026-05-21T09:00:54.913Z",
-    "gitCommitHash": "c740bd217a5b6eda8d19ceceff07381a98305692"
+    "description": "VS Code extension providing AI-oriented tools, centered on a code annotation workflow with session management, annotation lifecycle actions, reanchoring, and VS Code comment projection.",
+    "analyzedAt": "2026-05-23T09:28:42.4025792Z",
+    "gitCommitHash": "3fc6c8b7f49e9ad3d4025514bed4afcd3e6c2775"
   },
   "nodes": [
     {
@@ -871,7 +871,7 @@
       "type": "file",
       "name": "annotationWorkspaceService.ts",
       "filePath": "src/annotations/application/annotationWorkspaceService.ts",
-      "summary": "Central application service managing annotation workspace state — sessions, entries, anchors, commits, and draft generation — with reactive state change events.",
+      "summary": "Central application service managing annotation workspace state — sessions, annotation lifecycle, anchors, commit persistence, and draft generation — with reactive state change events.",
       "tags": [
         "service",
         "application-layer",
@@ -903,6 +903,126 @@
         "exported"
       ],
       "complexity": "complex"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:createNodeAnnotationWorkspaceFileReader",
+      "type": "function",
+      "name": "createNodeAnnotationWorkspaceFileReader",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "createNodeAnnotationWorkspaceFileReader function in annotationWorkspaceService.ts.",
+      "tags": [
+        "utility",
+        "application-layer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:createNoopAnnotationWatcher",
+      "type": "function",
+      "name": "createNoopAnnotationWatcher",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "createNoopAnnotationWatcher function in annotationWorkspaceService.ts.",
+      "tags": [
+        "utility",
+        "application-layer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:isBlockedResult",
+      "type": "function",
+      "name": "isBlockedResult",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "isBlockedResult function in annotationWorkspaceService.ts.",
+      "tags": [
+        "utility",
+        "application-layer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:getActiveSession",
+      "type": "function",
+      "name": "getActiveSession",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "getActiveSession function in annotationWorkspaceService.ts.",
+      "tags": [
+        "utility",
+        "application-layer"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:normalizeRelativeFilePath",
+      "type": "function",
+      "name": "normalizeRelativeFilePath",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "normalizeRelativeFilePath function in annotationWorkspaceService.ts.",
+      "tags": [
+        "utility",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:normalizeAndValidateRelativeFilePath",
+      "type": "function",
+      "name": "normalizeAndValidateRelativeFilePath",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "normalizeAndValidateRelativeFilePath function in annotationWorkspaceService.ts.",
+      "tags": [
+        "utility",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:createSessionSlug",
+      "type": "function",
+      "name": "createSessionSlug",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "createSessionSlug function in annotationWorkspaceService.ts.",
+      "tags": [
+        "utility",
+        "session-management"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:createOpaqueId",
+      "type": "function",
+      "name": "createOpaqueId",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "createOpaqueId function in annotationWorkspaceService.ts.",
+      "tags": [
+        "utility",
+        "id-generation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:selectMostRecentlyUpdatedSessionId",
+      "type": "function",
+      "name": "selectMostRecentlyUpdatedSessionId",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "selectMostRecentlyUpdatedSessionId function in annotationWorkspaceService.ts.",
+      "tags": [
+        "utility",
+        "session-management"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/application/annotationWorkspaceService.ts:areRangesEqual",
+      "type": "function",
+      "name": "areRangesEqual",
+      "filePath": "src/annotations/application/annotationWorkspaceService.ts",
+      "summary": "areRangesEqual function in annotationWorkspaceService.ts.",
+      "tags": [
+        "utility",
+        "comparison"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "file:src/annotations/application/draftOutputService.ts",
@@ -1258,7 +1378,7 @@
       "type": "file",
       "name": "annotationCommands.ts",
       "filePath": "src/annotations/presentation/annotationCommands.ts",
-      "summary": "Registers and implements all VS Code annotation commands — add/edit, select session, dismiss, reanchor, purge, and draft generation.",
+      "summary": "Registers and implements VS Code annotation commands for add/edit, session maintenance, lifecycle transitions, reanchoring, purge, and draft generation.",
       "tags": [
         "presentation",
         "vscode",
@@ -1452,6 +1572,182 @@
         "vscode"
       ],
       "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeDeleteReviewSessionCommand",
+      "type": "function",
+      "name": "executeDeleteReviewSessionCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeDeleteReviewSessionCommand function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeClearReviewSessionAnnotationsCommand",
+      "type": "function",
+      "name": "executeClearReviewSessionAnnotationsCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeClearReviewSessionAnnotationsCommand function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeResolveAnnotationCommand",
+      "type": "function",
+      "name": "executeResolveAnnotationCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeResolveAnnotationCommand function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeReopenAnnotationCommand",
+      "type": "function",
+      "name": "executeReopenAnnotationCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeReopenAnnotationCommand function in annotationCommands.ts.",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:listAvailableExistingAnnotationActions",
+      "type": "function",
+      "name": "listAvailableExistingAnnotationActions",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "listAvailableExistingAnnotationActions function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:canOfferReanchorAction",
+      "type": "function",
+      "name": "canOfferReanchorAction",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "canOfferReanchorAction function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeAnnotationAction",
+      "type": "function",
+      "name": "executeAnnotationAction",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeAnnotationAction function in annotationCommands.ts.",
+      "tags": [
+        "command-handler",
+        "vscode"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:getInvalidLifecycleMessage",
+      "type": "function",
+      "name": "getInvalidLifecycleMessage",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "getInvalidLifecycleMessage function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeDirectLifecycleCommand",
+      "type": "function",
+      "name": "executeDirectLifecycleCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeDirectLifecycleCommand function in annotationCommands.ts.",
+      "tags": [
+        "command-handler",
+        "vscode"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:openBlockedStore",
+      "type": "function",
+      "name": "openBlockedStore",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "openBlockedStore function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:refreshContextKeysBestEffort",
+      "type": "function",
+      "name": "refreshContextKeysBestEffort",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "refreshContextKeysBestEffort function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:executeSessionMaintenanceCommand",
+      "type": "function",
+      "name": "executeSessionMaintenanceCommand",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "executeSessionMaintenanceCommand function in annotationCommands.ts.",
+      "tags": [
+        "command-handler",
+        "vscode"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:confirmDeleteSessionWithWindow",
+      "type": "function",
+      "name": "confirmDeleteSessionWithWindow",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "confirmDeleteSessionWithWindow function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:confirmClearSessionAnnotationsWithWindow",
+      "type": "function",
+      "name": "confirmClearSessionAnnotationsWithWindow",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "confirmClearSessionAnnotationsWithWindow function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/annotations/presentation/annotationCommands.ts:createDeleteSessionSuccessMessage",
+      "type": "function",
+      "name": "createDeleteSessionSuccessMessage",
+      "filePath": "src/annotations/presentation/annotationCommands.ts",
+      "summary": "createDeleteSessionSuccessMessage function in annotationCommands.ts.",
+      "tags": [
+        "utility",
+        "vscode"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "file:src/annotations/presentation/annotationCommentProjectionService.ts",
@@ -1837,7 +2133,7 @@
       "type": "file",
       "name": "annotationWorkspaceService.test.ts",
       "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
-      "summary": "Unit tests for the annotation workspace service covering session lifecycle, annotation CRUD, and conflict resolution.",
+      "summary": "Unit tests for the annotation workspace service covering watcher refreshes, session lifecycle, annotation lifecycle transitions, and conflict resolution.",
       "tags": [
         "test",
         "unit",
@@ -1913,6 +2209,66 @@
       "summary": "InvalidStorageController class in annotationWorkspaceService.test.ts.",
       "tags": [
         "test-double",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/unit/annotationWorkspaceService.test.ts:createWorkspaceFolder",
+      "type": "function",
+      "name": "createWorkspaceFolder",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "createWorkspaceFolder function in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/unit/annotationWorkspaceService.test.ts:createStore",
+      "type": "function",
+      "name": "createStore",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "createStore function in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/unit/annotationWorkspaceService.test.ts:createLoggerSpy",
+      "type": "function",
+      "name": "createLoggerSpy",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "createLoggerSpy function in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-fixture",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/unit/annotationWorkspaceService.test.ts:flushAsyncWork",
+      "type": "function",
+      "name": "flushAsyncWork",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "flushAsyncWork function in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-utility",
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/unit/annotationWorkspaceService.test.ts:createVersion",
+      "type": "function",
+      "name": "createVersion",
+      "filePath": "src/test/unit/annotationWorkspaceService.test.ts",
+      "summary": "createVersion function in annotationWorkspaceService.test.ts.",
+      "tags": [
+        "test-fixture",
         "test"
       ],
       "complexity": "simple"
@@ -2625,6 +2981,41 @@
     },
     {
       "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:createNodeAnnotationWorkspaceFileReader",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:createNoopAnnotationWatcher",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:isBlockedResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:getActiveSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:normalizeRelativeFilePath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
       "target": "class:src/annotations/application/annotationWorkspaceService.ts:AnnotationWorkspaceService",
       "type": "exports",
       "direction": "forward",
@@ -2650,6 +3041,41 @@
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:normalizeAndValidateRelativeFilePath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:createSessionSlug",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:createOpaqueId",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:selectMostRecentlyUpdatedSessionId",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
+      "target": "function:src/annotations/application/annotationWorkspaceService.ts:areRangesEqual",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
     },
     {
       "source": "file:src/annotations/application/draftOutputService.ts",
@@ -3087,6 +3513,139 @@
     },
     {
       "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeDeleteReviewSessionCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeDeleteReviewSessionCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeClearReviewSessionAnnotationsCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeClearReviewSessionAnnotationsCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeResolveAnnotationCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeResolveAnnotationCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeReopenAnnotationCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeReopenAnnotationCommand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:listAvailableExistingAnnotationActions",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:canOfferReanchorAction",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeAnnotationAction",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:getInvalidLifecycleMessage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeDirectLifecycleCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:openBlockedStore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:refreshContextKeysBestEffort",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:executeSessionMaintenanceCommand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:confirmDeleteSessionWithWindow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:confirmClearSessionAnnotationsWithWindow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
+      "target": "function:src/annotations/presentation/annotationCommands.ts:createDeleteSessionSuccessMessage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/annotations/presentation/annotationCommands.ts",
       "target": "file:src/annotations/domain/annotationValidation.ts",
       "type": "imports",
       "direction": "forward",
@@ -3452,6 +4011,41 @@
     {
       "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
       "target": "class:src/test/unit/annotationWorkspaceService.test.ts:InvalidStorageController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "function:src/test/unit/annotationWorkspaceService.test.ts:createWorkspaceFolder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "function:src/test/unit/annotationWorkspaceService.test.ts:createStore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "function:src/test/unit/annotationWorkspaceService.test.ts:createLoggerSpy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "function:src/test/unit/annotationWorkspaceService.test.ts:flushAsyncWork",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/unit/annotationWorkspaceService.test.ts",
+      "target": "function:src/test/unit/annotationWorkspaceService.test.ts:createVersion",
       "type": "contains",
       "direction": "forward",
       "weight": 1
