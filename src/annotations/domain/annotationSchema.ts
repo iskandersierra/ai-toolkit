@@ -13,8 +13,8 @@ export const annotationBackupRetentionLimit = 3;
 
 export const annotationSchemaMetadata = {
 	version: annotationSchemaVersion,
-	selectedTextDescription: `Stored selectedText preserves the captured line count and truncates each line to ${annotationContextLineMaxLength} characters.`,
-	selectedTextLineMaxLength: annotationContextLineMaxLength,
+	selectedLinesDescription: `Stored selectedLines preserves the captured line count, including interior blank lines, and truncates each line to ${annotationContextLineMaxLength} characters.`,
+	selectedLineMaxLength: annotationContextLineMaxLength,
 	contextLineMaxLength: annotationContextLineMaxLength,
 	contextLineCount: annotationFingerprintContextLineCount,
 } as const;

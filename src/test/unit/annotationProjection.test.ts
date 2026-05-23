@@ -102,6 +102,40 @@ suite('Annotation Projection', () => {
 		service.dispose();
 	});
 
+	// Scenario: Given active and resolved annotations, When comment projection refreshes, Then both threads and comments receive the same lifecycle visibility tokens derived from shared action state.
+	test('projects shared lifecycle visibility tokens onto threads and comments', () => {
+		const controller = new FakeCommentController();
+		const service = new AnnotationCommentProjectionService(controller.asController());
+		const activeProjection = createProjection('e:/source/one', 'src/one.ts', 'annotation-active', 'active');
+		const resolvedProjection = createProjection('e:/source/one', 'src/two.ts', 'annotation-resolved', 'resolved');
+
+		service.refresh({
+			...activeProjection,
+			annotations: [activeProjection.annotations[0], resolvedProjection.annotations[0]],
+			activeAnnotations: [activeProjection.activeAnnotations[0], resolvedProjection.activeAnnotations[0]],
+		});
+
+		const activeThread = controller.threads[0];
+		const resolvedThread = controller.threads[1];
+		const activeComment = activeThread?.comments[0] as (vscode.Comment & { contextValue?: string }) | undefined;
+		const resolvedComment = resolvedThread?.comments[0] as (vscode.Comment & { contextValue?: string }) | undefined;
+
+		assert.match(activeThread?.contextValue ?? '', /action:resolve/);
+		assert.match(activeThread?.contextValue ?? '', /action:dismiss/);
+		assert.doesNotMatch(activeThread?.contextValue ?? '', /action:reopen/);
+		assert.match(activeComment?.contextValue ?? '', /action:resolve/);
+		assert.match(activeComment?.contextValue ?? '', /action:dismiss/);
+		assert.doesNotMatch(activeComment?.contextValue ?? '', /action:reopen/);
+		assert.match(resolvedThread?.contextValue ?? '', /action:reopen/);
+		assert.match(resolvedThread?.contextValue ?? '', /action:dismiss/);
+		assert.doesNotMatch(resolvedThread?.contextValue ?? '', /action:resolve/);
+		assert.match(resolvedComment?.contextValue ?? '', /action:reopen/);
+		assert.match(resolvedComment?.contextValue ?? '', /action:dismiss/);
+		assert.doesNotMatch(resolvedComment?.contextValue ?? '', /action:resolve/);
+
+		service.dispose();
+	});
+
 	// Scenario: Given a thread created by refresh, When getAnnotationId is called, Then it returns the annotationId; after thread disposal via re-refresh it returns undefined.
 	test('getAnnotationId returns the annotationId for a live thread and undefined after disposal', () => {
 		const controller = new FakeCommentController();

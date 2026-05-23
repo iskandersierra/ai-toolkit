@@ -140,17 +140,34 @@
         {
           "command": "ai-toolkit.resolveAnnotation",
           "group": "annotation@1",
-          "when": "commentController == ai-toolkit-annotations"
+          "when": "commentController == ai-toolkit-annotations && commentThread =~ /action:resolve/"
         },
         {
           "command": "ai-toolkit.reopenAnnotation",
           "group": "annotation@1",
-          "when": "commentController == ai-toolkit-annotations"
+          "when": "commentController == ai-toolkit-annotations && commentThread =~ /action:reopen/"
         },
         {
           "command": "ai-toolkit.dismissAnnotation",
           "group": "annotation@2",
-          "when": "commentController == ai-toolkit-annotations"
+          "when": "commentController == ai-toolkit-annotations && commentThread =~ /action:dismiss/"
+        }
+      ],
+      "comments/comment/context": [
+        {
+          "command": "ai-toolkit.resolveAnnotation",
+          "group": "annotation@1",
+          "when": "commentController == ai-toolkit-annotations && comment =~ /action:resolve/"
+        },
+        {
+          "command": "ai-toolkit.reopenAnnotation",
+          "group": "annotation@1",
+          "when": "commentController == ai-toolkit-annotations && comment =~ /action:reopen/"
+        },
+        {
+          "command": "ai-toolkit.dismissAnnotation",
+          "group": "annotation@2",
+          "when": "commentController == ai-toolkit-annotations && comment =~ /action:dismiss/"
         }
       ]
     },

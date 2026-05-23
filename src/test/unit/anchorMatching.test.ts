@@ -13,7 +13,7 @@ suite('Anchor Matching', () => {
 				start: { line: 2, character: 0 },
 				end: { line: 2, character: 8 },
 			},
-			'target()',
+			['target()'],
 			['alpha', 'context line'],
 			['omega'],
 		);
@@ -36,7 +36,7 @@ suite('Anchor Matching', () => {
 				start: { line: 2, character: 0 },
 				end: { line: 2, character: 8 },
 			},
-			'target()',
+			['target()'],
 			['alpha', 'context line'],
 			['omega'],
 		);
@@ -58,7 +58,7 @@ suite('Anchor Matching', () => {
 				start: { line: 1, character: 0 },
 				end: { line: 1, character: 8 },
 			},
-			'target()',
+			['target()'],
 			['before a', 'before b'],
 			['after a', 'after b'],
 		);
@@ -84,7 +84,7 @@ suite('Anchor Matching', () => {
 				start: { line: 1, character: 0 },
 				end: { line: 1, character: 8 },
 			},
-			'target()',
+			['target()'],
 			['before a', 'before b'],
 			['after a', 'after b'],
 		);
@@ -110,7 +110,7 @@ suite('Anchor Matching', () => {
 				start: { line: 0, character: 0 },
 				end: { line: 0, character: 8 },
 			},
-			'target()',
+			['target()'],
 			['before'],
 			['after'],
 		);
@@ -129,39 +129,38 @@ suite('Anchor Matching', () => {
 		});
 	});
 
-	// Scenario: Given selectedText is a single line of 300 chars, When createAnnotationAnchor is called, Then selectedText is truncated to 200 chars.
-	test('createAnnotationAnchor truncates a single-line selectedText to 200 characters', () => {
+	// Scenario: Given selectedLines contains a single line of 300 chars, When createAnnotationAnchor is called, Then the stored line is truncated to 200 chars.
+	test('createAnnotationAnchor truncates a single-line selectedLines entry to 200 characters', () => {
 		const longText = 'a'.repeat(300);
 		const anchor = createAnnotationAnchor(
 			{ start: { line: 0, character: 0 }, end: { line: 0, character: 300 } },
-			longText,
+			[longText],
 			[],
 			[],
 		);
 
-		assert.strictEqual(anchor.selectedText, 'a'.repeat(200));
+		assert.deepStrictEqual(anchor.selectedLines, ['a'.repeat(200)]);
 	});
 
-	// Scenario: Given selectedText spans two CRLF lines each of 300 chars, When createAnnotationAnchor is called, Then each line is truncated to 200 chars and joined with LF.
-	test('createAnnotationAnchor truncates each line of a multiline selectedText to 200 characters', () => {
+	// Scenario: Given selectedLines spans two long lines, When createAnnotationAnchor is called, Then each stored line is truncated to 200 chars.
+	test('createAnnotationAnchor truncates each line of multiline selectedLines to 200 characters', () => {
 		const longLine = 'b'.repeat(300);
-		const multilineText = `${longLine}\r\n${longLine}`;
 		const anchor = createAnnotationAnchor(
 			{ start: { line: 0, character: 0 }, end: { line: 1, character: 300 } },
-			multilineText,
+			[longLine, longLine],
 			[],
 			[],
 		);
 
 		const expectedLine = 'b'.repeat(200);
-		assert.strictEqual(anchor.selectedText, `${expectedLine}\n${expectedLine}`);
+		assert.deepStrictEqual(anchor.selectedLines, [expectedLine, expectedLine]);
 	});
 
 	// Scenario: Given selectedText moved to line 5 (within 50 lines) with changed surrounding context, When reanchoring, Then proximity returns the match without requiring full context agreement.
 	test('findAnnotationReanchorMatch returns proximity match when text has moved within 50 lines', () => {
 		const anchor = createAnnotationAnchor(
 			{ start: { line: 0, character: 0 }, end: { line: 0, character: 8 } },
-			'target()',
+			['target()'],
 			['old_before'],
 			['old_after'],
 		);
@@ -184,7 +183,7 @@ suite('Anchor Matching', () => {
 	test('findAnnotationReanchorMatch keeps a locally edited anchor near its original range', () => {
 		const anchor = createAnnotationAnchor(
 			{ start: { line: 2, character: 0 }, end: { line: 2, character: 8 } },
-			'target()',
+			['target()'],
 			['before'],
 			['after'],
 		);
@@ -207,7 +206,7 @@ suite('Anchor Matching', () => {
 	test('findAnnotationReanchorMatch prefers the nearer local candidate before a farther exact-text match', () => {
 		const anchor = createAnnotationAnchor(
 			{ start: { line: 0, character: 0 }, end: { line: 0, character: 8 } },
-			'target()',
+			['target()'],
 			[],
 			[],
 		);
@@ -230,7 +229,7 @@ suite('Anchor Matching', () => {
 	test('findAnnotationReanchorMatch falls through proximity to fingerprint when no candidates within radius', () => {
 		const anchor = createAnnotationAnchor(
 			{ start: { line: 0, character: 0 }, end: { line: 0, character: 8 } },
-			'target()',
+			['target()'],
 			['before'],
 			['after'],
 		);
@@ -254,7 +253,7 @@ suite('Anchor Matching', () => {
 	test('findAnnotationReanchorMatch rejects proximity tie when two candidates are equidistant with equal context score', () => {
 		const anchor = createAnnotationAnchor(
 			{ start: { line: 5, character: 0 }, end: { line: 5, character: 8 } },
-			'target()',
+			['target()'],
 			['old_before'],
 			['old_after'],
 		);
@@ -274,5 +273,17 @@ suite('Anchor Matching', () => {
 		const match = findAnnotationReanchorMatch(documentText, anchor);
 
 		assert.strictEqual(match, undefined);
+	});
+
+	// Scenario: Given a selection ending at column 0 on the next line, When createAnnotationAnchor is called, Then the stored selectedLines omit the trailing empty fragment.
+	test('createAnnotationAnchor omits the trailing empty fragment for selections ending at column 0', () => {
+		const anchor = createAnnotationAnchor(
+			{ start: { line: 0, character: 0 }, end: { line: 1, character: 0 } },
+			['target()'],
+			[],
+			[],
+		);
+
+		assert.deepStrictEqual(anchor.selectedLines, ['target()']);
 	});
 });

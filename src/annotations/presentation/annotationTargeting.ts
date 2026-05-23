@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { createAnnotationAnchor } from '../domain/anchorMatching';
+import { createAnnotationRangeSelectedLines } from '../domain/annotationModels';
 import type { AnnotationProjectionEntry } from '../application/projectionModel';
 
 export function toWorkspaceRelativeFilePath(
@@ -31,7 +32,7 @@ export function createAnchorFromEditorSelection(editor: vscode.TextEditor) {
 
 	return createAnnotationAnchor(
 		selectionToRange(selection),
-		editor.document.getText(selection),
+		collectSelectedLines(editor.document, selection),
 		contextBeforeLines,
 		contextAfterLines,
 	);
@@ -141,6 +142,12 @@ function selectionToRange(selection: vscode.Selection) {
 		start: { line: selection.start.line, character: selection.start.character },
 		end: { line: selection.end.line, character: selection.end.character },
 	};
+}
+
+function collectSelectedLines(document: vscode.TextDocument, selection: vscode.Selection): string[] {
+	const lines = Array.from({ length: document.lineCount }, (_, line) => document.lineAt(line).text);
+
+	return createAnnotationRangeSelectedLines(selectionToRange(selection), lines) ?? [];
 }
 
 function rangesEqual(

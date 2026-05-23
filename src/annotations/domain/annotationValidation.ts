@@ -52,14 +52,20 @@ export function validateAnnotationStore(candidate: unknown): AnnotationStore {
 	return validateStore(candidate, '$');
 }
 
-export function validateNewAnnotationSelectedText(selectedText: string): string {
-	if (selectedText.length === 0) {
-		throw createAnnotationValidationError('$.anchor.selectedText', 'selectedText must not be empty.');
+export function validateNewAnnotationSelectedLines(selectedLines: readonly string[]): string[] {
+	if (selectedLines.length === 0) {
+		throw createAnnotationValidationError('$.anchor.selectedLines', 'selectedLines must not be empty.');
 	}
 
-	// upper-bound check removed — normalization in createAnnotationAnchor enforces per-line limit
-	return selectedText;
+	if (!selectedLines.some((line) => line.length > 0)) {
+		throw createAnnotationValidationError(
+			'$.anchor.selectedLines',
+			'selectedLines must contain at least one non-empty fragment.',
+		);
 	}
+
+	return [...selectedLines];
+}
 
 export function validateContextFingerprintLines(lines: readonly string[], path: string): string[] {
 	if (lines.length > annotationFingerprintContextLineCount) {
@@ -86,7 +92,9 @@ export function validateAnnotationAnchor(anchor: unknown, path: string): Annotat
 
 	return {
 		range: validateAnnotationRange(value.range, `${path}.range`),
-		selectedText: validateNewAnnotationSelectedText(asString(value.selectedText, `${path}.selectedText`)),
+		selectedLines: validateNewAnnotationSelectedLines(
+			asStringArray(value.selectedLines, `${path}.selectedLines`),
+		),
 		contextBeforeLines: validateContextFingerprintLines(
 			asStringArray(value.contextBeforeLines, `${path}.contextBeforeLines`),
 			`${path}.contextBeforeLines`,

@@ -68,7 +68,7 @@
       "additionalProperties": false,
       "required": [
         "range",
-        "selectedText",
+        "selectedLines",
         "contextBeforeLines",
         "contextAfterLines"
       ],
@@ -76,10 +76,14 @@
         "range": {
           "$ref": "#/$defs/range"
         },
-        "selectedText": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Stored selectedText preserves the captured line count and truncates each line to 200 characters."
+        "selectedLines": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Stored selectedLines preserves the captured line count, including interior blank lines, and truncates each line to 200 characters.",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          }
         },
         "contextBeforeLines": {
           "type": "array",

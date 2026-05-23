@@ -15,7 +15,7 @@ import {
 	parseAndValidateAnnotationStore,
 	validateContextFingerprintLines,
 	validateMaybeEmptyAnnotationStore,
-	validateNewAnnotationSelectedText,
+	validateNewAnnotationSelectedLines,
 	validateAnnotationStore,
 } from '../../annotations/domain/annotationValidation';
 
@@ -28,8 +28,8 @@ suite('Annotation Validation', () => {
 		assert.deepStrictEqual(parsed, store);
 	});
 
-	// Scenario: a new annotation store is accepted when selectedText exceeds the legacy 2000-char upper bound because per-line normalization in createAnnotationAnchor supersedes the store-level check.
-	test('accepts selectedText longer than the legacy v1 upper bound', () => {
+	// Scenario: a new annotation store is accepted when a selectedLines fragment exceeds the legacy 2000-char upper bound because per-line normalization in createAnnotationAnchor supersedes the store-level check.
+	test('accepts selectedLines fragments longer than the legacy v1 upper bound', () => {
 		const store = createStore({
 			sessions: [
 				createSession({
@@ -37,7 +37,7 @@ suite('Annotation Validation', () => {
 						createAnnotation({
 							anchor: {
 								...createAnnotation().anchor,
-								selectedText: 'x'.repeat(annotationSelectedTextMaxLength + 1),
+								selectedLines: ['x'.repeat(annotationSelectedTextMaxLength + 1)],
 							},
 						}),
 					],
@@ -68,12 +68,12 @@ suite('Annotation Validation', () => {
 		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
 	});
 
-	// Scenario: schema metadata documents per-line selectedText truncation instead of the stale legacy total-length contract.
-	test('publishes schema metadata that matches the runtime selectedText contract', () => {
+	// Scenario: schema metadata documents per-line selectedLines truncation instead of the stale legacy total-length contract.
+	test('publishes schema metadata that matches the runtime selectedLines contract', () => {
 		assert.deepStrictEqual(annotationSchemaMetadata, {
 			version: annotationSchemaVersion,
-			selectedTextDescription: `Stored selectedText preserves the captured line count and truncates each line to ${annotationContextLineMaxLength} characters.`,
-			selectedTextLineMaxLength: annotationContextLineMaxLength,
+			selectedLinesDescription: `Stored selectedLines preserves the captured line count, including interior blank lines, and truncates each line to ${annotationContextLineMaxLength} characters.`,
+			selectedLineMaxLength: annotationContextLineMaxLength,
 			contextLineMaxLength: annotationContextLineMaxLength,
 			contextLineCount: 2,
 		});
@@ -99,13 +99,25 @@ suite('Annotation Validation', () => {
 		);
 	});
 
-	// Scenario: selectedText validation rejects empty captures before an annotation can be persisted.
-	test('rejects empty selectedText values', () => {
+	// Scenario: selectedLines validation rejects empty captures before an annotation can be persisted.
+	test('rejects empty selectedLines arrays', () => {
 		assert.throws(
-			() => validateNewAnnotationSelectedText(''),
+			() => validateNewAnnotationSelectedLines([]),
 			(error: unknown) => {
 				assert.ok(error instanceof AnnotationStoreValidationError);
-				assert.strictEqual(error.issues[0]?.path, '$.anchor.selectedText');
+				assert.strictEqual(error.issues[0]?.path, '$.anchor.selectedLines');
+				return true;
+			},
+		);
+	});
+
+	// Scenario: selectedLines validation rejects arrays whose fragments are all empty before an annotation can be persisted.
+	test('rejects selectedLines arrays with only empty fragments', () => {
+		assert.throws(
+			() => validateNewAnnotationSelectedLines(['', '']),
+			(error: unknown) => {
+				assert.ok(error instanceof AnnotationStoreValidationError);
+				assert.strictEqual(error.issues[0]?.path, '$.anchor.selectedLines');
 				return true;
 			},
 		);
@@ -268,7 +280,7 @@ function createAnnotation(overrides: Partial<AnnotationEntry> = {}): AnnotationE
 				start: { line: 10, character: 4 },
 				end: { line: 10, character: 44 },
 			},
-			selectedText: 'context.subscriptions.push(disposable);',
+			selectedLines: ['context.subscriptions.push(disposable);'],
 			contextBeforeLines: ['const disposable = registerThing();', ''],
 			contextAfterLines: ['return disposable;', ''],
 		},

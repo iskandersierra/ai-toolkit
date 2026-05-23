@@ -1,6 +1,9 @@
 import {
+	createAnnotationRangeSelectedLines,
+	createAnnotationSearchText,
+	createCanonicalAnnotationSelectedText,
 	normalizeAnnotationContextLines,
-	normalizeSelectedText,
+	normalizeAnnotationSelectedLines,
 	type AnnotationAnchor,
 	type AnnotationPosition,
 	type AnnotationRange,
@@ -21,26 +24,30 @@ interface OffsetRange {
 
 interface LocalCandidate {
 	range: AnnotationRange;
-	selectedText: string;
+	selectedLines: string[];
 	lineDistance: number;
 	characterDistance: number;
-	selectedTextSimilarity: number;
+	selectedLineSimilarity: number;
 	contextScore: number;
 }
 
 export function createAnnotationAnchor(
 	range: AnnotationRange,
-	selectedText: string,
+	selectedLines: readonly string[] | string,
 	contextBeforeLines: readonly string[],
 	contextAfterLines: readonly string[],
 ): AnnotationAnchor {
+	const normalizedSelectedLines = normalizeAnnotationSelectedLines(
+		typeof selectedLines === 'string' ? selectedLines.split(/\r?\n/) : selectedLines,
+	);
+
 	return {
 		range,
-		selectedText: normalizeSelectedText(selectedText),
+		selectedLines: normalizedSelectedLines,
 		contextBeforeLines: normalizeAnnotationContextLines(contextBeforeLines),
 		contextAfterLines: normalizeAnnotationContextLines(contextAfterLines),
 	};
-	}
+}
 
 export function findAnnotationReanchorMatch(
 	documentText: string,
@@ -65,13 +72,27 @@ function tryExactRangeMatch(
 	documentText: string,
 	anchor: AnnotationAnchor,
 ): AnnotationReanchorMatch | undefined {
-	const offsetRange = rangeToOffsets(documentText, anchor.range);
+	const lineIndex = createLineIndex(documentText);
+	const offsetRange = rangeToOffsets(documentText, anchor.range, lineIndex.lineStarts);
 
 	if (!offsetRange) {
 		return undefined;
 	}
 
-	if (documentText.slice(offsetRange.startOffset, offsetRange.endOffset) !== anchor.selectedText) {
+	if (
+		documentText.slice(offsetRange.startOffset, offsetRange.endOffset) !==
+		createAnnotationSearchText(anchor.range, anchor.selectedLines)
+	) {
+		return undefined;
+	}
+
+	const selectedLines = createAnnotationRangeSelectedLines(anchor.range, lineIndex.lines);
+
+	if (
+		selectedLines === undefined ||
+		createCanonicalAnnotationSelectedText(selectedLines) !==
+			createCanonicalAnnotationSelectedText(anchor.selectedLines)
+	) {
 		return undefined;
 	}
 
@@ -95,7 +116,7 @@ function tryLocalRangeMatch(
 	const contextScoreMax = anchor.contextBeforeLines.length + anchor.contextAfterLines.length;
 	const candidates = createLocalCandidates(anchor, lineIndex.lines).filter(
 		(candidate) =>
-			candidate.selectedTextSimilarity >= MIN_LOCAL_SELECTED_TEXT_SIMILARITY || candidate.contextScore > 0,
+			candidate.selectedLineSimilarity >= MIN_LOCAL_SELECTED_TEXT_SIMILARITY || candidate.contextScore > 0,
 	);
 
 	if (candidates.length === 0) {
@@ -111,8 +132,8 @@ function tryLocalRangeMatch(
 			return left.characterDistance - right.characterDistance;
 		}
 
-		if (left.selectedTextSimilarity !== right.selectedTextSimilarity) {
-			return right.selectedTextSimilarity - left.selectedTextSimilarity;
+		if (left.selectedLineSimilarity !== right.selectedLineSimilarity) {
+			return right.selectedLineSimilarity - left.selectedLineSimilarity;
 		}
 
 		return right.contextScore - left.contextScore;
@@ -128,7 +149,7 @@ function tryLocalRangeMatch(
 		secondCandidate &&
 		secondCandidate.lineDistance === bestCandidate.lineDistance &&
 		secondCandidate.characterDistance === bestCandidate.characterDistance &&
-		secondCandidate.selectedTextSimilarity === bestCandidate.selectedTextSimilarity &&
+		secondCandidate.selectedLineSimilarity === bestCandidate.selectedLineSimilarity &&
 		secondCandidate.contextScore === bestCandidate.contextScore
 	) {
 		return undefined;
@@ -147,7 +168,7 @@ function tryFingerprintRangeMatch(
 	anchor: AnnotationAnchor,
 ): AnnotationReanchorMatch | undefined {
 	const lineIndex = createLineIndex(documentText);
-	const candidates = findSelectedTextCandidates(documentText, anchor.selectedText, lineIndex).map((candidate) => ({
+	const candidates = findSelectedTextCandidates(documentText, anchor, lineIndex).map((candidate) => ({
 		candidate,
 		contextScore: scoreContextMatch(anchor, candidate.range, lineIndex.lines),
 	}));
@@ -230,10 +251,10 @@ function createLocalCandidates(anchor: AnnotationAnchor, lines: readonly string[
 			seenRanges.add(key);
 			candidates.push({
 				range,
-				selectedText: candidateText,
+				selectedLines: candidateText,
 				lineDistance: Math.abs(candidateStartLine - anchor.range.start.line),
 				characterDistance: Math.abs(startCharacter - anchor.range.start.character),
-				selectedTextSimilarity: scoreSelectedTextSimilarity(anchor.selectedText, candidateText),
+				selectedLineSimilarity: scoreSelectedTextSimilarity(anchor.selectedLines, candidateText),
 				contextScore: scoreContextMatch(anchor, range, lines),
 			});
 		}
@@ -295,52 +316,15 @@ function createShiftedRange(anchorRange: AnnotationRange, startLine: number, sta
 	};
 }
 
-function getRangeText(lines: readonly string[], range: AnnotationRange): string | undefined {
-	const startLine = lines[range.start.line];
-	const endLine = lines[range.end.line];
-
-	if (startLine === undefined || endLine === undefined) {
-		return undefined;
-	}
-
-	if (range.start.line === range.end.line) {
-		if (range.end.character > startLine.length) {
-			return undefined;
-		}
-
-		return normalizeSelectedText(startLine.slice(range.start.character, range.end.character));
-	}
-
-	if (range.start.character > startLine.length || range.end.character > endLine.length) {
-		return undefined;
-	}
-
-	const selectedLines: string[] = [];
-
-	for (let lineIndex = range.start.line; lineIndex <= range.end.line; lineIndex += 1) {
-		const line = lines[lineIndex];
-
-		if (line === undefined) {
-			return undefined;
-		}
-
-		if (lineIndex === range.start.line) {
-			selectedLines.push(line.slice(range.start.character));
-			continue;
-		}
-
-		if (lineIndex === range.end.line) {
-			selectedLines.push(line.slice(0, range.end.character));
-			continue;
-		}
-
-		selectedLines.push(line);
-	}
-
-	return normalizeSelectedText(selectedLines.join('\n'));
+function getRangeText(lines: readonly string[], range: AnnotationRange): string[] | undefined {
+	return createAnnotationRangeSelectedLines(range, lines);
 }
 
-function scoreSelectedTextSimilarity(anchorSelectedText: string, candidateSelectedText: string): number {
+
+function scoreSelectedTextSimilarity(anchorSelectedLines: readonly string[], candidateSelectedLines: readonly string[]): number {
+	const anchorSelectedText = createCanonicalAnnotationSelectedText(anchorSelectedLines);
+	const candidateSelectedText = createCanonicalAnnotationSelectedText(candidateSelectedLines);
+
 	if (anchorSelectedText === candidateSelectedText) {
 		return 1;
 	}
@@ -393,10 +377,11 @@ function serializeRange(range: AnnotationRange): string {
 
 function findSelectedTextCandidates(
 	documentText: string,
-	selectedText: string,
+	anchor: AnnotationAnchor,
 	lineIndex: ReturnType<typeof createLineIndex>,
 ): OffsetRange[] {
 	const candidates: OffsetRange[] = [];
+	const selectedText = createAnnotationSearchText(anchor.range, anchor.selectedLines);
 	let searchStart = 0;
 
 	while (searchStart <= documentText.length) {
@@ -407,6 +392,17 @@ function findSelectedTextCandidates(
 		}
 
 		const range = offsetsToRange(foundAt, foundAt + selectedText.length, lineIndex.lineStarts);
+		const candidateSelectedLines = createAnnotationRangeSelectedLines(range, lineIndex.lines);
+
+		if (
+			candidateSelectedLines === undefined ||
+			createCanonicalAnnotationSelectedText(candidateSelectedLines) !==
+				createCanonicalAnnotationSelectedText(anchor.selectedLines)
+		) {
+			searchStart = foundAt + Math.max(selectedText.length, 1);
+			continue;
+		}
+
 		candidates.push({
 			startOffset: foundAt,
 			endOffset: foundAt + selectedText.length,
@@ -416,12 +412,15 @@ function findSelectedTextCandidates(
 	}
 
 	return candidates;
-	}
+}
 
-function rangeToOffsets(documentText: string, range: AnnotationRange): OffsetRange | undefined {
-	const lineIndex = createLineIndex(documentText);
-	const startOffset = positionToOffset(range.start, lineIndex.lineStarts, documentText.length);
-	const endOffset = positionToOffset(range.end, lineIndex.lineStarts, documentText.length);
+function rangeToOffsets(
+	documentText: string,
+	range: AnnotationRange,
+	lineStarts: readonly number[],
+): OffsetRange | undefined {
+	const startOffset = positionToOffset(range.start, lineStarts, documentText.length);
+	const endOffset = positionToOffset(range.end, lineStarts, documentText.length);
 
 	if (startOffset === undefined || endOffset === undefined || startOffset > endOffset) {
 		return undefined;
@@ -432,7 +431,7 @@ function rangeToOffsets(documentText: string, range: AnnotationRange): OffsetRan
 		endOffset,
 		range,
 	};
-	}
+}
 
 function createLineIndex(documentText: string): { lines: string[]; lineStarts: number[] } {
 	const lines = documentText.split(/\r?\n/);

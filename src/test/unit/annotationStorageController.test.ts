@@ -63,23 +63,22 @@ suite('Annotation Storage Controller', () => {
 		assert.strictEqual(conflict.status, 'conflict');
 	});
 
-	// Scenario: loading a known pre-v1 store migrates it forward and creates a safety backup first.
-	test('migrates a legacy store and creates a backup on load', async () => {
-		await writeLegacyStore(workspaceFolderPath, {
-			activeSessionId: 'session-1',
-			sessions: [createSession('annotation-1', 'Legacy note')],
-		});
+	// Scenario: loading a legacy selectedText store fails validation and leaves the on-disk file untouched.
+	test('returns invalid for a legacy selectedText store without rewriting it', async () => {
+		const legacyStore = createLegacySelectedTextStore('annotation-1', 'Legacy note');
+		await writeLegacyStore(workspaceFolderPath, legacyStore);
 		const controller = new AnnotationStorageController(workspaceFolderPath);
 
 		const loaded = await controller.load();
 		const backupFiles = await listBackupFiles(workspaceFolderPath);
+		const persistedStore = await readStoredJson(workspaceFolderPath);
 
-		assert.strictEqual(loaded.status, 'ready');
-		if (loaded.status === 'ready') {
-			assert.strictEqual(loaded.store.schemaVersion, annotationSchemaVersion);
-			assert.strictEqual(loaded.migratedFromVersion, 0);
+		assert.strictEqual(loaded.status, 'invalid');
+		if (loaded.status === 'invalid') {
+			assert.strictEqual(loaded.error.issues[0]?.path, '$.sessions[0].annotations[0].anchor.selectedLines');
 		}
-		assert.strictEqual(backupFiles.length, 1);
+		assert.strictEqual(backupFiles.length, 0);
+		assert.deepStrictEqual(persistedStore, legacyStore);
 	});
 
 	// Scenario: unreadable store files are surfaced as an invalid result instead of rejecting the load contract.
@@ -195,7 +194,7 @@ function createSession(annotationId: string, body: string): AnnotationSession {
 						start: { line: 10, character: 4 },
 						end: { line: 10, character: 12 },
 					},
-					selectedText: 'target()',
+					selectedLines: ['target()'],
 					contextBeforeLines: ['before a', 'before b'],
 					contextAfterLines: ['after a', 'after b'],
 				},
@@ -204,11 +203,46 @@ function createSession(annotationId: string, body: string): AnnotationSession {
 	};
 	}
 
+function createLegacySelectedTextStore(annotationId: string, body: string): unknown {
+	const store = createStore(annotationId, body);
+	const annotation = store.sessions[0]?.annotations[0];
+
+	if (!annotation) {
+		throw new Error('Expected test fixture annotation to exist.');
+	}
+
+	return {
+		...store,
+		sessions: [
+			{
+				...store.sessions[0],
+				annotations: [
+					{
+						...annotation,
+						anchor: {
+							range: annotation.anchor.range,
+							selectedText: 'target()',
+							contextBeforeLines: annotation.anchor.contextBeforeLines,
+							contextAfterLines: annotation.anchor.contextAfterLines,
+						},
+					},
+				],
+			},
+		],
+	};
+}
+
 async function writeLegacyStore(workspaceFolderPath: string, store: unknown): Promise<void> {
 	const storePath = path.join(workspaceFolderPath, annotationStoreRelativePath);
 	await fs.mkdir(path.dirname(storePath), { recursive: true });
 	await fs.writeFile(storePath, `${JSON.stringify(store, null, 2)}\n`, 'utf8');
 	}
+
+async function readStoredJson(workspaceFolderPath: string): Promise<unknown> {
+	const storePath = path.join(workspaceFolderPath, annotationStoreRelativePath);
+	const content = await fs.readFile(storePath, 'utf8');
+	return JSON.parse(content) as unknown;
+}
 
 async function listBackupFiles(workspaceFolderPath: string): Promise<string[]> {
 	const storeDirectoryPath = path.join(workspaceFolderPath, '.vscode');

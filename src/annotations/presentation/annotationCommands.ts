@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import {
 	type AnnotationAnchor,
 } from '../domain/annotationModels';
-import { validateNewAnnotationSelectedText } from '../domain/annotationValidation';
+import { validateNewAnnotationSelectedLines } from '../domain/annotationValidation';
 import type {
 	AnnotationWorkspaceBlockedReason,
 	AnnotationWorkspaceMutationResult,
@@ -47,6 +47,12 @@ export const annotationCommandIds = {
 	dismissAnnotation: 'ai-toolkit.dismissAnnotation',
 	resolveAnnotation: 'ai-toolkit.resolveAnnotation',
 	reopenAnnotation: 'ai-toolkit.reopenAnnotation',
+} as const;
+
+const annotationCommentContextTokens = {
+	controller: 'ai-toolkit-annotation',
+	statusPrefix: 'status:',
+	actionPrefix: 'action:',
 } as const;
 
 export type AnnotationCommandId = typeof annotationCommandIds[keyof typeof annotationCommandIds];
@@ -628,6 +634,27 @@ function listAvailableExistingAnnotationActions(
 	return availableActions;
 }
 
+export function createAnnotationCommentContextValue(
+	annotation: AnnotationProjectionEntry,
+	options: {
+		editor?: vscode.TextEditor;
+		allowReanchor?: boolean;
+	} = {},
+): string {
+	const availableActions = listAvailableExistingAnnotationActions(
+		annotation,
+		options.editor,
+		options.allowReanchor ?? false,
+	);
+	const tokens = [
+		annotationCommentContextTokens.controller,
+		`${annotationCommentContextTokens.statusPrefix}${annotation.status}`,
+		...availableActions.map((action) => `${annotationCommentContextTokens.actionPrefix}${action}`),
+	];
+
+	return tokens.join(' ');
+}
+
 function canOfferReanchorAction(editor: vscode.TextEditor): boolean {
 	if (editor.selection.isEmpty) {
 		return false;
@@ -1014,7 +1041,7 @@ function validateSelection(selection: vscode.Selection, anchor: AnnotationAnchor
 	}
 
 	try {
-		validateNewAnnotationSelectedText(anchor.selectedText);
+		validateNewAnnotationSelectedLines(anchor.selectedLines);
 		return undefined;
 	} catch {
 		return 'Select at least one character before creating or reanchoring an annotation.';

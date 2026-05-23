@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import {
-	annotationSchemaVersion,
 	createEmptyAnnotationStore,
 	type AnnotationStore,
 	type PersistedAnnotationStoreVersion,
@@ -29,7 +28,6 @@ import {
 	type AnnotationFileStat,
 	type AnnotationFileSystem,
 } from './annotationBackupService';
-import { migrateAnnotationStore } from './annotationMigrations';
 
 type AnnotationStorageFileSystem = AnnotationFileSystem & {
 	readFile(filePath: string): Promise<Uint8Array>;
@@ -40,7 +38,6 @@ export interface AnnotationLoadReadyResult {
 	status: 'ready';
 	store: AnnotationStore;
 	version: PersistedAnnotationStoreVersion;
-	migratedFromVersion?: number;
 	storePath: string;
 }
 
@@ -88,7 +85,7 @@ export type AnnotationSaveResult =
 	| AnnotationSaveInvalidResult;
 
 export interface AnnotationStorageSaveOptions {
-	backupReason?: 'migration' | 'purge';
+	backupReason?: 'purge';
 	createdAt?: Date;
 }
 
@@ -146,40 +143,15 @@ export class AnnotationStorageController {
 			};
 		}
 
-		let migratedFromVersion: number | undefined;
-
 		try {
 			const parsed = parseAnnotationStoreJson(snapshot.content);
-			const migrated = migrateAnnotationStore(parsed);
-			const store = validateAnnotationStore(migrated.store);
-
-			if (migrated.migratedFromVersion !== undefined && migrated.migratedFromVersion !== annotationSchemaVersion) {
-				migratedFromVersion = migrated.migratedFromVersion;
-				await this.backupService.createBackup(this.storePath);
-				const serialized = serializeAnnotationStore(store);
-				await this.writeStoreContent(serialized);
-				logAnnotationStoreReload(this.logger, this.storePath, 'migration');
-				const migratedSnapshot = await this.readSnapshot();
-
-				if (!migratedSnapshot) {
-					throw new Error('Expected migrated annotation store snapshot to exist after write.');
-				}
-
-				return {
-					status: 'ready',
-					store,
-					version: migratedSnapshot.version,
-					migratedFromVersion,
-					storePath: this.storePath,
-				};
-			}
+			const store = validateAnnotationStore(parsed);
 
 			logAnnotationStoreReload(this.logger, this.storePath, 'load');
 			return {
 				status: 'ready',
 				store,
 				version: snapshot.version,
-				migratedFromVersion,
 				storePath: this.storePath,
 			};
 		} catch (error) {

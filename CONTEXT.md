@@ -134,7 +134,7 @@ Any automated process that reads annotations to produce review output, plans, or
 _Avoid_: Extension command, UI interaction
 
 **Anchor Fingerprint**:
-The combination of selected text and nearby context used to relocate an annotation when the original range drifts.
+The combination of selected lines and nearby context used to relocate an annotation when the original range drifts.
 _Avoid_: Full diff, semantic model
 
 ## Relationships

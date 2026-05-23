@@ -1956,6 +1956,38 @@ suite('Annotation Commands', () => {
 		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'resolved');
 	});
 
+	// Scenario: Given a clicked resolved annotation comment thread, When direct resolve runs from the comments surface, Then it blocks with the same lifecycle rule used for menu visibility.
+	test('blocks resolve when invoked from a resolved comment thread', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath, 'resolved')])],
+			}),
+		);
+		const thread = createCommentThread(editor.document.uri);
+
+		const result = await executeResolveAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			commentProjection: {
+				getAnnotationId: (candidate: vscode.CommentThread) => candidate === thread ? 'annotation-1' : undefined,
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		}, thread);
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.resolveAnnotation,
+			reason: 'invalidAnnotationStatus',
+			message: 'Only active annotations can be resolved.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'resolved');
+	});
+
 	// Scenario: Given a clicked resolved annotation comment, When direct reopen runs from the comments surface, Then the mapped annotation is reopened.
 	test('reopens the mapped annotation when invoked from a comment object', async () => {
 		const editor = await openEditor('target()');
@@ -1981,6 +2013,39 @@ suite('Annotation Commands', () => {
 
 		assert.strictEqual(result.status, 'ready');
 		assert.strictEqual((result as { operation: string }).operation, 'annotationReopened');
+		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'active');
+	});
+
+	// Scenario: Given a clicked active annotation comment, When direct reopen runs from the comments surface, Then it blocks with the same lifecycle rule used for menu visibility.
+	test('blocks reopen when invoked from an active comment object', async () => {
+		const editor = await openEditor('target()');
+		const filePath = toRelativeEditorPath(editor);
+		editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0));
+		const service = new FakeAnnotationWorkspaceService(
+			createStore({
+				sessions: [createSession('session-1', [createAnnotation('annotation-1', 'target()', 0, 8, filePath, 'active')])],
+			}),
+		);
+		const thread = createCommentThread(editor.document.uri);
+		const comment = createComment(thread);
+
+		const result = await executeReopenAnnotationCommand({
+			window: createWindowApi(editor),
+			getWorkspaceService: async () => service,
+			sessionSelectionService: createSessionSelectionService(),
+			commentProjection: {
+				getAnnotationId: (candidate: vscode.CommentThread) => candidate === thread ? 'annotation-1' : undefined,
+			},
+			contextKeys: { refresh: async () => undefined, dispose: () => undefined },
+		}, comment as unknown as Parameters<typeof executeReopenAnnotationCommand>[1]);
+
+		assert.deepStrictEqual(result, {
+			status: 'blocked',
+			commandId: annotationCommandIds.reopenAnnotation,
+			reason: 'invalidAnnotationStatus',
+			message: 'Only resolved annotations can be reopened.',
+			workspaceFolder: workspaceFolder().uri.fsPath,
+		});
 		assert.strictEqual(service.store.sessions[0]?.annotations[0]?.status, 'active');
 	});
 
@@ -2304,7 +2369,7 @@ function createAnnotation(
 				start: { line: 0, character: startCharacter },
 				end: { line: 0, character: endCharacter },
 			},
-			selectedText,
+			[selectedText],
 			['before a', 'before b'],
 			['after a', 'after b'],
 		),

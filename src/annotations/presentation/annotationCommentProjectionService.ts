@@ -4,6 +4,7 @@ import type {
 	AnnotationProjectionEntry,
 	AnnotationWorkspaceProjection,
 } from '../application/projectionModel';
+import { createAnnotationCommentContextValue } from './annotationCommands';
 
 export class AnnotationCommentProjectionService implements vscode.Disposable {
 	private readonly controller: vscode.CommentController;
@@ -59,15 +60,17 @@ export class AnnotationCommentProjectionService implements vscode.Disposable {
 		);
 
 		const thread = this.controller.createCommentThread(uri, range, []);
+		const contextValue = createAnnotationCommentContextValue(entry);
 
 		thread.canReply = false;
 		thread.label = `AI Toolkit · ${entry.sessionName}`;
-		thread.contextValue = `ai-toolkit:${entry.sessionId}:${entry.annotationId}`;
+		thread.contextValue = contextValue;
 
 		const comment: vscode.Comment = {
 			body: entry.body,
 			author: { name: entry.sessionName },
 			mode: vscode.CommentMode.Preview,
+			contextValue,
 		};
 
 		thread.comments = [comment];

@@ -18,7 +18,7 @@ export interface AnnotationRange {
 
 export interface AnnotationAnchor {
 	range: AnnotationRange;
-	selectedText: string;
+	selectedLines: string[];
 	contextBeforeLines: string[];
 	contextAfterLines: string[];
 }
@@ -79,9 +79,66 @@ export function normalizeAnnotationContextLines(lines: readonly string[]): strin
 		.map((line) => truncateAnnotationContextLine(line));
 }
 
-export function normalizeSelectedText(text: string): string {
-	return text
-		.split(/\r?\n/)
-		.map((line) => truncateAnnotationContextLine(line))
-		.join('\n');
+export function normalizeAnnotationSelectedLines(lines: readonly string[]): string[] {
+	return lines.map((line) => truncateAnnotationContextLine(line));
+}
+
+export function createCanonicalAnnotationSelectedText(lines: readonly string[]): string {
+	return normalizeAnnotationSelectedLines(lines).join('\n');
+}
+
+export function createAnnotationRangeSelectedLines(
+	range: AnnotationRange,
+	lines: readonly string[],
+): string[] | undefined {
+	const startLine = lines[range.start.line];
+	const endLine = lines[range.end.line];
+
+	if (startLine === undefined || endLine === undefined) {
+		return undefined;
+	}
+
+	if (range.start.line === range.end.line) {
+		const startCharacter = Math.min(range.start.character, startLine.length);
+		const endCharacter = Math.min(range.end.character, startLine.length);
+
+		return normalizeAnnotationSelectedLines([startLine.slice(startCharacter, endCharacter)]);
+	}
+
+	const startCharacter = Math.min(range.start.character, startLine.length);
+	const endCharacter = Math.min(range.end.character, endLine.length);
+
+	const omitsTrailingEmptyLine = range.end.character === 0 && range.end.line > range.start.line;
+	const effectiveEndLine = omitsTrailingEmptyLine ? range.end.line - 1 : range.end.line;
+	const selectedLines: string[] = [];
+
+	for (let lineIndex = range.start.line; lineIndex <= effectiveEndLine; lineIndex += 1) {
+		const line = lines[lineIndex];
+
+		if (line === undefined) {
+			return undefined;
+		}
+
+		if (lineIndex === range.start.line) {
+			selectedLines.push(line.slice(startCharacter));
+			continue;
+		}
+
+		if (lineIndex === effectiveEndLine) {
+			selectedLines.push(omitsTrailingEmptyLine ? line : line.slice(0, endCharacter));
+			continue;
+		}
+
+		selectedLines.push(line);
+	}
+
+	return normalizeAnnotationSelectedLines(selectedLines);
+}
+
+export function createAnnotationSearchText(range: AnnotationRange, lines: readonly string[]): string {
+	const canonicalText = createCanonicalAnnotationSelectedText(lines);
+
+	return range.end.character === 0 && range.end.line > range.start.line
+		? `${canonicalText}\n`
+		: canonicalText;
 }

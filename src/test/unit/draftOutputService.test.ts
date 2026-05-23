@@ -69,7 +69,7 @@ suite('Draft Output Service', () => {
 			updatedAt: '2026-05-20T10:06:00.000Z',
 			anchor: {
 				range: { start: { line: 20, character: 0 }, end: { line: 20, character: 30 } },
-				selectedText: 'dismissed code',
+				selectedLines: ['dismissed code'],
 				contextBeforeLines: [],
 				contextAfterLines: [],
 			},
@@ -96,7 +96,7 @@ suite('Draft Output Service', () => {
 				updatedAt: '2026-05-20T10:06:00.000Z',
 				anchor: {
 					range: { start: { line: 25, character: 0 }, end: { line: 25, character: 30 } },
-					selectedText: 'resolved code',
+					selectedLines: ['resolved code'],
 					contextBeforeLines: [],
 					contextAfterLines: [],
 				},
@@ -111,7 +111,7 @@ suite('Draft Output Service', () => {
 				updatedAt: '2026-05-20T10:07:00.000Z',
 				anchor: {
 					range: { start: { line: 5, character: 0 }, end: { line: 5, character: 20 } },
-					selectedText: 'orphaned code',
+					selectedLines: ['orphaned code'],
 					contextBeforeLines: [],
 					contextAfterLines: [],
 				},
@@ -139,7 +139,7 @@ suite('Draft Output Service', () => {
 			updatedAt: '2026-05-20T10:06:00.000Z',
 			anchor: {
 				range: { start: { line: 30, character: 0 }, end: { line: 30, character: 20 } },
-				selectedText: 'orphaned',
+				selectedLines: ['orphaned'],
 				contextBeforeLines: [],
 				contextAfterLines: [],
 			},
@@ -194,7 +194,7 @@ function createStoreWithAnnotations(): AnnotationStore {
 				updatedAt: '2026-05-20T10:05:00.000Z',
 				anchor: {
 					range: { start: { line: 10, character: 4 }, end: { line: 10, character: 44 } },
-					selectedText: 'context.subscriptions.push(disposable);',
+					selectedLines: ['context.subscriptions.push(disposable);'],
 					contextBeforeLines: ['const disposable = registerThing();'],
 					contextAfterLines: ['return disposable;'],
 				},
