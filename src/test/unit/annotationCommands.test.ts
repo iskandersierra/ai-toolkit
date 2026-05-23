@@ -638,7 +638,7 @@ suite('Annotation Commands', () => {
 						openedUri = input;
 					}
 					return vscode.workspace.openTextDocument(input as Parameters<typeof vscode.workspace.openTextDocument>[0]);
-				}) as typeof vscode.workspace.openTextDocument,
+				}) as unknown as typeof vscode.workspace.openTextDocument,
 			}),
 			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
 			sessionSelectionService: createSessionSelectionService(),
@@ -651,9 +651,10 @@ suite('Annotation Commands', () => {
 			operation: 'draftOutputGenerated',
 		});
 		assert.ok(openedUri, 'Expected openTextDocument to be called with a Uri');
-		assert.strictEqual(openedUri.scheme, 'untitled');
-		assert.ok(openedUri.fsPath.includes('ai-toolkit-security-pass'), `Expected path to include session slug; got: ${openedUri.fsPath}`);
-		assert.ok(openedUri.fsPath.endsWith('.md'), `Expected path to end with .md; got: ${openedUri.fsPath}`);
+		const uri: vscode.Uri = openedUri;
+		assert.strictEqual(uri.scheme, 'untitled');
+		assert.ok(uri.fsPath.includes('ai-toolkit-security-pass'), `Expected path to include session slug; got: ${uri.fsPath}`);
+		assert.ok(uri.fsPath.endsWith('.md'), `Expected path to end with .md; got: ${uri.fsPath}`);
 	});
 
 	// Scenario: Given an active review session with annotations, When draft output generates,
@@ -667,7 +668,7 @@ suite('Annotation Commands', () => {
 				showTextDocument: (async (doc: vscode.TextDocument) => {
 					draftEditor = await vscode.window.showTextDocument(doc);
 					return draftEditor;
-				}) as typeof vscode.window.showTextDocument,
+				}) as unknown as typeof vscode.window.showTextDocument,
 			}),
 			workspace: createWorkspaceApi(),
 			getWorkspaceService: async () => new FakeAnnotationWorkspaceService(createStore()),
