@@ -86,7 +86,7 @@ function groupByFile(
 	return Array.from(map.entries()).map(([filePath, entries]) => ({
 		filePath,
 		trustMetadata: {
-			filePath: createSystemHeaderTrust(),
+			filePath: createUserAuthoredMetadataTrust(),
 		},
 		annotations: entries,
 	}));
@@ -130,7 +130,7 @@ function serializeMarkdown(draft: DraftOutput): string {
 	for (const file of draft.files) {
 		lines.push('## File');
 		lines.push('');
-		appendTrustedMetadataLine(lines, 'Path', file.filePath);
+		appendUntrustedMetadataBlock(lines, 'Path', file.filePath);
 		if (file.storeContentHash) {
 			appendTrustedMetadataLine(lines, 'Store content hash', file.storeContentHash);
 		}
