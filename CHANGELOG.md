@@ -5,9 +5,9 @@ author: GitHub Copilot
 ms.date: 2026-05-24
 ms.topic: overview
 keywords:
-	- changelog
-	- release notes
-	- ai-toolkit
+  - changelog
+  - release notes
+  - ai-toolkit
 estimated_reading_time: 1
 ---
 

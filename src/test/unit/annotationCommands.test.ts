@@ -658,8 +658,8 @@ suite('Annotation Commands', () => {
 	});
 
 	// Scenario: Given an active review session with annotations, When draft output generates,
-	// Then the generated content containing the session name and annotation body is inserted into the document.
-	test('inserts draft content with session name and annotation body into the opened document', async () => {
+	// Then the opened document receives the untrusted metadata section and fenced annotation body content.
+	test('inserts draft content with untrusted metadata and annotation body into the opened document', async () => {
 		const editor = await openEditor('target()');
 		let draftEditor: vscode.TextEditor | undefined;
 
@@ -677,7 +677,11 @@ suite('Annotation Commands', () => {
 
 		assert.ok(draftEditor, 'Expected showTextDocument to be called with the draft document');
 		const insertedText = (draftEditor as unknown as { insertedText: string }).insertedText;
-		assert.ok(insertedText.includes('# Draft Output: Security pass'), `Expected session name in draft content; got: ${insertedText}`);
+		assert.ok(insertedText.includes('# Draft Output'), `Expected draft header in draft content; got: ${insertedText}`);
+		assert.ok(insertedText.includes('## Untrusted User-Authored Metadata'), `Expected untrusted metadata section; got: ${insertedText}`);
+		assert.ok(insertedText.includes('### Session name'), `Expected session name label in untrusted metadata; got: ${insertedText}`);
+		assert.ok(insertedText.includes('```text\nSecurity pass\n```'), `Expected fenced session name in untrusted metadata; got: ${insertedText}`);
+		assert.ok(insertedText.includes('```text'), `Expected annotation body to be fenced; got: ${insertedText}`);
 		assert.ok(insertedText.includes('Validate this call path.'), `Expected annotation body in draft content; got: ${insertedText}`);
 	});
 

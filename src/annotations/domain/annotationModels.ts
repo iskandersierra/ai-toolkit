@@ -1,5 +1,6 @@
 export const annotationSchemaVersion = 1;
 export const annotationContextLineMaxLength = 200;
+export const annotationBodyMaxLength = 2000;
 export const annotationFingerprintContextLineCount = 2;
 
 export type AnnotationStatus = 'active' | 'resolved' | 'dismissed';

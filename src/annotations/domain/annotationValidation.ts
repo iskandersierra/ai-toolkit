@@ -1,4 +1,5 @@
 import {
+	annotationBodyMaxLength,
 	annotationContextLineMaxLength,
 	annotationFingerprintContextLineCount,
 	annotationSchemaVersion,
@@ -96,6 +97,28 @@ export function validateContextFingerprintLines(lines: readonly string[], path: 
 	});
 }
 
+export function getAnnotationBodyValidationMessage(value: string): string | undefined {
+	if (value.length === 0) {
+		return 'Expected a non-empty string.';
+	}
+
+	if (value.length > annotationBodyMaxLength) {
+		return `Annotation body must be at most ${annotationBodyMaxLength} characters.`;
+	}
+
+	return undefined;
+}
+
+export function validateAnnotationBody(value: string, path: string): string {
+	const message = getAnnotationBodyValidationMessage(value);
+
+	if (message !== undefined) {
+		throw createAnnotationValidationError(path, message);
+	}
+
+	return value;
+}
+
 export function validateAnnotationAnchor(anchor: unknown, path: string): AnnotationAnchor {
 	const value = asRecord(anchor, path);
 
@@ -188,7 +211,7 @@ function validateAnnotationEntry(candidate: unknown, path: string): AnnotationEn
 			`${path}.anchorState`,
 			['anchored', 'orphaned'],
 		),
-		body: validateNonEmptyString(asString(value.body, `${path}.body`), `${path}.body`),
+		body: validateAnnotationBody(asString(value.body, `${path}.body`), `${path}.body`),
 		filePath: validateRelativeFilePath(asString(value.filePath, `${path}.filePath`), `${path}.filePath`),
 		createdAt: validateIsoDateString(asString(value.createdAt, `${path}.createdAt`), `${path}.createdAt`),
 		updatedAt: validateIsoDateString(asString(value.updatedAt, `${path}.updatedAt`), `${path}.updatedAt`),

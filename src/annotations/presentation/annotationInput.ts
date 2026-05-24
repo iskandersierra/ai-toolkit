@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { AnnotationProjectionEntry } from '../application/projectionModel';
+import { getAnnotationBodyValidationMessage } from '../domain/annotationValidation';
 
 export type ExistingAnnotationAction = 'edit' | 'dismiss' | 'reanchor' | 'resolve' | 'reopen';
 
@@ -25,8 +26,13 @@ export function createVscodeAnnotationInputService(
 				prompt: 'Enter the annotation body.',
 				value: initialValue,
 				ignoreFocusOut: true,
-				validateInput: (value) =>
-					value.trim().length === 0 ? 'Annotation body is required.' : undefined,
+				validateInput: (value) => {
+					if (value.trim().length === 0) {
+						return 'Annotation body is required.';
+					}
+
+					return getAnnotationBodyValidationMessage(value);
+				},
 			}),
 		pickExistingAnnotationAction: async (annotation, availableActions) => {
 			const labelMap: Record<ExistingAnnotationAction, string> = {

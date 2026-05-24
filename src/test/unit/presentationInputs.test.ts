@@ -3,6 +3,7 @@ import {
 	createVscodeAnnotationInputService,
 	type ExistingAnnotationAction,
 } from '../../annotations/presentation/annotationInput';
+import { annotationBodyMaxLength } from '../../annotations/domain/annotationModels';
 import {
 	createSessionMaintenanceQuickPickItems,
 	createVscodeSessionMaintenanceQuickPickPresenter,
@@ -276,6 +277,27 @@ suite('Presentation Input Helpers', () => {
 		);
 		assert.strictEqual(receivedOptions?.validateInput('   '), 'Annotation body is required.');
 		assert.strictEqual(receivedOptions?.validateInput('Looks good'), undefined);
+	});
+
+	// Scenario: Given an over-limit annotation body, When the annotation input service validates content, Then it returns the shared deterministic max-length message.
+	test('rejects annotation bodies longer than the shared maximum length at input time', async () => {
+		let validateInput: ((value: string) => string | undefined) | undefined;
+		const service = createVscodeAnnotationInputService({
+			showInputBox: async (options) => {
+				validateInput = options.validateInput;
+				return undefined;
+			},
+			showQuickPick: async () => undefined,
+			showWarningMessage: async () => undefined,
+		});
+
+		await service.promptForAnnotationBody();
+
+		assert.strictEqual(
+			validateInput?.('x'.repeat(annotationBodyMaxLength + 1)),
+			`Annotation body must be at most ${annotationBodyMaxLength} characters.`,
+		);
+		assert.strictEqual(validateInput?.('x'.repeat(annotationBodyMaxLength)), undefined);
 	});
 
 	// Scenario: Given an existing annotation body, When the annotation input service prompts for content, Then it uses edit-specific copy and preserves the initial value.

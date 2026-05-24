@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
+	annotationBodyMaxLength,
 	annotationContextLineMaxLength,
 	annotationFingerprintContextLineCount,
 	annotationSchemaVersion,
@@ -14,6 +15,7 @@ import {
 	AnnotationStoreValidationError,
 	parseAnnotationStoreJson,
 	parseAndValidateAnnotationStore,
+	getAnnotationBodyValidationMessage,
 	validateContextFingerprintLines,
 	validateMaybeEmptyAnnotationStore,
 	validateNewAnnotationSelectedLines,
@@ -76,6 +78,34 @@ suite('Annotation Validation', () => {
 		assert.throws(() => validateAnnotationStore(store), AnnotationStoreValidationError);
 	});
 
+	// Scenario: persisted annotation bodies are rejected when they exceed the shared body-length boundary.
+	test('rejects annotation bodies longer than the shared maximum length', () => {
+		const store = createStore({
+			sessions: [
+				createSession({
+					annotations: [
+						createAnnotation({
+							body: 'x'.repeat(annotationBodyMaxLength + 1),
+						}),
+					],
+				}),
+			],
+		});
+
+		assert.throws(
+			() => validateAnnotationStore(store),
+			(error: unknown) => {
+				assert.ok(error instanceof AnnotationStoreValidationError);
+				assert.strictEqual(error.issues[0]?.path, '$.sessions[0].annotations[0].body');
+				assert.strictEqual(
+					error.issues[0]?.message,
+					`Annotation body must be at most ${annotationBodyMaxLength} characters.`,
+				);
+				return true;
+			},
+		);
+	});
+
 	// Scenario: schema metadata documents per-line selectedLines truncation instead of the stale legacy total-length contract.
 	test('publishes schema metadata that matches the runtime selectedLines contract', () => {
 		assert.deepStrictEqual(annotationSchemaMetadata, {
@@ -107,6 +137,34 @@ suite('Annotation Validation', () => {
 			type: 'string',
 			minLength: 1,
 		});
+	});
+
+	// Scenario: the shared body validator exposes the same deterministic over-limit message used by runtime and input validation.
+	test('publishes a deterministic body-length validation message', () => {
+		assert.strictEqual(
+			getAnnotationBodyValidationMessage('x'.repeat(annotationBodyMaxLength + 1)),
+			`Annotation body must be at most ${annotationBodyMaxLength} characters.`,
+		);
+		assert.strictEqual(getAnnotationBodyValidationMessage('x'.repeat(annotationBodyMaxLength)), undefined);
+	});
+
+	// Scenario: the persisted JSON schema advertises the same annotation body maxLength enforced by runtime validation.
+	test('schema aligns annotation body maxLength with the runtime boundary', () => {
+		const schema = JSON.parse(
+			fs.readFileSync(path.join(process.cwd(), 'schemas', 'ai-toolkit.annotations.schema.json'), 'utf8'),
+		) as {
+			$defs?: {
+				annotation?: {
+					properties?: {
+						body?: {
+							maxLength?: unknown;
+						};
+					};
+				};
+			};
+		};
+
+		assert.strictEqual(schema.$defs?.annotation?.properties?.body?.maxLength, annotationBodyMaxLength);
 	});
 
 	// Scenario: runtime validation rejects stores whose active session marker points outside the session registry.
