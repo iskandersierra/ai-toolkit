@@ -1,7 +1,7 @@
 {
   "name": "ai-toolkit",
   "displayName": "AI Toolkit",
-  "description": "Collections of AI oriented tools",
+  "description": "Capture code review annotations, manage review sessions, and generate draft outputs in VS Code.",
   "version": "0.0.1",
   "publisher": "iskandersierra",
   "license": "MIT",
@@ -9,11 +9,24 @@
     "type": "git",
     "url": "https://github.com/iskandersierra/ai-toolkit"
   },
+  "homepage": "https://github.com/iskandersierra/ai-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/iskandersierra/ai-toolkit/issues"
+  },
   "engines": {
     "vscode": "^1.120.0"
   },
   "categories": [
     "Other"
+  ],
+  "keywords": [
+    "annotations",
+    "code-review",
+    "review-sessions",
+    "draft-output",
+    "markdown",
+    "yaml",
+    "json"
   ],
   "activationEvents": [
     "onStartupFinished",
