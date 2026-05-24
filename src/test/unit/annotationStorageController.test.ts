@@ -141,6 +141,45 @@ suite('Annotation Storage Controller', () => {
 		assert.strictEqual(writeCount, 1);
 	});
 
+	// Scenario: a successful write followed by a missing readback snapshot returns an invalid save result instead of throwing.
+	test('returns invalid when the post-write snapshot is missing', async () => {
+		const existingStore = createStore('annotation-1', 'Initial note');
+		const serializedStore = `${JSON.stringify(existingStore, null, 2)}\n`;
+		let writeCount = 0;
+		const fileSystem = createStorageFileSystem({
+			readFile: async () => {
+				if (writeCount === 0) {
+					return Buffer.from(serializedStore, 'utf8');
+				}
+
+				throw createFileSystemError('ENOENT', 'Missing snapshot after write');
+			},
+			stat: async () => ({
+				mtimeMs: 1,
+				size: Buffer.byteLength(serializedStore, 'utf8'),
+				ctimeMs: 1,
+			}),
+			writeFile: async () => {
+				writeCount += 1;
+			},
+		});
+		const controller = new AnnotationStorageController(
+			workspaceFolderPath,
+			fileSystem,
+			new AnnotationBackupService(fileSystem, 3),
+			createSilentLogger(),
+		);
+
+		const result = await controller.save(createStore('annotation-2', 'Saved note'));
+
+		assert.strictEqual(result.status, 'invalid');
+		if (result.status === 'invalid') {
+			assert.strictEqual(result.error.issues[0]?.path, '$');
+			assert.match(result.error.message, /Expected annotation store snapshot after save\./);
+		}
+		assert.strictEqual(writeCount, 1);
+	});
+
 	// Scenario: destructive writes keep only the three most recent backups.
 	test('caps retained backups at three files', async () => {
 		const controller = new AnnotationStorageController(workspaceFolderPath);

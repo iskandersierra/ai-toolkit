@@ -25,8 +25,10 @@ export interface DraftAnnotationEntry {
 
 export interface DraftFileGroup {
 	filePath: string;
+	storeContentHash?: string;
 	trustMetadata: {
 		filePath: DraftFieldTrustMetadata;
+		storeContentHash?: DraftFieldTrustMetadata;
 	};
 	annotations: DraftAnnotationEntry[];
 }
@@ -35,12 +37,14 @@ export interface DraftOutput {
 	sessionName: string;
 	sessionSlug: string;
 	workspaceFolderPath: string;
+	storeContentHash?: string;
 	generatedAt: string;
 	format: DraftOutputFormat;
 	trustMetadata: {
 		sessionName: DraftFieldTrustMetadata;
 		sessionSlug: DraftFieldTrustMetadata;
 		workspaceFolderPath: DraftFieldTrustMetadata;
+		storeContentHash?: DraftFieldTrustMetadata;
 	};
 	files: DraftFileGroup[];
 }

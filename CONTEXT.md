@@ -2,7 +2,7 @@
 title: AI Toolkit Context
 description: Canonical glossary for the AI Toolkit Visual Studio Code extension domain.
 author: GitHub Copilot
-ms.date: 2026-05-20
+ms.date: 2026-05-24
 ms.topic: reference
 keywords:
   - ai-toolkit
@@ -13,7 +13,9 @@ estimated_reading_time: 2
 
 ## Context
 
-This context defines the domain language for AI Toolkit, a Visual Studio Code extension that offers AI-oriented services and tools. The first capability in scope is a code annotation workflow whose persisted records can be consumed by agents and projected into the VS Code comments experience.
+This context defines the domain language for AI Toolkit, a Visual Studio Code extension that offers AI-oriented services and tools. The first capability in scope is a code annotation workflow whose generated draft output can be consumed by agents and whose persisted records can be projected into the VS Code comments experience.
+
+Use [docs/threat-model.md](./docs/threat-model.md) as the canonical security-design reference for the annotation-store load and save flows, draft generation, and the repository assurance baseline. It complements this glossary and does not replace the draft-consumption contract.
 
 ## Language
 
@@ -125,6 +127,14 @@ _Avoid_: Forced saved file, agent-only artifact
 The configured document format the extension uses when it creates an untitled output document for a review session, preserving the same session-and-annotation semantics across formats while projecting them narratively in Markdown and structurally in JSON or YAML.
 _Avoid_: Hardcoded export type, per-run mandatory prompt
 
+**Draft Trust Metadata**:
+The field-level metadata attached to generated draft output that tells consumers whether a value is system-derived or user-authored, and how Markdown rendering treats it.
+_Avoid_: Implicit trust, guesswork, format-specific assumptions
+
+**Store Content Hash**:
+The provenance value carried in generated draft output that identifies the persisted annotation-store snapshot used to produce the draft.
+_Avoid_: Trust signal, annotation checksum, mutable session id
+
 **Annotation Anchor**:
 The locator data that keeps an annotation attached to the intended code even after edits.
 _Avoid_: Raw range, fixed position
@@ -170,7 +180,9 @@ _Avoid_: Full diff, semantic model
 * The **Annotation Edit Surface** owns content changes in the first version
 * The **Annotation Edit Surface** uses a **Range Action** to edit an existing **Annotation** near its code
 * An **Annotation Anchor** uses an **Anchor Fingerprint** to recover from file edits
-* An **Agent Workflow** reads from the **Annotation Store**, not from the **Comment Projection**
+* An **Agent Workflow** reads generated draft output, not the raw **Annotation Store** or the **Comment Projection**
+* Generated draft output exposes **Draft Trust Metadata** for every downstream consumer
+* Generated draft output carries one **Store Content Hash** so consumers can track provenance to the persisted store snapshot
 
 ## Example dialogue
 
@@ -181,7 +193,11 @@ _Avoid_: Full diff, semantic model
 > **Domain expert:** "The **Annotation Anchor** tries the saved range first, then uses the **Anchor Fingerprint** to relocate the annotation."
 >
 > **Dev:** "What format do agents read when they process annotations?"
-> **Domain expert:** "They read the **Annotation Store**, which is persisted as a versioned **Annotation Schema** in JSON."
+> **Domain expert:** "They read generated draft output, which is the supported automation contract. The raw **Annotation Store** remains the persistence layer, not the recommended agent interface."
+> **Dev:** "How should an agent treat the values inside a generated draft?"
+> **Domain expert:** "Read the **Draft Trust Metadata** first. User-authored fields and annotation bodies stay untrusted content even when the surrounding draft structure is system-derived."
+> **Dev:** "What does the store hash in the draft mean?"
+> **Domain expert:** "The **Store Content Hash** identifies which persisted annotation-store snapshot produced the draft, so consumers can track provenance without reinterpreting the raw store directly."
 >
 > **Dev:** "Can I edit an annotation from the comments panel?"
 > **Domain expert:** "Not in the first version; the panel is a read-only **Comment Projection**, and edits happen through the dedicated **Annotation Edit Surface**."
@@ -247,7 +263,7 @@ _Avoid_: Full diff, semantic model
 
 * "comment" was used to mean both a persisted **Annotation** and its VS Code **Comment Projection**; resolved: the file-backed annotation is canonical, the panel view is derived
 * "selection" was used as if it were enough to persist location; resolved: a saved range alone is not canonical, the **Annotation Anchor** includes both range and textual fingerprint
-* "format" was left open between JSON, YAML, and Markdown; resolved: the canonical **Annotation Store** format is versioned JSON
+* "format" was left open between JSON, YAML, and Markdown; resolved: the canonical agent-consumption surface is generated draft output, while the persisted **Annotation Store** remains versioned JSON
 * "edit from the panel" was left undecided; resolved: the first version keeps the comments panel read-only and routes edits through a separate **Annotation Edit Surface**
 * "editing UI" was fuzzy; resolved: existing annotations are edited from a range-local editor action rather than by opening the raw store
 * "comment lifecycle" was implicit; resolved: annotations have an explicit **Annotation Status** with the minimal lifecycle set `active`, `resolved`, and `dismissed` instead of plain free text only

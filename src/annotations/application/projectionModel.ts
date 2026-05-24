@@ -29,6 +29,7 @@ export interface AnnotationProjectionEntry {
 
 export interface AnnotationWorkspaceProjection {
 	workspaceFolderPath: string;
+	storeContentHash?: string;
 	activeSessionId: string | null;
 	sessions: AnnotationSessionProjection[];
 	annotations: AnnotationProjectionEntry[];
@@ -39,6 +40,7 @@ export interface AnnotationWorkspaceProjection {
 export function deriveAnnotationWorkspaceProjection(
 	workspaceFolderPath: string,
 	store: AnnotationStore,
+	storeContentHash?: string,
 ): AnnotationWorkspaceProjection {
 	const sessions = store.sessions.map((session) => projectSession(session, store.activeSessionId));
 	const annotations = store.sessions.flatMap((session) =>
@@ -47,6 +49,7 @@ export function deriveAnnotationWorkspaceProjection(
 
 	return {
 		workspaceFolderPath,
+		storeContentHash,
 		activeSessionId: store.activeSessionId,
 		sessions,
 		annotations,

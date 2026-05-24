@@ -13,6 +13,7 @@ import {
 } from '../domain/annotationSchema';
 import {
 	AnnotationStoreValidationError,
+	createAnnotationValidationError,
 	parseAnnotationStoreJson,
 	validateAnnotationStore,
 } from '../domain/annotationValidation';
@@ -235,7 +236,16 @@ export class AnnotationStorageController {
 		const snapshot = await this.readSnapshot();
 
 		if (!snapshot) {
-			throw new Error('Expected annotation store snapshot after save.');
+			const error = createAnnotationValidationError(
+				'$',
+				'Expected annotation store snapshot after save.',
+			);
+			logInvalidAnnotationStore(this.logger, this.storePath, error);
+			return {
+				status: 'invalid',
+				storePath: this.storePath,
+				error,
+			};
 		}
 
 		return {

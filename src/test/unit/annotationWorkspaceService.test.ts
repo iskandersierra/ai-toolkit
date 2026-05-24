@@ -104,6 +104,8 @@ suite('Annotation Workspace Service', () => {
 
 		assert.strictEqual(result.projection.activeSessionId, result.sessionId);
 		assert.strictEqual(result.projection.sessions.length, 1);
+		assert.strictEqual(typeof result.projection.storeContentHash, 'string');
+		assert.ok((result.projection.storeContentHash?.length ?? 0) > 0);
 		assert.strictEqual(storage.store.activeSessionId, result.sessionId);
 	});
 

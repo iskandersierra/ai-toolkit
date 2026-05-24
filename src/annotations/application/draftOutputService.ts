@@ -40,14 +40,23 @@ export function deriveDraftOutput(
 		sessionName: activeSession?.name ?? '',
 		sessionSlug: activeSession?.sessionSlug ?? '',
 		workspaceFolderPath: projection.workspaceFolderPath,
+		storeContentHash: projection.storeContentHash,
 		generatedAt: new Date().toISOString(),
 		format,
 		trustMetadata: {
 			sessionName: createUserAuthoredMetadataTrust(),
 			sessionSlug: createUserAuthoredMetadataTrust(),
 			workspaceFolderPath: createSystemHeaderTrust(),
+			storeContentHash: projection.storeContentHash ? createSystemHeaderTrust() : undefined,
 		},
-		files: grouped,
+		files: grouped.map((file) => ({
+			...file,
+			storeContentHash: projection.storeContentHash,
+			trustMetadata: {
+				...file.trustMetadata,
+				storeContentHash: projection.storeContentHash ? createSystemHeaderTrust() : undefined,
+			},
+		})),
 	};
 }
 
@@ -89,6 +98,9 @@ function serializeMarkdown(draft: DraftOutput): string {
 	lines.push('# Draft Output');
 	lines.push('');
 	lines.push(`**Workspace**: ${draft.workspaceFolderPath}`);
+	if (draft.storeContentHash) {
+		lines.push(`**Store content hash**: ${draft.storeContentHash}`);
+	}
 	lines.push(`**Generated**: ${draft.generatedAt}`);
 	lines.push(`**Format**: ${draft.format}`);
 	lines.push('');
@@ -116,7 +128,12 @@ function serializeMarkdown(draft: DraftOutput): string {
 	lines.push('');
 
 	for (const file of draft.files) {
-		lines.push(`## ${file.filePath}`);
+		lines.push('## File');
+		lines.push('');
+		appendTrustedMetadataLine(lines, 'Path', file.filePath);
+		if (file.storeContentHash) {
+			appendTrustedMetadataLine(lines, 'Store content hash', file.storeContentHash);
+		}
 		lines.push('');
 
 		for (const annotation of file.annotations) {
@@ -156,6 +173,9 @@ function serializeYaml(draft: DraftOutput): string {
 	lines.push(`sessionName: ${yamlScalar(draft.sessionName)}`);
 	lines.push(`sessionSlug: ${yamlScalar(draft.sessionSlug)}`);
 	lines.push(`workspaceFolderPath: ${yamlScalar(draft.workspaceFolderPath)}`);
+	if (draft.storeContentHash) {
+		lines.push(`storeContentHash: ${yamlScalar(draft.storeContentHash)}`);
+	}
 	lines.push(`generatedAt: ${yamlScalar(draft.generatedAt)}`);
 	lines.push(`format: ${yamlScalar(draft.format)}`);
 	lines.push('trustMetadata:');
@@ -168,14 +188,27 @@ function serializeYaml(draft: DraftOutput): string {
 	lines.push('  workspaceFolderPath:');
 	lines.push(`    source: ${yamlScalar(draft.trustMetadata.workspaceFolderPath.source)}`);
 	lines.push(`    markdownPlacement: ${yamlScalar(draft.trustMetadata.workspaceFolderPath.markdownPlacement)}`);
+	if (draft.trustMetadata.storeContentHash) {
+		lines.push('  storeContentHash:');
+		lines.push(`    source: ${yamlScalar(draft.trustMetadata.storeContentHash.source)}`);
+		lines.push(`    markdownPlacement: ${yamlScalar(draft.trustMetadata.storeContentHash.markdownPlacement)}`);
+	}
 	lines.push('files:');
 
 	for (const file of draft.files) {
 		lines.push(`  - filePath: ${yamlScalar(file.filePath)}`);
+		if (file.storeContentHash) {
+			lines.push(`    storeContentHash: ${yamlScalar(file.storeContentHash)}`);
+		}
 		lines.push('    trustMetadata:');
 		lines.push('      filePath:');
 		lines.push(`        source: ${yamlScalar(file.trustMetadata.filePath.source)}`);
 		lines.push(`        markdownPlacement: ${yamlScalar(file.trustMetadata.filePath.markdownPlacement)}`);
+		if (file.trustMetadata.storeContentHash) {
+			lines.push('      storeContentHash:');
+			lines.push(`        source: ${yamlScalar(file.trustMetadata.storeContentHash.source)}`);
+			lines.push(`        markdownPlacement: ${yamlScalar(file.trustMetadata.storeContentHash.markdownPlacement)}`);
+		}
 		lines.push('    annotations:');
 
 		for (const annotation of file.annotations) {
@@ -235,6 +268,10 @@ function appendUntrustedMetadataBlock(lines: string[], label: string, value: str
 	lines.push(formatUntrustedMetadataValue(value));
 	lines.push(fence);
 	lines.push('');
+}
+
+function appendTrustedMetadataLine(lines: string[], label: string, value: string): void {
+	lines.push(`**${label}**: ${value}`);
 }
 
 function createMarkdownFence(content: string): string {

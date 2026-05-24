@@ -591,7 +591,11 @@ export class AnnotationWorkspaceService implements AnnotationWorkspaceServiceLik
 			store: saveResult.store,
 			storePath: saveResult.storePath,
 			version: saveResult.version,
-			projection: deriveAnnotationWorkspaceProjection(this.workspaceFolder.uri.fsPath, saveResult.store),
+			projection: deriveAnnotationWorkspaceProjection(
+				this.workspaceFolder.uri.fsPath,
+				saveResult.store,
+				saveResult.version.contentHash,
+			),
 		};
 		this.state = readyState;
 		const snapshot = this.toSnapshot(readyState);
@@ -622,7 +626,11 @@ export class AnnotationWorkspaceService implements AnnotationWorkspaceServiceLik
 			store: loadResult.store,
 			storePath: loadResult.storePath,
 			version: loadResult.status === 'ready' ? loadResult.version : undefined,
-			projection: deriveAnnotationWorkspaceProjection(this.workspaceFolder.uri.fsPath, loadResult.store),
+			projection: deriveAnnotationWorkspaceProjection(
+				this.workspaceFolder.uri.fsPath,
+				loadResult.store,
+				loadResult.status === 'ready' ? loadResult.version.contentHash : undefined,
+			),
 		};
 	}
 

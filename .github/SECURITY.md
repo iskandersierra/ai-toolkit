@@ -10,12 +10,12 @@ ms.topic: reference
 
 Please do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.
 
-Use the temporary private reporting channel below instead:
+Use GitHub Security Advisories for private reporting:
 
-* Temporary security contact: `TEMPORARY_PLACEHOLDER_OWNER`
-* Temporary private reporting channel: `TEMPORARY_PLACEHOLDER_CONTACT`
+* Repository owner: `iskandersierra`
+* Private reporting channel: <https://github.com/iskandersierra/ai-toolkit/security/advisories/new>
 
-These placeholders are temporary and must be replaced with the real owner and private intake channel before this policy is treated as operational.
+This workflow depends on GitHub private vulnerability reporting remaining enabled for the repository. If the advisory submission page is unavailable, maintainers must re-enable private reporting or publish an alternate private intake channel before asking reporters to use a non-public path.
 
 ## What to include
 
@@ -23,7 +23,7 @@ Include a clear description of the issue, affected files or commands, impact, an
 
 ## Response expectations
 
-We aim to acknowledge new reports within 3 business days and provide a status update within 7 business days.
+We aim to acknowledge new reports within 3 business days and provide a status update within 7 business days. We may ask for additional reproduction detail before we confirm severity or remediation timing.
 
 ## Supported versions
 
@@ -34,4 +34,4 @@ We aim to acknowledge new reports within 3 business days and provide a status up
 
 ## Disclosure guidance
 
-Please keep vulnerability details private until we confirm remediation guidance or a coordinated disclosure timeline.
+Please keep vulnerability details private until we confirm remediation guidance or a coordinated disclosure timeline. When a fix is ready, we will coordinate public disclosure through the repository advisories flow when possible.
