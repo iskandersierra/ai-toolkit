@@ -7,15 +7,18 @@
       "json",
       "markdown",
       "typescript",
+      "yaml",
       "unknown"
     ],
     "frameworks": [
       "TypeScript",
-      "VS Code Test"
+      "VS Code Test",
+      "Vitest",
+      "GitHub Actions"
     ],
-    "description": "VS Code extension providing AI-oriented tools, centered on a code annotation workflow with session management, annotation lifecycle actions, reanchoring, and VS Code comment projection.",
-    "analyzedAt": "2026-05-23T09:28:42.4025792Z",
-    "gitCommitHash": "3fc6c8b7f49e9ad3d4025514bed4afcd3e6c2775"
+    "description": "VS Code extension for review-session annotations, anchored comment workflows, and draft output generation.",
+    "analyzedAt": "2026-05-25T16:48:04.8569049Z",
+    "gitCommitHash": "d7cd0f326856c436334a8ed7f22f990b49edd722"
   },
   "nodes": [
     {
@@ -132,6 +135,111 @@
         "documentation",
         "entry-point",
         "overview"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:LICENSE",
+      "type": "document",
+      "name": "LICENSE",
+      "filePath": "LICENSE",
+      "summary": "MIT license text governing repository usage and distribution.",
+      "tags": [
+        "documentation",
+        "license"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:docs/threat-model.md",
+      "type": "document",
+      "name": "threat-model.md",
+      "filePath": "docs/threat-model.md",
+      "summary": "Lightweight STRIDE threat model and risk register for annotation storage, draft generation, and repository security controls.",
+      "tags": [
+        "documentation",
+        "security",
+        "threat-model"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.github/SECURITY.md",
+      "type": "document",
+      "name": "SECURITY.md",
+      "filePath": ".github/SECURITY.md",
+      "summary": "Private vulnerability reporting guidance and repository security contacts.",
+      "tags": [
+        "documentation",
+        "security",
+        "governance"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.github/dependabot.yml",
+      "type": "config",
+      "name": "dependabot.yml",
+      "filePath": ".github/dependabot.yml",
+      "summary": "Dependabot configuration for weekly npm and GitHub Actions dependency update pull requests.",
+      "tags": [
+        "configuration",
+        "dependencies",
+        "automation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.github/skills/maintain-changelog/SKILL.md",
+      "type": "document",
+      "name": "SKILL.md",
+      "filePath": ".github/skills/maintain-changelog/SKILL.md",
+      "summary": "Skill instructions for maintaining CHANGELOG.md and release notes with a manual Keep a Changelog workflow.",
+      "tags": [
+        "documentation",
+        "workflow",
+        "changelog"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "pipeline:.github/workflows/ci.yml",
+      "type": "pipeline",
+      "name": "ci.yml",
+      "filePath": ".github/workflows/ci.yml",
+      "summary": "Continuous integration pipeline that installs dependencies, compiles, lints, runs tests, and audits the extension.",
+      "tags": [
+        "pipeline",
+        "ci",
+        "testing",
+        "security"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "pipeline:.github/workflows/codeql.yml",
+      "type": "pipeline",
+      "name": "codeql.yml",
+      "filePath": ".github/workflows/codeql.yml",
+      "summary": "CodeQL analysis workflow for JavaScript and TypeScript static analysis on pushes, pull requests, and a weekly schedule.",
+      "tags": [
+        "pipeline",
+        "security",
+        "codeql"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:tsconfig.vscode-test.json",
+      "type": "config",
+      "name": "tsconfig.vscode-test.json",
+      "filePath": "tsconfig.vscode-test.json",
+      "summary": "TypeScript configuration for the VS Code extension-host test build.",
+      "tags": [
+        "configuration",
+        "testing",
+        "typescript",
+        "vscode"
       ],
       "complexity": "simple"
     },
@@ -1229,46 +1337,11 @@
       "complexity": "simple"
     },
     {
-      "id": "file:src/annotations/infrastructure/annotationMigrations.ts",
-      "type": "file",
-      "name": "annotationMigrations.ts",
-      "filePath": "src/annotations/infrastructure/annotationMigrations.ts",
-      "summary": "Detects and migrates annotation store data from older schema versions to the current format.",
-      "tags": [
-        "infrastructure",
-        "migration",
-        "schema-versioning"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "function:src/annotations/infrastructure/annotationMigrations.ts:detectAnnotationStoreVersion",
-      "type": "function",
-      "name": "detectAnnotationStoreVersion",
-      "filePath": "src/annotations/infrastructure/annotationMigrations.ts",
-      "summary": "detectAnnotationStoreVersion function in annotationMigrations.ts.",
-      "tags": [
-        "exported"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "function:src/annotations/infrastructure/annotationMigrations.ts:migrateAnnotationStore",
-      "type": "function",
-      "name": "migrateAnnotationStore",
-      "filePath": "src/annotations/infrastructure/annotationMigrations.ts",
-      "summary": "migrateAnnotationStore function in annotationMigrations.ts.",
-      "tags": [
-        "exported"
-      ],
-      "complexity": "simple"
-    },
-    {
       "id": "file:src/annotations/infrastructure/annotationStorageController.ts",
       "type": "file",
       "name": "annotationStorageController.ts",
       "filePath": "src/annotations/infrastructure/annotationStorageController.ts",
-      "summary": "Manages reading and writing the annotation store JSON file with queued writes, backup integration, and schema migration support.",
+      "summary": "Manages reading and writing the annotation store JSON file with queued writes, backup integration, and persisted-version handling.",
       "tags": [
         "infrastructure",
         "storage",
@@ -1951,6 +2024,19 @@
       "tags": [
         "test",
         "integration",
+        "vscode"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/test/unit/extension.test.ts",
+      "type": "file",
+      "name": "extension.test.ts",
+      "filePath": "src/test/unit/extension.test.ts",
+      "summary": "Integration-style unit tests covering extension activation and deactivation wiring.",
+      "tags": [
+        "test",
+        "unit",
         "vscode"
       ],
       "complexity": "simple"
@@ -2966,6 +3052,20 @@
       "weight": 0.5
     },
     {
+      "source": "document:README.md",
+      "target": "document:docs/threat-model.md",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "document:.github/SECURITY.md",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
       "source": "file:src/annotations/application/annotationWorkspaceService.ts",
       "target": "function:src/annotations/application/annotationWorkspaceService.ts:findAnnotation",
       "type": "contains",
@@ -3020,48 +3120,6 @@
       "type": "exports",
       "direction": "forward",
       "weight": 0.8
-    },
-    {
-      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
-      "target": "file:src/annotations/domain/annotationModels.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
-      "target": "file:src/annotations/domain/annotationValidation.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
-      "target": "file:src/annotations/util/log.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
-      "target": "function:src/annotations/application/annotationWorkspaceService.ts:normalizeAndValidateRelativeFilePath",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
-      "target": "function:src/annotations/application/annotationWorkspaceService.ts:createSessionSlug",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:src/annotations/application/annotationWorkspaceService.ts",
-      "target": "function:src/annotations/application/annotationWorkspaceService.ts:createOpaqueId",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
     },
     {
       "source": "file:src/annotations/application/annotationWorkspaceService.ts",
@@ -3225,48 +3283,6 @@
       "weight": 0.8
     },
     {
-      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
-      "target": "function:src/annotations/infrastructure/annotationMigrations.ts:detectAnnotationStoreVersion",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
-      "target": "function:src/annotations/infrastructure/annotationMigrations.ts:detectAnnotationStoreVersion",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
-      "target": "function:src/annotations/infrastructure/annotationMigrations.ts:migrateAnnotationStore",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
-      "target": "function:src/annotations/infrastructure/annotationMigrations.ts:migrateAnnotationStore",
-      "type": "exports",
-      "direction": "forward",
-      "weight": 0.8
-    },
-    {
-      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
-      "target": "file:src/annotations/domain/annotationModels.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:src/annotations/infrastructure/annotationMigrations.ts",
-      "target": "file:src/annotations/domain/annotationValidation.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
       "source": "file:src/annotations/infrastructure/annotationStorageController.ts",
       "target": "function:src/annotations/infrastructure/annotationStorageController.ts:createNodeAnnotationFileSystem",
       "type": "contains",
@@ -3310,17 +3326,10 @@
     },
     {
       "source": "file:src/annotations/infrastructure/annotationStorageController.ts",
-      "target": "file:src/annotations/infrastructure/annotationMigrations.ts",
+      "target": "file:src/annotations/infrastructure/annotationStoreWatcher.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
-    },
-    {
-      "source": "file:src/annotations/infrastructure/annotationStoreWatcher.ts",
-      "target": "class:src/annotations/infrastructure/annotationStoreWatcher.ts:AnnotationStoreWatcher",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
     },
     {
       "source": "file:src/annotations/infrastructure/annotationStoreWatcher.ts",
@@ -4143,6 +4152,14 @@
       "description": "Path-based pairing (deterministic)"
     },
     {
+      "source": "file:src/extension.ts",
+      "target": "file:src/test/unit/extension.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5,
+      "description": "Path-based pairing (deterministic)"
+    },
+    {
       "source": "config:schemas/ai-toolkit.annotations.schema.json",
       "target": "file:src/annotations/domain/annotationSchema.ts",
       "type": "defines_schema",
@@ -4154,19 +4171,27 @@
     {
       "id": "layer:documentation-and-config",
       "name": "Documentation & Configuration",
-      "description": "Project documentation, configuration files, and build tooling. Includes README, CHANGELOG, planning docs, package manifest, TypeScript config, ESLint config, JSON schema, and extension packaging config.",
+      "description": "Project documentation, configuration files, build tooling, and repository governance. Includes README, CHANGELOG, planning docs, license, threat model, package manifest, TypeScript configs, ESLint config, JSON schema, GitHub security guidance, Dependabot, and workflow automation.",
       "nodeIds": [
         "document:README.md",
         "document:CHANGELOG.md",
         "document:CONTEXT.md",
         "document:docs/annotation-v1-implementation-plan.md",
         "document:vsc-extension-quickstart.md",
+        "document:LICENSE",
+        "document:docs/threat-model.md",
+        "document:.github/SECURITY.md",
+        "document:.github/skills/maintain-changelog/SKILL.md",
         "config:package.json",
         "config:tsconfig.json",
+        "config:tsconfig.vscode-test.json",
         "config:schemas/ai-toolkit.annotations.schema.json",
+        "config:.github/dependabot.yml",
         "file:eslint.config.mjs",
         "file:.npmrc",
-        "file:.vscodeignore"
+        "file:.vscodeignore",
+        "pipeline:.github/workflows/ci.yml",
+        "pipeline:.github/workflows/codeql.yml"
       ]
     },
     {
@@ -4205,10 +4230,9 @@
     {
       "id": "layer:infrastructure",
       "name": "Infrastructure",
-      "description": "Persistence and file-system adapters: storage controller for reading/writing the annotation JSON store, file watcher for external changes, backup service, and schema migrations.",
+      "description": "Persistence and file-system adapters: storage controller for reading/writing the annotation JSON store, file watcher for external changes, and backup service.",
       "nodeIds": [
         "file:src/annotations/infrastructure/annotationBackupService.ts",
-        "file:src/annotations/infrastructure/annotationMigrations.ts",
         "file:src/annotations/infrastructure/annotationStorageController.ts",
         "file:src/annotations/infrastructure/annotationStoreWatcher.ts"
       ]
@@ -4241,6 +4265,7 @@
       "description": "Automated test suite: integration test for extension activation and unit tests covering domain validation, storage, commands, projections, workspace service, and draft output.",
       "nodeIds": [
         "file:src/test/extension.test.ts",
+        "file:src/test/unit/extension.test.ts",
         "file:src/test/unit/anchorMatching.test.ts",
         "file:src/test/unit/annotationCommands.test.ts",
         "file:src/test/unit/annotationProjection.test.ts",
@@ -4313,12 +4338,11 @@
     {
       "order": 6,
       "title": "Persistence Infrastructure",
-      "description": "The infrastructure layer handles all file I/O. AnnotationStorageController manages queued reads and writes of the JSON store file with migration support. AnnotationStoreWatcher detects external file changes and triggers refresh. AnnotationBackupService creates timestamped backups and prunes old ones.",
+      "description": "The infrastructure layer handles all file I/O. AnnotationStorageController manages queued reads and writes of the JSON store file with persisted-version handling. AnnotationStoreWatcher detects external file changes and triggers refresh. AnnotationBackupService creates timestamped backups and prunes old ones.",
       "nodeIds": [
         "file:src/annotations/infrastructure/annotationStorageController.ts",
         "file:src/annotations/infrastructure/annotationStoreWatcher.ts",
-        "file:src/annotations/infrastructure/annotationBackupService.ts",
-        "file:src/annotations/infrastructure/annotationMigrations.ts"
+        "file:src/annotations/infrastructure/annotationBackupService.ts"
       ]
     },
     {
