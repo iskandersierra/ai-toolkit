@@ -79,7 +79,7 @@ export class AnnotationCommentProjectionService implements vscode.Disposable {
 		thread.contextValue = contextValue;
 
 		const comment: vscode.Comment = {
-			body: new vscode.MarkdownString(`_${entry.status} · ${entry.anchorState}_\n\n${entry.body}`),
+			body: new vscode.MarkdownString(`_${entry.status} · ${entry.anchorState}: ${entry.body}`),
 			author: { name: entry.sessionName },
 			mode: vscode.CommentMode.Preview,
 			contextValue,
