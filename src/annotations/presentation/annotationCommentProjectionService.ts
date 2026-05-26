@@ -74,6 +74,7 @@ export class AnnotationCommentProjectionService implements vscode.Disposable {
 		const contextValue = createAnnotationCommentContextValue(entry);
 
 		thread.canReply = false;
+		thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
 		thread.label = `AI Toolkit · ${entry.sessionName}`;
 		thread.contextValue = contextValue;
 

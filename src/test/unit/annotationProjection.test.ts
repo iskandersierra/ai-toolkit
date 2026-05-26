@@ -310,6 +310,23 @@ suite('Annotation Projection', () => {
 
 		service.dispose();
 	});
+
+	// Scenario: Given a projected annotation comment thread,
+	// When refresh creates the thread,
+	// Then the thread starts expanded so the comment body and comment-level actions are immediately visible.
+	test('projects annotation comment threads as expanded', () => {
+		const controller = new FakeCommentController();
+		const service = new AnnotationCommentProjectionService(controller.asController());
+
+		service.refresh(createProjection('e:/source/one', 'src/one.ts', 'annotation-one', 'active'));
+
+		assert.strictEqual(
+			controller.threads[0]?.collapsibleState,
+			vscode.CommentThreadCollapsibleState.Expanded,
+		);
+
+		service.dispose();
+	});
 });
 
 function createProjection(
@@ -385,6 +402,7 @@ class FakeCommentController {
 
 class FakeCommentThread {
 	public canReply = true;
+	public collapsibleState = vscode.CommentThreadCollapsibleState.Collapsed;
 	public comments: readonly vscode.Comment[];
 	public contextValue: string | undefined;
 	public disposed = false;
@@ -416,6 +434,12 @@ class FakeCommentThread {
 			},
 			set comments(value) {
 				thread.comments = value;
+			},
+			get collapsibleState() {
+				return thread.collapsibleState;
+			},
+			set collapsibleState(value) {
+				thread.collapsibleState = value;
 			},
 			get contextValue() {
 				return thread.contextValue;
